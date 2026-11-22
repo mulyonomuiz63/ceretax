@@ -314,7 +314,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <>
                     Selamat Datang
                     <br />
-                    Anda akan masuk ke
+                    Anda akan masuk ke Simulasi
                     <br />
                     Coretax DJP
                   </>
@@ -322,7 +322,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <>
                     Welcome
                     <br />
-                    You are entering
+                    You are entering Simulation
                     <br />
                     Coretax DJP
                   </>
