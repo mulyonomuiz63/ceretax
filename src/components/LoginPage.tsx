@@ -26,7 +26,7 @@ import { KelasBrevetLogo } from './KelasBrevetLogo.tsx';
 import { DEMO_ACCOUNTS } from '../data/seedData.ts';
 
 interface LoginPageProps {
-  onLoginNik: (nik: string) => Promise<void>;
+  onLoginNik: (nik: string, password?: string) => Promise<void>;
   language: 'id-ID' | 'en-US';
   onLanguageChange: (lang: 'id-ID' | 'en-US') => void;
   cloudUserEmail: string | null;
@@ -67,12 +67,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   loading,
   error,
 }) => {
-  const [step, setStep] = useState<'LANDING' | 'LOGIN'>('LANDING');
+  const initialNikParam =
+    typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('nik') || '').replace(/\D/g, '').slice(0, 16)
+      : '';
+
+  const [step, setStep] = useState<'LANDING' | 'LOGIN'>(initialNikParam ? 'LOGIN' : 'LANDING');
   const [darkTheme, setDarkTheme] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [frontInfoCard, setFrontInfoCard] = useState<'SAFE' | 'AVOID'>('SAFE');
 
-  const [nik, setNik] = useState('');
+  const [nik, setNik] = useState(initialNikParam);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [humanVerified, setHumanVerified] = useState(false);
@@ -96,16 +101,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       return;
     }
 
-    // Automatically check verification box if student submits NIK directly for frictionless NIK-only login
     if (!humanVerified) {
       setHumanVerified(true);
     }
 
-    await onLoginNik(cleanedNik);
+    await onLoginNik(cleanedNik, password.trim() || undefined);
   };
 
   const handleQuickDemo = async (demoNik: string) => {
     setNik(demoNik);
+    setPassword('');
     setHumanVerified(true);
     setLocalError(null);
     setModalMode('NONE');
@@ -993,7 +998,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               {modalMode === 'FORGOT' ? (
                 <div className="space-y-3 leading-relaxed">
                   <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E3A8A] p-3.5 rounded-lg">
-                    Pada <strong>Simulator Coretax KelasBrevet</strong>, mahasiswa cukup mengisi <strong>ID Pengguna (NIK 16 digit)</strong> lalu klik <strong>Masuk</strong>. Kolom Kata Sandi bersifat simulatif (boleh dikosongkan).
+                    Bagi peserta paket Brevet dari <strong>kelasbrevet.com</strong>, silakan gunakan <strong>ID Pengguna (NIK/NPWP)</strong> dan <strong>Kata Sandi</strong> yang ditampilkan pada menu Simulasi di dashboard <strong>kelasbrevet.com</strong>.
                   </div>
                   <p>
                     Untuk penandatanganan elektronik (e-Faktur, e-Bupot, dan SPT), gunakan Passphrase default Kode Otorisasi DJP: <strong className="font-mono-num text-[#1E2C5E]">123456</strong>.

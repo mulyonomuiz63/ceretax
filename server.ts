@@ -7,8 +7,10 @@ import { createServer as createViteServer } from 'vite';
 import {
   BillingCode,
   ExamCaseCode,
+  ExamQuestion,
   NotificationItem,
   OpAssetLiabilityFamily,
+  ParticipantAccount,
   TaxInvoice,
   TaxReturn,
   WithholdingSlip,
@@ -20,6 +22,24 @@ import {
   generateFakturNumber,
 } from './src/utils/taxCalc.ts';
 import * as mysqlRepo from './src/db/repository.ts';
+import {
+  generateParticipantNik,
+  generateParticipantPassword,
+  getAdminCredentials,
+  getPublicSimulationUrl,
+  hashPassword,
+  requireAdminAuth,
+  requireIntegrationApiKey,
+  signAdminToken,
+  verifyPassword,
+} from './src/lib/serverAuth.ts';
+import {
+  buildAdminAnalytics,
+  DEFAULT_PASSING_SCORE,
+  evaluateParticipantWorkspace,
+  renderQuestionPrintableHtml,
+  toPublicParticipant,
+} from './src/lib/evaluationService.ts';
 
 const PORT = Number(process.env.PORT || 3000);
 
@@ -96,18 +116,50 @@ async function startServer() {
     return ws;
   }
 
-  // === Auth: NIK Login (100% MySQL-backed auto-provisioning) ===
+  // === Auth: NIK Login (Supports KelasBrevet Provisioned Accounts with Password + Demo NIK) ===
   app.post('/api/auth/nik-login', async (req: Request, res: Response) => {
     try {
       const rawNik = String(req.body?.nik || '').replace(/\D/g, '');
+      const rawPassword = String(req.body?.password || '').trim();
       if (rawNik.length < 10) {
         return res.status(400).json({ error: 'Masukkan NIK/NPWP minimal 10–16 digit angka.' });
       }
       const nik = normalizeNik(rawNik);
+      const participant = await mysqlRepo.findParticipantByNik(nik);
+
+      if (participant) {
+        if (!participant.isActive) {
+          return res.status(403).json({
+            error: 'Akun simulasi Anda sedang dinonaktifkan. Hubungi admin KelasBrevet.',
+          });
+        }
+        if (participant.passwordHash) {
+          if (!rawPassword) {
+            return res.status(401).json({
+              error:
+                'Masukkan Kata Sandi simulasi yang ditampilkan pada halaman akun Anda di kelasbrevet.com.',
+            });
+          }
+          if (!verifyPassword(rawPassword, participant.passwordHash)) {
+            return res.status(401).json({
+              error:
+                'Kata Sandi tidak sesuai. Periksa kembali ID Pengguna & Kata Sandi simulasi Anda di kelasbrevet.com.',
+            });
+          }
+        }
+        await mysqlRepo.touchParticipantLogin(nik);
+        const ws = await mysqlRepo.syncWorkspaceProfileFromParticipant(nik, participant);
+        return res.json({
+          ok: true,
+          workspace: ws,
+          participant: toPublicParticipant(participant),
+        });
+      }
+
       const ws = await mysqlRepo.getOrCreateWorkspace(nik);
       return res.json({ ok: true, workspace: ws });
     } catch (err) {
-      return handleDbError(res, err, 'Gagal memuat sesi login dari MySQL.');
+      return handleDbError(res, err, 'Gagal memuat sesi login dari database.');
     }
   });
 
@@ -569,24 +621,608 @@ async function startServer() {
     }
   });
 
-  // === Exam Case Auto-Evaluator ===
-  app.post('/api/workspace/:nik/exam/evaluate', async (req: Request, res: Response) => {
+  // === Public Read-Only Questions & Printable PDF (Simulator UI — NO Scores/Results) ===
+  app.get('/api/questions', async (_req: Request, res: Response) => {
     try {
-      const nik = normalizeNik(req.params.nik);
-      const ws = await mysqlRepo.getOrCreateWorkspace(nik);
-      const caseCode = req.body?.caseCode as ExamCaseCode;
-      const evaluation = evaluateExamCase(ws, caseCode);
-      await mysqlRepo.upsertExamEvaluation(nik, evaluation);
-      const { workspace } = await pushNotification(
-        nik,
-        ws.individualTaxpayer.id,
-        `Hasil Evaluasi Latihan: ${evaluation.score}/100`,
-        `Studi kasus ${caseCode.replace('CASE_', '')}: ${evaluation.passedCount} dari ${evaluation.totalChecks} kriteria terpenuhi.`,
-        'EXAM'
-      );
-      return res.json({ evaluation, workspace });
+      const questions = await mysqlRepo.listExamQuestions(true);
+      return res.json({ questions });
     } catch (err) {
-      return handleDbError(res, err, 'Gagal menyimpan hasil evaluasi latihan ke MySQL.');
+      return handleDbError(res, err, 'Gagal memuat daftar soal latihan.');
+    }
+  });
+
+  app.get('/api/questions/:id/pdf', async (req: Request, res: Response) => {
+    try {
+      if (req.params.id === 'all') {
+        const all = await mysqlRepo.listExamQuestions(true);
+        if (all.length === 0) {
+          return res.status(404).send('Belum ada soal latihan aktif.');
+        }
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(renderQuestionPrintableHtml(all[0], all));
+      }
+      const q = await mysqlRepo.getExamQuestionById(req.params.id);
+      if (!q) return res.status(404).send('Soal tidak ditemukan.');
+      if (q.pdfUrl && /^https?:\/\//i.test(q.pdfUrl)) {
+        return res.redirect(q.pdfUrl);
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(renderQuestionPrintableHtml(q));
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memuat dokumen PDF soal.');
+    }
+  });
+
+  // Helper: Provision participant (shared by kelasbrevet.com API & Admin manual creation)
+  async function provisionParticipantAccount(
+    body: Record<string, any>,
+    source: ParticipantAccount['source'],
+    req: Request
+  ) {
+    const externalUserId = body.externalUserId ? String(body.externalUserId).trim() : undefined;
+    const rawNikInput = body.nik ? String(body.nik).replace(/\D/g, '') : '';
+    const fullName = String(body.fullName || body.name || '').trim();
+    const email = String(body.email || '').trim().toLowerCase();
+    const phone = String(body.phone || '').trim();
+    const packageName = String(body.packageName || 'Brevet A & B').trim();
+    const companyName = String(body.companyName || '').trim();
+    const companyNpwp = String(body.companyNpwp || '').replace(/\D/g, '').slice(0, 16);
+    const passingScore = Math.min(100, Math.max(1, Number(body.passingScore || DEFAULT_PASSING_SCORE)));
+    const regeneratePassword = Boolean(body.regeneratePassword);
+    const customPassword = body.password ? String(body.password).trim() : '';
+
+    if (!fullName) {
+      throw Object.assign(new Error('Field fullName (nama peserta) wajib diisi.'), { statusCode: 400 });
+    }
+
+    let existing: ParticipantAccount | null = null;
+    if (externalUserId) {
+      existing = await mysqlRepo.findParticipantByIdentifier(externalUserId);
+    }
+    if (!existing && rawNikInput.length >= 10) {
+      existing = await mysqlRepo.findParticipantByNik(normalizeNik(rawNikInput));
+    }
+
+    const now = new Date().toISOString();
+    const nikKey = existing
+      ? existing.nikKey
+      : rawNikInput.length >= 10
+        ? normalizeNik(rawNikInput)
+        : generateParticipantNik();
+
+    const shouldCreatePassword = !existing || regeneratePassword || Boolean(customPassword);
+    const plainPassword = shouldCreatePassword
+      ? customPassword || generateParticipantPassword()
+      : existing?.initialPassword || generateParticipantPassword();
+
+    const passwordHash = shouldCreatePassword
+      ? hashPassword(plainPassword)
+      : existing!.passwordHash || hashPassword(plainPassword);
+
+    const participant: ParticipantAccount = {
+      id: existing?.id || `part-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
+      externalUserId: externalUserId || existing?.externalUserId,
+      nikKey,
+      passwordHash,
+      initialPassword: plainPassword,
+      fullName,
+      email: email || existing?.email || '',
+      phone: phone || existing?.phone || '',
+      packageName: packageName || existing?.packageName || 'Brevet A & B',
+      companyName:
+        companyName || existing?.companyName || `PT SIMULASI BREVET ${nikKey.slice(-4)} (PKP)`,
+      companyNpwp: companyNpwp || existing?.companyNpwp || `01${nikKey.slice(2, 13)}000`,
+      source: existing?.source || source,
+      isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
+      passingScore,
+      lastLoginAt: existing?.lastLoginAt,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+    };
+
+    const saved = await mysqlRepo.upsertParticipant(participant);
+    await mysqlRepo.syncWorkspaceProfileFromParticipant(saved.nikKey, saved);
+
+    const baseUrl = getPublicSimulationUrl(req);
+    const simulationUrl = `${baseUrl}/?nik=${encodeURIComponent(saved.nikKey)}`;
+
+    return {
+      isNewAccount: !existing,
+      credentials: {
+        nik: saved.nikKey,
+        password: plainPassword,
+        simulationUrl,
+        passphraseDjp: '123456',
+      },
+      participant: toPublicParticipant(saved),
+    };
+  }
+
+  // Helper: Load all evaluated participant summaries
+  async function loadAllEvaluatedParticipants() {
+    const participants = await mysqlRepo.listParticipants();
+    const results = await Promise.all(
+      participants.map(async (p) => {
+        const ws = await mysqlRepo.getOrCreateWorkspace(p.nikKey);
+        return evaluateParticipantWorkspace(p, ws);
+      })
+    );
+    return results;
+  }
+
+  // ==========================================================================
+  // INTEGRATION API v1 FOR KELASBREVET.COM (Protected by X-API-Key)
+  // ==========================================================================
+  app.post(
+    '/api/integration/v1/participants/provision',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const data = await provisionParticipantAccount(req.body || {}, 'KELASBREVET_API', req);
+        return res.status(data.isNewAccount ? 201 : 200).json({
+          ok: true,
+          ...data,
+        });
+      } catch (err: any) {
+        if (err?.statusCode === 400) {
+          return res.status(400).json({ ok: false, error: err.message });
+        }
+        return handleDbError(res, err, 'Gagal membuat/menyinkronkan akun peserta simulasi.');
+      }
+    }
+  );
+
+  app.get(
+    '/api/integration/v1/participants',
+    requireIntegrationApiKey,
+    async (_req: Request, res: Response) => {
+      try {
+        const results = await loadAllEvaluatedParticipants();
+        return res.json({
+          ok: true,
+          total: results.length,
+          participants: results.map((r) => ({
+            id: r.participant.id,
+            externalUserId: r.participant.externalUserId,
+            nik: r.participant.nikKey,
+            fullName: r.participant.fullName,
+            email: r.participant.email,
+            packageName: r.participant.packageName,
+            averageScore: r.averageScore,
+            passingScore: r.passingScore,
+            isPassed: r.isPassed,
+            graduationStatus: r.graduationStatus,
+            progressStatus: r.progressStatus,
+            completedModules: r.completedModules,
+            totalModules: r.totalModules,
+            lastLoginAt: r.participant.lastLoginAt,
+          })),
+        });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal memuat daftar peserta simulasi.');
+      }
+    }
+  );
+
+  app.get(
+    '/api/integration/v1/participants/:identifier/result',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const participant = await mysqlRepo.findParticipantByIdentifier(req.params.identifier);
+        if (!participant) {
+          return res.status(404).json({
+            ok: false,
+            error: 'Peserta tidak ditemukan. Pastikan akun telah dibuat melalui endpoint provision.',
+          });
+        }
+        const ws = await mysqlRepo.getOrCreateWorkspace(participant.nikKey);
+        const result = evaluateParticipantWorkspace(participant, ws);
+        return res.json({ ok: true, result });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal mengevaluasi hasil simulasi peserta.');
+      }
+    }
+  );
+
+  app.post(
+    '/api/integration/v1/participants/:identifier/reset',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const participant = await mysqlRepo.findParticipantByIdentifier(req.params.identifier);
+        if (!participant) {
+          return res.status(404).json({ ok: false, error: 'Peserta tidak ditemukan.' });
+        }
+        const { workspace } = await mysqlRepo.resetWorkspace(participant.nikKey);
+        await mysqlRepo.syncWorkspaceProfileFromParticipant(participant.nikKey, participant);
+        io.to(`room:nik:${participant.nikKey}`).emit('workspace:updated', workspace);
+        return res.json({
+          ok: true,
+          message: 'Workspace simulasi peserta berhasil direset ke kondisi awal.',
+          nik: participant.nikKey,
+        });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal mereset workspace peserta.');
+      }
+    }
+  );
+
+  app.get(
+    '/api/integration/v1/questions',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const activeOnly = String(req.query.activeOnly || 'false').toLowerCase() === 'true';
+        const questions = await mysqlRepo.listExamQuestions(activeOnly);
+        const baseUrl = getPublicSimulationUrl(req);
+        return res.json({
+          ok: true,
+          total: questions.length,
+          allPdfUrl: `${baseUrl}/api/questions/all/pdf`,
+          questions: questions.map((q) => ({
+            ...q,
+            downloadPdfUrl: q.pdfUrl || `${baseUrl}/api/questions/${encodeURIComponent(q.id)}/pdf`,
+          })),
+        });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal memuat daftar soal latihan.');
+      }
+    }
+  );
+
+  app.post(
+    '/api/integration/v1/questions',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const b = req.body || {};
+        if (!b.title || !b.summary) {
+          return res.status(400).json({ ok: false, error: 'Field title dan summary wajib diisi.' });
+        }
+        const now = new Date().toISOString();
+        const existingList = await mysqlRepo.listExamQuestions(false);
+        const q: ExamQuestion = {
+          id: `q-${Date.now()}-${Math.floor(Math.random() * 999)}`,
+          code: String(b.code || `CASE_CUSTOM_${Date.now().toString().slice(-5)}`)
+            .toUpperCase()
+            .replace(/[^A-Z0-9_]/g, '_'),
+          moduleTag: String(b.moduleTag || `Modul ${existingList.length + 1}`),
+          title: String(b.title).trim(),
+          accountMode: b.accountMode === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'CORPORATE',
+          summary: String(b.summary).trim(),
+          instructions: Array.isArray(b.instructions)
+            ? b.instructions.map((s: any) => String(s).trim()).filter(Boolean)
+            : [],
+          pdfUrl: b.pdfUrl ? String(b.pdfUrl).trim() : '',
+          passingScore: Number(b.passingScore || DEFAULT_PASSING_SCORE),
+          targetModule: String(b.targetModule || 'portal'),
+          targetSubTab: b.targetSubTab ? String(b.targetSubTab) : undefined,
+          sortOrder: Number(b.sortOrder ?? existingList.length + 1),
+          isActive: b.isActive !== undefined ? Boolean(b.isActive) : true,
+          createdAt: now,
+          updatedAt: now,
+        };
+        const created = await mysqlRepo.createExamQuestion(q);
+        return res.status(201).json({ ok: true, question: created });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal menambahkan soal latihan.');
+      }
+    }
+  );
+
+  app.put(
+    '/api/integration/v1/questions/:id',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const b = req.body || {};
+        const updates: Partial<ExamQuestion> = {};
+        if (b.code !== undefined) updates.code = String(b.code).trim();
+        if (b.moduleTag !== undefined) updates.moduleTag = String(b.moduleTag).trim();
+        if (b.title !== undefined) updates.title = String(b.title).trim();
+        if (b.accountMode !== undefined) {
+          updates.accountMode = b.accountMode === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'CORPORATE';
+        }
+        if (b.summary !== undefined) updates.summary = String(b.summary).trim();
+        if (Array.isArray(b.instructions)) {
+          updates.instructions = b.instructions.map((s: any) => String(s).trim()).filter(Boolean);
+        }
+        if (b.pdfUrl !== undefined) updates.pdfUrl = String(b.pdfUrl).trim();
+        if (b.passingScore !== undefined) updates.passingScore = Number(b.passingScore);
+        if (b.targetModule !== undefined) updates.targetModule = String(b.targetModule);
+        if (b.targetSubTab !== undefined) updates.targetSubTab = String(b.targetSubTab);
+        if (b.sortOrder !== undefined) updates.sortOrder = Number(b.sortOrder);
+        if (b.isActive !== undefined) updates.isActive = Boolean(b.isActive);
+
+        const updated = await mysqlRepo.updateExamQuestion(req.params.id, updates);
+        if (!updated) return res.status(404).json({ ok: false, error: 'Soal tidak ditemukan.' });
+        return res.json({ ok: true, question: updated });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal memperbarui soal latihan.');
+      }
+    }
+  );
+
+  app.delete(
+    '/api/integration/v1/questions/:id',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const deleted = await mysqlRepo.deleteExamQuestion(req.params.id);
+        if (!deleted) return res.status(404).json({ ok: false, error: 'Soal tidak ditemukan.' });
+        return res.json({ ok: true, deletedId: req.params.id });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal menghapus soal latihan.');
+      }
+    }
+  );
+
+  app.get(
+    '/api/integration/v1/questions/:id/pdf',
+    requireIntegrationApiKey,
+    async (req: Request, res: Response) => {
+      try {
+        const q = await mysqlRepo.getExamQuestionById(req.params.id);
+        if (!q) return res.status(404).json({ ok: false, error: 'Soal tidak ditemukan.' });
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(renderQuestionPrintableHtml(q));
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal menghasilkan dokumen PDF soal.');
+      }
+    }
+  );
+
+  // ==========================================================================
+  // ADMIN MANAGEMENT PORTAL API (Strictly Separate from Simulator)
+  // ==========================================================================
+  app.post('/api/admin/login', (req: Request, res: Response) => {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    const creds = getAdminCredentials();
+
+    if (email !== creds.email || password !== creds.password) {
+      return res.status(401).json({
+        error: 'Email atau kata sandi Admin tidak valid.',
+      });
+    }
+
+    const token = signAdminToken(creds.email);
+    return res.json({
+      ok: true,
+      token,
+      admin: { email: creds.email, role: 'ADMIN' },
+    });
+  });
+
+  app.get('/api/admin/me', requireAdminAuth, (req: Request, res: Response) => {
+    const adminUser = (req as any).adminUser;
+    return res.json({
+      ok: true,
+      admin: { email: adminUser.email, role: adminUser.role },
+      dbDriver: mysqlRepo.getActiveDriverLabel(),
+      publicUrl: getPublicSimulationUrl(req),
+    });
+  });
+
+  app.get('/api/admin/analytics', requireAdminAuth, async (_req: Request, res: Response) => {
+    try {
+      const [results, questions] = await Promise.all([
+        loadAllEvaluatedParticipants(),
+        mysqlRepo.listExamQuestions(false),
+      ]);
+      const analytics = buildAdminAnalytics(results, questions);
+      return res.json({ ok: true, analytics });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memuat analitik simulasi.');
+    }
+  });
+
+  app.get('/api/admin/participants', requireAdminAuth, async (_req: Request, res: Response) => {
+    try {
+      const results = await loadAllEvaluatedParticipants();
+      return res.json({ ok: true, participants: results });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memuat daftar peserta.');
+    }
+  });
+
+  app.post('/api/admin/participants', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const data = await provisionParticipantAccount(req.body || {}, 'ADMIN_MANUAL', req);
+      return res.status(201).json({ ok: true, ...data });
+    } catch (err: any) {
+      if (err?.statusCode === 400) {
+        return res.status(400).json({ error: err.message });
+      }
+      return handleDbError(res, err, 'Gagal menambahkan akun peserta.');
+    }
+  });
+
+  app.post(
+    '/api/admin/integration/test-provision',
+    requireAdminAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const data = await provisionParticipantAccount(req.body || {}, 'KELASBREVET_API', req);
+        return res.status(201).json({ ok: true, ...data });
+      } catch (err: any) {
+        if (err?.statusCode === 400) {
+          return res.status(400).json({ error: err.message });
+        }
+        return handleDbError(res, err, 'Gagal menjalankan simulasi provisioning API.');
+      }
+    }
+  );
+
+  app.get(
+    '/api/admin/participants/:nik/detail',
+    requireAdminAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const participant = await mysqlRepo.findParticipantByNik(normalizeNik(req.params.nik));
+        if (!participant) {
+          return res.status(404).json({ error: 'Peserta tidak ditemukan.' });
+        }
+        const ws = await mysqlRepo.getOrCreateWorkspace(participant.nikKey);
+        const result = evaluateParticipantWorkspace(participant, ws);
+        return res.json({
+          ok: true,
+          result,
+          simulationUrl: `${getPublicSimulationUrl(req)}/?nik=${encodeURIComponent(participant.nikKey)}`,
+        });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal memuat detail peserta.');
+      }
+    }
+  );
+
+  app.patch(
+    '/api/admin/participants/:nik',
+    requireAdminAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const nikKey = normalizeNik(req.params.nik);
+        const b = req.body || {};
+        const updates: Partial<ParticipantAccount> = {};
+        if (b.fullName !== undefined) updates.fullName = String(b.fullName).trim();
+        if (b.email !== undefined) updates.email = String(b.email).trim();
+        if (b.phone !== undefined) updates.phone = String(b.phone).trim();
+        if (b.packageName !== undefined) updates.packageName = String(b.packageName).trim();
+        if (b.isActive !== undefined) updates.isActive = Boolean(b.isActive);
+        if (b.passingScore !== undefined) {
+          updates.passingScore = Math.min(100, Math.max(1, Number(b.passingScore)));
+        }
+        if (b.regeneratePassword) {
+          const newPw = generateParticipantPassword();
+          updates.passwordHash = hashPassword(newPw);
+          updates.initialPassword = newPw;
+        }
+        const updated = await mysqlRepo.updateParticipantMeta(nikKey, updates);
+        if (!updated) return res.status(404).json({ error: 'Peserta tidak ditemukan.' });
+        await mysqlRepo.syncWorkspaceProfileFromParticipant(nikKey, updated);
+        return res.json({ ok: true, participant: toPublicParticipant(updated) });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal memperbarui data peserta.');
+      }
+    }
+  );
+
+  app.post(
+    '/api/admin/participants/:nik/reset',
+    requireAdminAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const nikKey = normalizeNik(req.params.nik);
+        const participant = await mysqlRepo.findParticipantByNik(nikKey);
+        const { workspace } = await mysqlRepo.resetWorkspace(nikKey);
+        if (participant) {
+          await mysqlRepo.syncWorkspaceProfileFromParticipant(nikKey, participant);
+        }
+        io.to(`room:nik:${nikKey}`).emit('workspace:updated', workspace);
+        return res.json({ ok: true, message: 'Workspace peserta berhasil direset.' });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal mereset workspace peserta.');
+      }
+    }
+  );
+
+  app.delete(
+    '/api/admin/participants/:nik',
+    requireAdminAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const nikKey = normalizeNik(req.params.nik);
+        const deleted = await mysqlRepo.deleteParticipant(nikKey);
+        if (!deleted) return res.status(404).json({ error: 'Peserta tidak ditemukan.' });
+        return res.json({ ok: true, deletedNik: nikKey });
+      } catch (err) {
+        return handleDbError(res, err, 'Gagal menghapus peserta.');
+      }
+    }
+  );
+
+  app.get('/api/admin/questions', requireAdminAuth, async (_req: Request, res: Response) => {
+    try {
+      const questions = await mysqlRepo.listExamQuestions(false);
+      return res.json({ ok: true, questions });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memuat daftar soal.');
+    }
+  });
+
+  app.post('/api/admin/questions', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const b = req.body || {};
+      if (!b.title || !b.summary) {
+        return res.status(400).json({ error: 'Judul soal dan ringkasan skenario wajib diisi.' });
+      }
+      const now = new Date().toISOString();
+      const existingList = await mysqlRepo.listExamQuestions(false);
+      const q: ExamQuestion = {
+        id: `q-${Date.now()}-${Math.floor(Math.random() * 999)}`,
+        code: String(b.code || `SOAL_${existingList.length + 1}_${Date.now().toString().slice(-4)}`)
+          .toUpperCase()
+          .replace(/[^A-Z0-9_]/g, '_'),
+        moduleTag: String(b.moduleTag || `Modul ${existingList.length + 1}`).trim(),
+        title: String(b.title).trim(),
+        accountMode: b.accountMode === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'CORPORATE',
+        summary: String(b.summary).trim(),
+        instructions: Array.isArray(b.instructions)
+          ? b.instructions.map((s: any) => String(s).trim()).filter(Boolean)
+          : [],
+        pdfUrl: b.pdfUrl ? String(b.pdfUrl).trim() : '',
+        passingScore: Number(b.passingScore || DEFAULT_PASSING_SCORE),
+        targetModule: String(b.targetModule || 'portal'),
+        targetSubTab: b.targetSubTab ? String(b.targetSubTab) : undefined,
+        sortOrder: Number(b.sortOrder ?? existingList.length + 1),
+        isActive: b.isActive !== undefined ? Boolean(b.isActive) : true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const created = await mysqlRepo.createExamQuestion(q);
+      return res.status(201).json({ ok: true, question: created });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal membuat soal baru.');
+    }
+  });
+
+  app.put('/api/admin/questions/:id', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const b = req.body || {};
+      const updates: Partial<ExamQuestion> = {};
+      if (b.code !== undefined) updates.code = String(b.code).trim();
+      if (b.moduleTag !== undefined) updates.moduleTag = String(b.moduleTag).trim();
+      if (b.title !== undefined) updates.title = String(b.title).trim();
+      if (b.accountMode !== undefined) {
+        updates.accountMode = b.accountMode === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'CORPORATE';
+      }
+      if (b.summary !== undefined) updates.summary = String(b.summary).trim();
+      if (Array.isArray(b.instructions)) {
+        updates.instructions = b.instructions.map((s: any) => String(s).trim()).filter(Boolean);
+      }
+      if (b.pdfUrl !== undefined) updates.pdfUrl = String(b.pdfUrl).trim();
+      if (b.passingScore !== undefined) updates.passingScore = Number(b.passingScore);
+      if (b.targetModule !== undefined) updates.targetModule = String(b.targetModule);
+      if (b.targetSubTab !== undefined) updates.targetSubTab = String(b.targetSubTab);
+      if (b.sortOrder !== undefined) updates.sortOrder = Number(b.sortOrder);
+      if (b.isActive !== undefined) updates.isActive = Boolean(b.isActive);
+
+      const updated = await mysqlRepo.updateExamQuestion(req.params.id, updates);
+      if (!updated) return res.status(404).json({ error: 'Soal tidak ditemukan.' });
+      return res.json({ ok: true, question: updated });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memperbarui soal.');
+    }
+  });
+
+  app.delete('/api/admin/questions/:id', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const deleted = await mysqlRepo.deleteExamQuestion(req.params.id);
+      if (!deleted) return res.status(404).json({ error: 'Soal tidak ditemukan.' });
+      return res.json({ ok: true, deletedId: req.params.id });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal menghapus soal.');
     }
   });
 

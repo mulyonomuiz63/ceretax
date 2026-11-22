@@ -43,7 +43,6 @@ interface CoretaxShellProps {
   notifications: NotificationItem[];
   onMarkAllNotificationsRead: () => void;
   onOpenExamDrawer: () => void;
-  examCompletedCount: number;
   language: 'id-ID' | 'en-US';
   onLanguageChange: (lang: 'id-ID' | 'en-US') => void;
   cloudUserEmail: string | null;
@@ -82,12 +81,7 @@ const NAV_CONFIG: Array<{
     popoverTitle: 'E-FAKTUR',
     hasChevron: false,
     icon: Receipt,
-    items: [
-      { id: 'output', label: 'Pajak Keluaran' },
-      { id: 'input', label: 'Pajak Masukan' },
-      { id: 'export', label: 'Dokumen Lain' },
-      { id: 'retur', label: 'Retur Pajak Keluaran' },
-    ],
+    items: [],
   },
   {
     key: 'ebupot',
@@ -142,9 +136,12 @@ const NAV_CONFIG: Array<{
 const QUICK_SERVICES = [
   { label: 'Portal Saya — Dokumen Saya', module: 'portal' as MainNavKey, subTab: 'dokumen' },
   { label: 'Portal Saya — Profil Saya', module: 'portal' as MainNavKey, subTab: 'profil' },
+  { label: 'e-Faktur — Dashboard', module: 'efaktur' as MainNavKey, subTab: 'dashboard' },
   { label: 'e-Faktur — Pajak Keluaran', module: 'efaktur' as MainNavKey, subTab: 'output' },
   { label: 'e-Faktur — Pajak Masukan', module: 'efaktur' as MainNavKey, subTab: 'input' },
-  { label: 'e-Faktur — Retur Pajak Keluaran', module: 'efaktur' as MainNavKey, subTab: 'retur' },
+  { label: 'e-Faktur — Retur Pajak Keluaran', module: 'efaktur' as MainNavKey, subTab: 'retur_keluaran' },
+  { label: 'e-Faktur — Retur Pajak Masukan', module: 'efaktur' as MainNavKey, subTab: 'retur_masukan' },
+  { label: 'e-Faktur — Dokumen Lain Pajak Keluaran', module: 'efaktur' as MainNavKey, subTab: 'dok_lain_keluaran' },
   { label: 'eBupot — Bukti Pemotongan Bulanan Pegawai Tetap', module: 'ebupot' as MainNavKey, subTab: 'bpmp' },
   { label: 'eBupot — BP 21 - Bukti Pemotongan Selain Pegawai Tetap', module: 'ebupot' as MainNavKey, subTab: 'bp21' },
   { label: 'eBupot — BP A1 - Bukti Pemotongan A1 Masa Pajak Terakhir', module: 'ebupot' as MainNavKey, subTab: 'bpa1' },
@@ -199,7 +196,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   notifications,
   onMarkAllNotificationsRead,
   onOpenExamDrawer,
-  examCompletedCount,
   language,
   onLanguageChange,
   cloudUserEmail,
@@ -224,6 +220,11 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const shellRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const compactSearchInputRef = useRef<HTMLInputElement>(null);
+
+  // Restore sidebar automatically whenever user navigates to another main module (or refreshes page)
+  useEffect(() => {
+    setLeftCollapsed(false);
+  }, [activeModule]);
 
   // Ctrl+K shortcut to focus global Coretax service search
   useEffect(() => {
@@ -471,11 +472,11 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 <Search className="w-[17px] h-[17px]" />
               </button>
 
-              {/* Help / Guided Exam Icon */}
+              {/* Help / Read-Only Soal Latihan Icon */}
               <button
                 type="button"
                 onClick={onOpenExamDrawer}
-                title={`Soal Latihan & Cek Otomatis (${examCompletedCount}/5)`}
+                title="Lihat Soal Latihan"
                 className={`relative p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
                   darkHeader
                     ? 'text-slate-300 hover:bg-slate-800'
@@ -483,9 +484,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 }`}
               >
                 <HelpCircle className="w-[18px] h-[18px]" />
-                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[#F4C430] text-[#1B2958] text-[9.5px] font-extrabold font-mono-num flex items-center justify-center">
-                  {examCompletedCount}
-                </span>
               </button>
 
               {/* Sun / Dark Theme Toggle */}
@@ -934,7 +932,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               })}
             </div>
 
-            {/* Subtle Right-Aligned Guided Exam Button (Desktop lg+ so tablet ribbon stays airy) */}
+            {/* Subtle Right-Aligned Read-Only Soal Latihan Button (No Scores) */}
             <button
               type="button"
               onClick={onOpenExamDrawer}
@@ -946,13 +944,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             >
               <Award className="w-3.5 h-3.5 text-[#D97706]" />
               <span>Soal Latihan</span>
-              <span
-                className={`font-mono-num font-bold ${
-                  darkHeader ? 'text-[#F4C430]' : 'text-[#1E2C5E]'
-                }`}
-              >
-                {examCompletedCount}/5
-              </span>
             </button>
           </nav>
         </div>
@@ -1152,7 +1143,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl bg-[#FEF9E7] border border-[#F4C430] text-[#1B2958] text-xs font-bold flex items-center justify-between cursor-pointer"
                 >
                   <span>Soal Latihan</span>
-                  <span className="font-mono-num">{examCompletedCount}/5</span>
+                  <span className="text-[11px] text-[#7A5901]">Lihat Soal</span>
                 </button>
               </div>
             </div>

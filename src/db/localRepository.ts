@@ -3,8 +3,10 @@ import path from 'path';
 import {
   BillingCode,
   ExamEvaluation,
+  ExamQuestion,
   NotificationItem,
   OpAssetLiabilityFamily,
+  ParticipantAccount,
   TaxInvoice,
   TaxReturn,
   Taxpayer,
@@ -12,6 +14,7 @@ import {
   WorkspaceState,
 } from '../types/tax.ts';
 import { createSeedWorkspace } from '../data/seedData.ts';
+import { createDefaultExamQuestions } from '../lib/evaluationService.ts';
 import {
   formatRp,
   generateBillingCode,
@@ -21,8 +24,15 @@ import {
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'simulator-db.json');
+const META_FILE = path.join(DATA_DIR, 'simulator-meta.json');
+
+interface LocalMetaStore {
+  participants: ParticipantAccount[];
+  examQuestions: ExamQuestion[];
+}
 
 let store: Record<string, WorkspaceState> | null = null;
+let metaStore: LocalMetaStore | null = null;
 
 function ensureStoreLoaded(): Record<string, WorkspaceState> {
   if (store !== null) return store;
@@ -466,3 +476,204 @@ export async function upsertExamEvaluation(
   ws.examEvaluations[evaluation.caseCode] = evaluation;
   saveStore();
 }
+
+// ============================================================================
+// LOCAL META STORE (PARTICIPANTS + EXAM QUESTIONS)
+// ============================================================================
+
+function ensureMetaLoaded(): LocalMetaStore {
+  if (metaStore !== null) return metaStore;
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (fs.existsSync(META_FILE)) {
+      const raw = fs.readFileSync(META_FILE, 'utf-8');
+      const parsed = JSON.parse(raw) as Partial<LocalMetaStore>;
+      metaStore = {
+        participants: Array.isArray(parsed.participants) ? parsed.participants : [],
+        examQuestions:
+          Array.isArray(parsed.examQuestions) && parsed.examQuestions.length > 0
+            ? parsed.examQuestions
+            : createDefaultExamQuestions(),
+      };
+      return metaStore;
+    }
+  } catch (err) {
+    console.error('[Local Dev DB] Failed to load meta store:', err);
+  }
+  metaStore = {
+    participants: [],
+    examQuestions: createDefaultExamQuestions(),
+  };
+  saveMetaStore();
+  return metaStore;
+}
+
+function saveMetaStore(): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(
+      META_FILE,
+      JSON.stringify(metaStore ?? { participants: [], examQuestions: [] }, null, 2),
+      'utf-8'
+    );
+  } catch (err) {
+    console.error('[Local Dev DB] Failed to save meta store:', err);
+  }
+}
+
+export async function listExamQuestions(activeOnly = false): Promise<ExamQuestion[]> {
+  const meta = ensureMetaLoaded();
+  const list = activeOnly ? meta.examQuestions.filter((q) => q.isActive) : meta.examQuestions;
+  return [...list].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function getExamQuestionById(id: string): Promise<ExamQuestion | null> {
+  const meta = ensureMetaLoaded();
+  return meta.examQuestions.find((q) => q.id === id || q.code === id) || null;
+}
+
+export async function createExamQuestion(q: ExamQuestion): Promise<ExamQuestion> {
+  const meta = ensureMetaLoaded();
+  meta.examQuestions.push(q);
+  saveMetaStore();
+  return q;
+}
+
+export async function updateExamQuestion(
+  id: string,
+  updates: Partial<ExamQuestion>
+): Promise<ExamQuestion | null> {
+  const meta = ensureMetaLoaded();
+  const idx = meta.examQuestions.findIndex((q) => q.id === id || q.code === id);
+  if (idx === -1) return null;
+  const merged: ExamQuestion = {
+    ...meta.examQuestions[idx],
+    ...updates,
+    id: meta.examQuestions[idx].id,
+    updatedAt: new Date().toISOString(),
+  };
+  meta.examQuestions[idx] = merged;
+  saveMetaStore();
+  return merged;
+}
+
+export async function deleteExamQuestion(id: string): Promise<boolean> {
+  const meta = ensureMetaLoaded();
+  const before = meta.examQuestions.length;
+  meta.examQuestions = meta.examQuestions.filter((q) => q.id !== id);
+  if (meta.examQuestions.length !== before) {
+    saveMetaStore();
+    return true;
+  }
+  return false;
+}
+
+export async function listParticipants(): Promise<ParticipantAccount[]> {
+  const meta = ensureMetaLoaded();
+  return [...meta.participants].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function findParticipantByNik(nikKey: string): Promise<ParticipantAccount | null> {
+  const meta = ensureMetaLoaded();
+  return meta.participants.find((p) => p.nikKey === nikKey) || null;
+}
+
+export async function findParticipantByIdentifier(
+  identifier: string
+): Promise<ParticipantAccount | null> {
+  const meta = ensureMetaLoaded();
+  const cleanedNik = identifier.replace(/\D/g, '');
+  return (
+    meta.participants.find(
+      (p) =>
+        p.id === identifier ||
+        (p.externalUserId && p.externalUserId === identifier) ||
+        p.nikKey === identifier ||
+        (cleanedNik.length >= 10 && p.nikKey === cleanedNik)
+    ) || null
+  );
+}
+
+export async function upsertParticipant(p: ParticipantAccount): Promise<ParticipantAccount> {
+  const meta = ensureMetaLoaded();
+  const idx = meta.participants.findIndex(
+    (item) =>
+      item.nikKey === p.nikKey ||
+      (p.externalUserId && item.externalUserId === p.externalUserId)
+  );
+  if (idx >= 0) {
+    meta.participants[idx] = {
+      ...meta.participants[idx],
+      ...p,
+      id: meta.participants[idx].id,
+      createdAt: meta.participants[idx].createdAt,
+      updatedAt: new Date().toISOString(),
+    };
+    saveMetaStore();
+    return meta.participants[idx];
+  }
+  meta.participants.unshift(p);
+  saveMetaStore();
+  return p;
+}
+
+export async function updateParticipantMeta(
+  nikKey: string,
+  updates: Partial<ParticipantAccount>
+): Promise<ParticipantAccount | null> {
+  const meta = ensureMetaLoaded();
+  const idx = meta.participants.findIndex((p) => p.nikKey === nikKey);
+  if (idx === -1) return null;
+  meta.participants[idx] = {
+    ...meta.participants[idx],
+    ...updates,
+    id: meta.participants[idx].id,
+    nikKey: meta.participants[idx].nikKey,
+    updatedAt: new Date().toISOString(),
+  };
+  saveMetaStore();
+  return meta.participants[idx];
+}
+
+export async function touchParticipantLogin(nikKey: string): Promise<void> {
+  const meta = ensureMetaLoaded();
+  const target = meta.participants.find((p) => p.nikKey === nikKey);
+  if (!target) return;
+  const now = new Date().toISOString();
+  target.lastLoginAt = now;
+  target.updatedAt = now;
+  saveMetaStore();
+}
+
+export async function deleteParticipant(nikKey: string): Promise<boolean> {
+  const meta = ensureMetaLoaded();
+  const before = meta.participants.length;
+  meta.participants = meta.participants.filter((p) => p.nikKey !== nikKey);
+  const db = ensureStoreLoaded();
+  delete db[nikKey];
+  saveStore();
+  if (meta.participants.length !== before) {
+    saveMetaStore();
+    return true;
+  }
+  return false;
+}
+
+export async function syncWorkspaceProfileFromParticipant(
+  nikKey: string,
+  p: ParticipantAccount
+): Promise<WorkspaceState> {
+  const ws = getOrSeedSync(nikKey);
+  ws.individualTaxpayer.name = p.fullName.toUpperCase();
+  if (p.email) ws.individualTaxpayer.email = p.email;
+  if (p.phone) ws.individualTaxpayer.phone = p.phone;
+  if (p.companyName) ws.corporateTaxpayer.name = p.companyName.toUpperCase();
+  if (p.companyNpwp) ws.corporateTaxpayer.nikNpwp = p.companyNpwp;
+  saveStore();
+  return ws;
+}
+

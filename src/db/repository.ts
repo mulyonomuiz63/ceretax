@@ -79,3 +79,31 @@ export const markAllNotificationsRead: typeof mysqlRepo.markAllNotificationsRead
   activeRepo().markAllNotificationsRead(...args);
 export const upsertExamEvaluation: typeof mysqlRepo.upsertExamEvaluation = (...args) =>
   activeRepo().upsertExamEvaluation(...args);
+export const listExamQuestions: typeof mysqlRepo.listExamQuestions = (...args) =>
+  activeRepo().listExamQuestions(...args);
+export const getExamQuestionById: typeof mysqlRepo.getExamQuestionById = (...args) =>
+  activeRepo().getExamQuestionById(...args);
+export const createExamQuestion: typeof mysqlRepo.createExamQuestion = (...args) =>
+  activeRepo().createExamQuestion(...args);
+export const updateExamQuestion: typeof mysqlRepo.updateExamQuestion = (...args) =>
+  activeRepo().updateExamQuestion(...args);
+export const deleteExamQuestion: typeof mysqlRepo.deleteExamQuestion = (...args) =>
+  activeRepo().deleteExamQuestion(...args);
+export const listParticipants: typeof mysqlRepo.listParticipants = (...args) =>
+  activeRepo().listParticipants(...args);
+export const findParticipantByNik: typeof mysqlRepo.findParticipantByNik = (...args) =>
+  activeRepo().findParticipantByNik(...args);
+export const findParticipantByIdentifier: typeof mysqlRepo.findParticipantByIdentifier = (
+  ...args
+) => activeRepo().findParticipantByIdentifier(...args);
+export const upsertParticipant: typeof mysqlRepo.upsertParticipant = (...args) =>
+  activeRepo().upsertParticipant(...args);
+export const updateParticipantMeta: typeof mysqlRepo.updateParticipantMeta = (...args) =>
+  activeRepo().updateParticipantMeta(...args);
+export const touchParticipantLogin: typeof mysqlRepo.touchParticipantLogin = (...args) =>
+  activeRepo().touchParticipantLogin(...args);
+export const deleteParticipant: typeof mysqlRepo.deleteParticipant = (...args) =>
+  activeRepo().deleteParticipant(...args);
+export const syncWorkspaceProfileFromParticipant: typeof mysqlRepo.syncWorkspaceProfileFromParticipant =
+  (...args) => activeRepo().syncWorkspaceProfileFromParticipant(...args);
+

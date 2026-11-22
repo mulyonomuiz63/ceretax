@@ -1,24 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Award,
+  BookOpen,
   Building2,
-  CheckCircle2,
   ChevronRight,
-  ClipboardCheck,
-  RotateCcw,
+  Download,
+  FileText,
+  Info,
+  Loader2,
   User,
   X,
-  XCircle,
 } from 'lucide-react';
-import { EXAM_CASE_STUDIES } from '../data/seedData.ts';
-import { ExamCaseCode, ExamEvaluation } from '../types/tax.ts';
+import { ExamQuestion } from '../types/tax.ts';
+import { createDefaultExamQuestions } from '../lib/evaluationService.ts';
 
 interface ExamDrawerProps {
   open: boolean;
   onClose: () => void;
-  evaluations: Record<string, ExamEvaluation>;
-  onEvaluate: (caseCode: ExamCaseCode) => Promise<void>;
-  onResetWorkspace: () => Promise<void>;
   onNavigateAndSwitch: (
     accountMode: 'INDIVIDUAL' | 'CORPORATE',
     module: string,
@@ -29,232 +26,210 @@ interface ExamDrawerProps {
 export const ExamDrawer: React.FC<ExamDrawerProps> = ({
   open,
   onClose,
-  evaluations,
-  onEvaluate,
-  onResetWorkspace,
   onNavigateAndSwitch,
 }) => {
-  const [selectedCase, setSelectedCase] = useState<ExamCaseCode>('CASE_PPN');
-  const [checking, setChecking] = useState(false);
-  const [resetting, setResetting] = useState(false);
+  const [questions, setQuestions] = useState<ExamQuestion[]>(() => createDefaultExamQuestions());
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    setLoading(true);
+    fetch('/api/questions')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data?.questions) return;
+        const list: ExamQuestion[] = data.questions;
+        if (list.length > 0) {
+          setQuestions(list);
+          setSelectedId((prev) =>
+            prev && list.some((q) => q.id === prev) ? prev : list[0].id
+          );
+        }
+      })
+      .catch(() => {
+        // Fallback silently to default questions
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   if (!open) return null;
 
-  const activeMeta = EXAM_CASE_STUDIES.find((c) => c.code === selectedCase) || EXAM_CASE_STUDIES[0];
-  const currentEval = evaluations[selectedCase];
+  const activeQuestion =
+    questions.find((q) => q.id === selectedId) || questions[0] || null;
 
-  const handleCheck = async () => {
-    setChecking(true);
-    try {
-      await onEvaluate(selectedCase);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  const handleReset = async () => {
-    setResetting(true);
-    try {
-      await onResetWorkspace();
-    } finally {
-      setResetting(false);
-    }
-  };
+  const downloadUrl = activeQuestion
+    ? activeQuestion.pdfUrl && /^https?:\/\//i.test(activeQuestion.pdfUrl)
+      ? activeQuestion.pdfUrl
+      : `/api/questions/${encodeURIComponent(activeQuestion.id)}/pdf`
+    : '/api/questions/all/pdf';
 
   return (
-    <div className="fixed inset-y-0 right-0 z-40 w-full max-w-[440px] bg-white shadow-2xl border-l border-[#CBD5E1] flex flex-col">
+    <div className="fixed inset-y-0 right-0 z-40 w-full max-w-[460px] bg-white shadow-2xl border-l border-[#CBD5E1] flex flex-col">
       {/* Header */}
       <div className="bg-[#1D2B53] text-white px-4 py-3.5 flex items-center justify-between border-b-2 border-[#F4C430]">
-        <div className="flex items-center gap-2">
-          <Award className="w-5 h-5 text-[#F4C430]" />
-          <div>
-            <h3 className="font-display font-bold text-sm leading-tight">
-              Panel Soal Latihan &amp; Cek Otomatis
+        <div className="flex items-center gap-2.5 min-w-0">
+          <BookOpen className="w-5 h-5 text-[#F4C430] shrink-0" />
+          <div className="min-w-0">
+            <h3 className="font-display font-bold text-sm leading-tight truncate">
+              Soal Latihan Simulasi
             </h3>
-            <p className="text-[11px] text-slate-300">
-              5 Paket Studi Kasus Ujian KelasBrevet
+            <p className="text-[11px] text-slate-300 truncate">
+              Panduan Studi Kasus Resmi KelasBrevet ({questions.length} Soal)
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="text-slate-300 hover:text-white p-1 cursor-pointer"
+          className="text-slate-300 hover:text-white p-1 cursor-pointer shrink-0"
+          aria-label="Tutup panel soal latihan"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Case Selector Strip */}
-      <div className="p-3 bg-[#F8FAFC] border-b border-slate-200 grid grid-cols-5 gap-1.5">
-        {EXAM_CASE_STUDIES.map((cs, idx) => {
-          const ev = evaluations[cs.code];
-          const isSelected = cs.code === selectedCase;
-          return (
-            <button
-              key={cs.code}
-              type="button"
-              onClick={() => setSelectedCase(cs.code)}
-              className={`px-2 py-2 rounded text-center border transition cursor-pointer ${
-                isSelected
-                  ? 'bg-[#1D2B53] text-white border-[#1D2B53]'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-[#1D2B53]'
-              }`}
-            >
-              <div className="text-[10px] font-bold">Soal {idx + 1}</div>
-              <div
-                className={`text-[10px] font-mono-num mt-0.5 font-bold ${
-                  ev
-                    ? ev.score === 100
-                      ? isSelected
-                        ? 'text-[#F4C430]'
-                        : 'text-emerald-600'
-                      : isSelected
-                      ? 'text-amber-300'
-                      : 'text-amber-600'
-                    : isSelected
-                    ? 'text-slate-300'
-                    : 'text-slate-400'
+      {/* Question Selector Strip (Read-Only — No Scores / No Pass-Fail) */}
+      {questions.length > 0 && (
+        <div className="p-3 bg-[#F8FAFC] border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto">
+          {questions.map((q, idx) => {
+            const isSelected = activeQuestion?.id === q.id;
+            return (
+              <button
+                key={q.id}
+                type="button"
+                onClick={() => setSelectedId(q.id)}
+                className={`px-3 py-2 rounded-lg text-center border transition cursor-pointer shrink-0 whitespace-nowrap ${
+                  isSelected
+                    ? 'bg-[#1D2B53] text-white border-[#1D2B53] shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-[#1D2B53]'
                 }`}
               >
-                {ev ? `${ev.score}%` : '--'}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                <div className="text-[11px] font-bold">Soal {idx + 1}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="border border-[#D9E0E8] rounded p-3.5 bg-white">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <span className="text-[11px] font-bold text-[#1D2B53] bg-[#FEF3C7] px-2 py-0.5 rounded">
-              {activeMeta.moduleTag}
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600">
-              {activeMeta.accountMode === 'CORPORATE' ? (
-                <>
-                  <Building2 className="w-3.5 h-3.5 text-[#1D2B53]" />
-                  <span>Akun Impersonate PKP</span>
-                </>
-              ) : (
-                <>
-                  <User className="w-3.5 h-3.5 text-[#1D2B53]" />
-                  <span>Akun Orang Pribadi</span>
-                </>
-              )}
-            </span>
+        {loading && questions.length === 0 ? (
+          <div className="py-12 flex flex-col items-center justify-center text-slate-500 gap-2 text-xs">
+            <Loader2 className="w-5 h-5 animate-spin text-[#1D2B53]" />
+            <span>Memuat daftar soal latihan...</span>
           </div>
-
-          <h4 className="font-display font-bold text-sm text-[#1D2B53] mt-1">
-            {activeMeta.title}
-          </h4>
-          <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-            {activeMeta.summary}
-          </p>
-
-          <button
-            type="button"
-            onClick={() => {
-              onNavigateAndSwitch(
-                activeMeta.accountMode,
-                activeMeta.targetMenu.module,
-                activeMeta.targetMenu.subTab
-              );
-            }}
-            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-[#EDF2F7] hover:bg-[#E2E8F0] text-[#1D2B53] py-2 px-3 rounded border border-[#CBD5E1] cursor-pointer"
-          >
-            <span>Buka Menu Modul &amp; Sesuaikan Akun Otomatis</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Step-by-Step Instructions */}
-        <div>
-          <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-            Langkah Pengerjaan Studi Kasus
-          </h5>
-          <ol className="space-y-2">
-            {activeMeta.instructions.map((step, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-2.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded p-2.5 leading-relaxed"
-              >
-                <span className="w-5 h-5 rounded bg-[#1D2B53] text-[#F4C430] font-bold text-[11px] flex items-center justify-center shrink-0">
-                  {i + 1}
+        ) : !activeQuestion ? (
+          <div className="py-12 text-center text-xs text-slate-500">
+            Belum ada soal latihan aktif yang tersedia.
+          </div>
+        ) : (
+          <>
+            <div className="border border-[#D9E0E8] rounded-xl p-4 bg-white space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <span className="font-bold text-[#1D2B53]">{activeQuestion.moduleTag}</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-slate-600">
+                  {activeQuestion.accountMode === 'CORPORATE' ? (
+                    <>
+                      <Building2 className="w-3.5 h-3.5 text-[#1D2B53]" />
+                      <span>Akun Impersonate PKP</span>
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-3.5 h-3.5 text-[#1D2B53]" />
+                      <span>Akun Orang Pribadi</span>
+                    </>
+                  )}
                 </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
+              </div>
 
-        {/* Live Evaluation Output */}
-        {currentEval && (
-          <div className="border border-[#CBD5E1] rounded overflow-hidden">
-            <div
-              className={`px-3.5 py-2.5 flex items-center justify-between ${
-                currentEval.score === 100
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-[#1D2B53] text-white'
-              }`}
-            >
-              <span className="text-xs font-bold">
-                Hasil Pengecekan ({currentEval.passedCount}/{currentEval.totalChecks} Benar)
-              </span>
-              <span className="font-mono-num font-extrabold text-base text-[#F4C430]">
-                Nilai: {currentEval.score}
-              </span>
+              <h4 className="font-display font-bold text-[15px] text-[#1D2B53] leading-snug">
+                {activeQuestion.title}
+              </h4>
+              <p className="text-xs text-slate-600 leading-relaxed">{activeQuestion.summary}</p>
+
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigateAndSwitch(
+                      activeQuestion.accountMode,
+                      activeQuestion.targetModule || 'portal',
+                      activeQuestion.targetSubTab
+                    );
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-[#EEF2FA] hover:bg-[#E2E8F0] text-[#1D2B53] py-2 px-3 rounded-lg border border-[#CBD5E1] cursor-pointer whitespace-nowrap"
+                >
+                  <span>Buka Menu Modul</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <a
+                  href={downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-[#1D2B53] hover:bg-[#273A6E] text-white py-2 px-3 rounded-lg cursor-pointer whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#F4C430]" />
+                  <span>Unduh PDF</span>
+                </a>
+              </div>
             </div>
-            <div className="divide-y divide-slate-200 bg-white">
-              {currentEval.checks.map((chk) => (
-                <div key={chk.id} className="p-3 text-xs">
-                  <div className="flex items-start gap-2">
-                    {chk.passed ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <div className="font-semibold text-slate-800">{chk.label}</div>
-                      <div className="text-[11px] text-slate-600 mt-0.5">
-                        Status saat ini: <strong className="font-mono-num">{chk.actualValue}</strong>
-                      </div>
-                      {!chk.passed && (
-                        <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
-                          Petunjuk: {chk.expectedHint}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+
+            {/* Step-by-Step Instructions */}
+            <div>
+              <h5 className="text-xs font-bold text-slate-700 mb-2.5">
+                Langkah Pengerjaan Studi Kasus
+              </h5>
+              {activeQuestion.instructions.length === 0 ? (
+                <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  Ikuti instruksi pada dokumen PDF soal latihan.
                 </div>
-              ))}
+              ) : (
+                <ol className="space-y-2">
+                  {activeQuestion.instructions.map((step, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 leading-relaxed"
+                    >
+                      <span className="w-5 h-5 rounded bg-[#1D2B53] text-[#F4C430] font-bold text-[11px] flex items-center justify-center shrink-0">
+                        {i + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
-          </div>
+
+            {/* Read-only policy notice */}
+            <div className="bg-[#F8FAFC] border border-slate-200 rounded-xl p-3.5 flex items-start gap-2.5 text-[11.5px] text-slate-600 leading-relaxed">
+              <Info className="w-4 h-4 text-[#1D2B53] shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-[#1D2B53]">Informasi Penilaian:</strong> Panel ini hanya menampilkan soal latihan. Hasil nilai dan status kelulusan Anda dapat dilihat langsung melalui halaman akun peserta di{' '}
+                <strong className="text-[#1D2B53]">kelasbrevet.com</strong>.
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Action Footer */}
-      <div className="p-3.5 bg-[#F8FAFC] border-t border-slate-200 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleReset}
-          disabled={resetting}
-          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded cursor-pointer"
-          title="Kembalikan data latihan ke kondisi awal"
+      {/* Footer: Download Complete PDF Booklet Only (No Evaluation / No Score Buttons) */}
+      <div className="p-3.5 bg-[#F8FAFC] border-t border-slate-200 flex items-center justify-between gap-2">
+        <a
+          href="/api/questions/all/pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold bg-[#1D2B53] hover:bg-[#273A6E] text-white rounded-lg shadow-sm cursor-pointer"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>{resetting ? 'Reset...' : 'Reset Soal'}</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleCheck}
-          disabled={checking}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold bg-[#F4C430] hover:bg-[#E0AF1A] text-[#1D2B53] rounded shadow-sm cursor-pointer"
-        >
-          <ClipboardCheck className="w-4 h-4" />
-          <span>{checking ? 'Memeriksa...' : 'Periksa Jawaban Saya'}</span>
-        </button>
+          <FileText className="w-4 h-4 text-[#F4C430]" />
+          <span>Unduh Semua Soal Latihan (PDF)</span>
+        </a>
       </div>
     </div>
   );

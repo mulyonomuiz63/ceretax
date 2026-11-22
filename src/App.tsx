@@ -6,14 +6,12 @@ import { auth, googleAuthProvider } from './lib/firebase.ts';
 import {
   ensureCloudUserRoot,
   syncBillingToCloud,
-  syncExamToCloud,
   syncInvoiceToCloud,
   syncReturnToCloud,
   syncSlipToCloud,
   syncTaxpayerToCloud,
 } from './lib/firebaseSync.ts';
 import {
-  ExamCaseCode,
   NotificationItem,
   OpAssetLiabilityFamily,
   TaxInvoice,
@@ -27,6 +25,7 @@ import { CoretaxShell, MainNavKey } from './components/CoretaxShell.tsx';
 import { DocumentPrintModal, PrintablePayload } from './components/DocumentPrintModal.tsx';
 import { ExamDrawer } from './components/ExamDrawer.tsx';
 import { LoadingOverlay } from './components/LoadingOverlay.tsx';
+import { AdminApp } from './admin/AdminApp.tsx';
 import { PortalSayaModule } from './modules/PortalSayaModule.tsx';
 import { EFakturModule } from './modules/EFakturModule.tsx';
 import { EBupotModule } from './modules/EBupotModule.tsx';
@@ -197,14 +196,14 @@ function CoretaxSimulatorApp() {
     }
   };
 
-  const handleLoginNik = async (nik: string) => {
+  const handleLoginNik = async (nik: string, password?: string) => {
     setLoginLoading(true);
     setLoginError(null);
     try {
       const resp = await fetch('/api/auth/nik-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nik }),
+        body: JSON.stringify({ nik, password }),
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -264,7 +263,7 @@ function CoretaxSimulatorApp() {
     } else {
       const defaults: Record<MainNavKey, string> = {
         portal: 'ikhtisar',
-        efaktur: 'output',
+        efaktur: 'dashboard',
         ebupot: 'bpmp',
         spt: 'konsep',
         pembayaran: 'daftar',
@@ -311,10 +310,6 @@ function CoretaxSimulatorApp() {
   const activeTaxpayer =
     accountMode === 'CORPORATE' ? workspace.corporateTaxpayer : workspace.individualTaxpayer;
 
-  const examCompletedCount = Object.values(workspace.examEvaluations || {}).filter(
-    (e) => e.score === 100
-  ).length;
-
   return (
     <>
       <LoadingOverlay visible={globalLoadingVisible} message={loadingMessage} />
@@ -333,7 +328,6 @@ function CoretaxSimulatorApp() {
           }).catch(() => {});
         }}
         onOpenExamDrawer={() => setExamOpen(true)}
-        examCompletedCount={examCompletedCount}
         language={language}
         onLanguageChange={setLanguage}
         cloudUserEmail={cloudUserEmail}
@@ -552,27 +546,10 @@ function CoretaxSimulatorApp() {
       {/* Printable BPE / BPA1 / e-Faktur / Billing Modal */}
       <DocumentPrintModal doc={printDoc} onClose={() => setPrintDoc(null)} />
 
-      {/* Guided Case Studies & Auto-Checker Drawer */}
+      {/* Read-Only Soal Latihan Drawer (No Scores / No Pass-Fail inside Simulator) */}
       <ExamDrawer
         open={examOpen}
         onClose={() => setExamOpen(false)}
-        evaluations={workspace.examEvaluations || {}}
-        onEvaluate={async (caseCode: ExamCaseCode) => {
-          const res = await apiCall<{ evaluation: any }>(
-            `/api/workspace/${workspace.nikKey}/exam/evaluate`,
-            { method: 'POST', body: JSON.stringify({ caseCode }) }
-          );
-          if (auth.currentUser?.emailVerified) {
-            syncExamToCloud(res.evaluation).catch(() => {});
-          }
-        }}
-        onResetWorkspace={async () => {
-          const ws = await apiCall<WorkspaceState>(
-            `/api/workspace/${workspace.nikKey}/reset`,
-            { method: 'POST' }
-          );
-          setWorkspace(ws);
-        }}
         onNavigateAndSwitch={(mode, mod, sub) => {
           setAccountMode(mode);
           handleNavigate(mod as MainNavKey, sub);
@@ -584,9 +561,13 @@ function CoretaxSimulatorApp() {
 }
 
 export default function App() {
+  const isAdminRoute =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
   return (
     <ErrorBoundary>
-      <CoretaxSimulatorApp />
+      {isAdminRoute ? <AdminApp /> : <CoretaxSimulatorApp />}
     </ErrorBoundary>
   );
 }
+

@@ -4,8 +4,10 @@ import {
   ExamCaseCode,
   ExamCheckItem,
   ExamEvaluation,
+  ExamQuestion,
   NotificationItem,
   OpAssetLiabilityFamily,
+  ParticipantAccount,
   PtkpStatus,
   ReturnStatus,
   ReturnType,
@@ -20,6 +22,7 @@ import {
   WorkspaceState,
 } from '../types/tax.ts';
 import { createSeedWorkspace } from '../data/seedData.ts';
+import { createDefaultExamQuestions } from '../lib/evaluationService.ts';
 import {
   formatRp,
   generateBillingCode,
@@ -1131,3 +1134,344 @@ export async function upsertExamEvaluation(
     ]
   );
 }
+
+// ============================================================================
+// EXAM QUESTIONS CRUD (MySQL)
+// ============================================================================
+
+function mapQuestionRow(row: RowDataPacket): ExamQuestion {
+  return {
+    id: String(row.id),
+    code: String(row.code),
+    moduleTag: String(row.module_tag),
+    title: String(row.title),
+    accountMode: String(row.account_mode) === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'CORPORATE',
+    summary: String(row.summary),
+    instructions: parseJsonSafe<string[]>(row.instructions_json, []),
+    pdfUrl: row.pdf_url ? String(row.pdf_url) : undefined,
+    passingScore: Number(row.passing_score || 75),
+    targetModule: String(row.target_module || 'portal'),
+    targetSubTab: row.target_sub_tab ? String(row.target_sub_tab) : undefined,
+    sortOrder: Number(row.sort_order || 0),
+    isActive: Boolean(row.is_active),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+async function ensureDefaultQuestionsMysql(): Promise<void> {
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(`SELECT COUNT(*) AS total FROM exam_questions`);
+  if (Number(rows[0]?.total || 0) > 0) return;
+
+  const defaults = createDefaultExamQuestions();
+  for (const q of defaults) {
+    await pool.execute(
+      `INSERT IGNORE INTO exam_questions (
+        id, code, module_tag, title, account_mode, summary, instructions_json,
+        pdf_url, passing_score, target_module, target_sub_tab, sort_order,
+        is_active, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        q.id,
+        q.code,
+        q.moduleTag,
+        q.title,
+        q.accountMode,
+        q.summary,
+        JSON.stringify(q.instructions),
+        q.pdfUrl || null,
+        q.passingScore,
+        q.targetModule,
+        q.targetSubTab || null,
+        q.sortOrder,
+        q.isActive ? 1 : 0,
+        q.createdAt,
+        q.updatedAt,
+      ]
+    );
+  }
+}
+
+export async function listExamQuestions(activeOnly = false): Promise<ExamQuestion[]> {
+  await ensureDefaultQuestionsMysql();
+  const pool = await ensureMysqlSchema();
+  const sql = activeOnly
+    ? `SELECT * FROM exam_questions WHERE is_active = 1 ORDER BY sort_order ASC, created_at ASC`
+    : `SELECT * FROM exam_questions ORDER BY sort_order ASC, created_at ASC`;
+  const [rows] = await pool.execute<RowDataPacket[]>(sql);
+  return rows.map(mapQuestionRow);
+}
+
+export async function getExamQuestionById(id: string): Promise<ExamQuestion | null> {
+  await ensureDefaultQuestionsMysql();
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM exam_questions WHERE id = ? OR code = ? LIMIT 1`,
+    [id, id]
+  );
+  return rows.length > 0 ? mapQuestionRow(rows[0]) : null;
+}
+
+export async function createExamQuestion(q: ExamQuestion): Promise<ExamQuestion> {
+  await ensureDefaultQuestionsMysql();
+  const pool = await ensureMysqlSchema();
+  await pool.execute(
+    `INSERT INTO exam_questions (
+      id, code, module_tag, title, account_mode, summary, instructions_json,
+      pdf_url, passing_score, target_module, target_sub_tab, sort_order,
+      is_active, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      q.id,
+      q.code,
+      q.moduleTag,
+      q.title,
+      q.accountMode,
+      q.summary,
+      JSON.stringify(q.instructions || []),
+      q.pdfUrl || null,
+      Math.round(q.passingScore || 75),
+      q.targetModule || 'portal',
+      q.targetSubTab || null,
+      Math.round(q.sortOrder || 0),
+      q.isActive ? 1 : 0,
+      q.createdAt,
+      q.updatedAt,
+    ]
+  );
+  return q;
+}
+
+export async function updateExamQuestion(
+  id: string,
+  updates: Partial<ExamQuestion>
+): Promise<ExamQuestion | null> {
+  const existing = await getExamQuestionById(id);
+  if (!existing) return null;
+
+  const merged: ExamQuestion = {
+    ...existing,
+    ...updates,
+    id: existing.id,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const pool = await ensureMysqlSchema();
+  await pool.execute(
+    `UPDATE exam_questions
+     SET code = ?, module_tag = ?, title = ?, account_mode = ?, summary = ?,
+         instructions_json = ?, pdf_url = ?, passing_score = ?, target_module = ?,
+         target_sub_tab = ?, sort_order = ?, is_active = ?, updated_at = ?
+     WHERE id = ?`,
+    [
+      merged.code,
+      merged.moduleTag,
+      merged.title,
+      merged.accountMode,
+      merged.summary,
+      JSON.stringify(merged.instructions || []),
+      merged.pdfUrl || null,
+      Math.round(merged.passingScore || 75),
+      merged.targetModule || 'portal',
+      merged.targetSubTab || null,
+      Math.round(merged.sortOrder || 0),
+      merged.isActive ? 1 : 0,
+      merged.updatedAt,
+      merged.id,
+    ]
+  );
+  return merged;
+}
+
+export async function deleteExamQuestion(id: string): Promise<boolean> {
+  const pool = await ensureMysqlSchema();
+  const [res]: any = await pool.execute(`DELETE FROM exam_questions WHERE id = ?`, [id]);
+  return Number(res?.affectedRows || 0) > 0;
+}
+
+// ============================================================================
+// PARTICIPANT ACCOUNTS CRUD (MySQL)
+// ============================================================================
+
+function mapParticipantRow(row: RowDataPacket): ParticipantAccount {
+  return {
+    id: String(row.id),
+    externalUserId: row.external_user_id ? String(row.external_user_id) : undefined,
+    nikKey: String(row.nik_key),
+    passwordHash: String(row.password_hash || ''),
+    initialPassword: row.initial_password ? String(row.initial_password) : undefined,
+    fullName: String(row.full_name),
+    email: String(row.email || ''),
+    phone: String(row.phone || ''),
+    packageName: String(row.package_name || 'Brevet A & B'),
+    companyName: String(row.company_name || ''),
+    companyNpwp: String(row.company_npwp || ''),
+    source: String(row.source || 'KELASBREVET_API') as ParticipantAccount['source'],
+    isActive: Boolean(row.is_active),
+    passingScore: Number(row.passing_score || 75),
+    lastLoginAt: row.last_login_at ? String(row.last_login_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export async function listParticipants(): Promise<ParticipantAccount[]> {
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM participants ORDER BY created_at DESC`
+  );
+  return rows.map(mapParticipantRow);
+}
+
+export async function findParticipantByNik(nikKey: string): Promise<ParticipantAccount | null> {
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM participants WHERE nik_key = ? LIMIT 1`,
+    [nikKey]
+  );
+  return rows.length > 0 ? mapParticipantRow(rows[0]) : null;
+}
+
+export async function findParticipantByIdentifier(
+  identifier: string
+): Promise<ParticipantAccount | null> {
+  const pool = await ensureMysqlSchema();
+  const cleanedNik = identifier.replace(/\D/g, '');
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM participants WHERE id = ? OR external_user_id = ? OR nik_key = ? OR nik_key = ? LIMIT 1`,
+    [identifier, identifier, identifier, cleanedNik]
+  );
+  return rows.length > 0 ? mapParticipantRow(rows[0]) : null;
+}
+
+export async function upsertParticipant(p: ParticipantAccount): Promise<ParticipantAccount> {
+  const pool = await ensureMysqlSchema();
+  await pool.execute(
+    `INSERT INTO participants (
+      id, external_user_id, nik_key, password_hash, initial_password, full_name,
+      email, phone, package_name, company_name, company_npwp, source, is_active,
+      passing_score, last_login_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      external_user_id = COALESCE(VALUES(external_user_id), external_user_id),
+      password_hash = VALUES(password_hash),
+      initial_password = VALUES(initial_password),
+      full_name = VALUES(full_name),
+      email = VALUES(email),
+      phone = VALUES(phone),
+      package_name = VALUES(package_name),
+      company_name = VALUES(company_name),
+      company_npwp = VALUES(company_npwp),
+      is_active = VALUES(is_active),
+      passing_score = VALUES(passing_score),
+      updated_at = VALUES(updated_at)`,
+    [
+      p.id,
+      p.externalUserId || null,
+      p.nikKey,
+      p.passwordHash,
+      p.initialPassword || null,
+      p.fullName,
+      p.email || '',
+      p.phone || '',
+      p.packageName || 'Brevet A & B',
+      p.companyName || '',
+      p.companyNpwp || '',
+      p.source || 'KELASBREVET_API',
+      p.isActive ? 1 : 0,
+      Math.round(p.passingScore || 75),
+      p.lastLoginAt || null,
+      p.createdAt,
+      p.updatedAt,
+    ]
+  );
+  return p;
+}
+
+export async function updateParticipantMeta(
+  nikKey: string,
+  updates: Partial<ParticipantAccount>
+): Promise<ParticipantAccount | null> {
+  const existing = await findParticipantByNik(nikKey);
+  if (!existing) return null;
+
+  const merged: ParticipantAccount = {
+    ...existing,
+    ...updates,
+    id: existing.id,
+    nikKey: existing.nikKey,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const pool = await ensureMysqlSchema();
+  await pool.execute(
+    `UPDATE participants
+     SET full_name = ?, email = ?, phone = ?, package_name = ?, company_name = ?,
+         company_npwp = ?, is_active = ?, passing_score = ?, password_hash = ?,
+         initial_password = ?, last_login_at = ?, updated_at = ?
+     WHERE nik_key = ?`,
+    [
+      merged.fullName,
+      merged.email,
+      merged.phone,
+      merged.packageName,
+      merged.companyName,
+      merged.companyNpwp,
+      merged.isActive ? 1 : 0,
+      Math.round(merged.passingScore || 75),
+      merged.passwordHash,
+      merged.initialPassword || null,
+      merged.lastLoginAt || null,
+      merged.updatedAt,
+      nikKey,
+    ]
+  );
+  return merged;
+}
+
+export async function touchParticipantLogin(nikKey: string): Promise<void> {
+  const pool = await ensureMysqlSchema();
+  const now = new Date().toISOString();
+  await pool.execute(
+    `UPDATE participants SET last_login_at = ?, updated_at = ? WHERE nik_key = ?`,
+    [now, now, nikKey]
+  );
+}
+
+export async function deleteParticipant(nikKey: string): Promise<boolean> {
+  const pool = await ensureMysqlSchema();
+  const [res]: any = await pool.execute(`DELETE FROM participants WHERE nik_key = ?`, [nikKey]);
+  await pool.execute(`DELETE FROM workspaces WHERE nik_key = ?`, [nikKey]);
+  return Number(res?.affectedRows || 0) > 0;
+}
+
+export async function syncWorkspaceProfileFromParticipant(
+  nikKey: string,
+  p: ParticipantAccount
+): Promise<WorkspaceState> {
+  const ws = await getOrCreateWorkspace(nikKey);
+  const pool = await ensureMysqlSchema();
+  await pool.execute(
+    `UPDATE taxpayers SET name = ?, email = ?, phone = ? WHERE nik_key = ? AND account_role = 'INDIVIDUAL'`,
+    [
+      p.fullName.toUpperCase(),
+      p.email || ws.individualTaxpayer.email,
+      p.phone || ws.individualTaxpayer.phone,
+      nikKey,
+    ]
+  );
+  if (p.companyName || p.companyNpwp) {
+    await pool.execute(
+      `UPDATE taxpayers SET name = ?, nik_npwp = ? WHERE nik_key = ? AND account_role = 'CORPORATE'`,
+      [
+        (p.companyName || ws.corporateTaxpayer.name).toUpperCase(),
+        p.companyNpwp || ws.corporateTaxpayer.nikNpwp,
+        nikKey,
+      ]
+    );
+  }
+  const latest = await loadWorkspace(nikKey);
+  return latest || ws;
+}
+

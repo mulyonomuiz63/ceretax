@@ -200,6 +200,52 @@ const SCHEMA_STATEMENTS: string[] = [
     CONSTRAINT fk_exam_workspace
       FOREIGN KEY (nik_key) REFERENCES workspaces(nik_key) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  `CREATE TABLE IF NOT EXISTS participants (
+    id VARCHAR(80) NOT NULL,
+    external_user_id VARCHAR(120) NULL,
+    nik_key VARCHAR(16) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL DEFAULT '',
+    initial_password VARCHAR(64) NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL DEFAULT '',
+    phone VARCHAR(64) NOT NULL DEFAULT '',
+    package_name VARCHAR(255) NOT NULL DEFAULT 'Brevet A & B',
+    company_name VARCHAR(255) NOT NULL DEFAULT '',
+    company_npwp VARCHAR(32) NOT NULL DEFAULT '',
+    source ENUM('KELASBREVET_API', 'ADMIN_MANUAL', 'DEMO') NOT NULL DEFAULT 'KELASBREVET_API',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    passing_score INT NOT NULL DEFAULT 75,
+    last_login_at VARCHAR(40) NULL,
+    created_at VARCHAR(40) NOT NULL,
+    updated_at VARCHAR(40) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_participants_nik (nik_key),
+    UNIQUE KEY uq_participants_external_user (external_user_id),
+    KEY idx_participants_email (email),
+    KEY idx_participants_source (source)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  `CREATE TABLE IF NOT EXISTS exam_questions (
+    id VARCHAR(80) NOT NULL,
+    code VARCHAR(64) NOT NULL,
+    module_tag VARCHAR(120) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    account_mode ENUM('INDIVIDUAL', 'CORPORATE') NOT NULL DEFAULT 'CORPORATE',
+    summary TEXT NOT NULL,
+    instructions_json LONGTEXT NOT NULL,
+    pdf_url TEXT NULL,
+    passing_score INT NOT NULL DEFAULT 75,
+    target_module VARCHAR(40) NOT NULL DEFAULT 'portal',
+    target_sub_tab VARCHAR(64) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at VARCHAR(40) NOT NULL,
+    updated_at VARCHAR(40) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_exam_questions_code (code),
+    KEY idx_exam_questions_sort (is_active, sort_order)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
 function buildPoolOptions(): PoolOptions {

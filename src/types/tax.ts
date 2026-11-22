@@ -303,3 +303,125 @@ export interface WorkspaceState {
   notifications: NotificationItem[];
   examEvaluations: Record<string, ExamEvaluation>;
 }
+
+export interface ExamQuestion {
+  id: string;
+  code: string;
+  moduleTag: string;
+  title: string;
+  accountMode: 'INDIVIDUAL' | 'CORPORATE';
+  summary: string;
+  instructions: string[];
+  pdfUrl?: string;
+  passingScore: number;
+  targetModule: string;
+  targetSubTab?: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ParticipantAccount {
+  id: string;
+  externalUserId?: string;
+  nikKey: string;
+  passwordHash: string;
+  initialPassword?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  packageName: string;
+  companyName: string;
+  companyNpwp: string;
+  source: 'KELASBREVET_API' | 'ADMIN_MANUAL' | 'DEMO';
+  isActive: boolean;
+  passingScore: number;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ParticipantPublicInfo {
+  id: string;
+  externalUserId?: string;
+  nikKey: string;
+  initialPassword?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  packageName: string;
+  companyName: string;
+  companyNpwp: string;
+  source: 'KELASBREVET_API' | 'ADMIN_MANUAL' | 'DEMO';
+  isActive: boolean;
+  passingScore: number;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ModuleResultItem {
+  caseCode: ExamCaseCode;
+  moduleTag: string;
+  title: string;
+  score: number;
+  passedCount: number;
+  totalChecks: number;
+  isPassed: boolean;
+  checks: ExamCheckItem[];
+}
+
+export interface ParticipantResultSummary {
+  participant: ParticipantPublicInfo;
+  averageScore: number;
+  passingScore: number;
+  isPassed: boolean;
+  graduationStatus: 'LULUS' | 'BELUM_LULUS';
+  progressStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  completedModules: number;
+  totalModules: number;
+  activityMetrics: {
+    approvedInvoices: number;
+    issuedSlips: number;
+    submittedReturns: number;
+    paidBillings: number;
+    totalActions: number;
+  };
+  modules: ModuleResultItem[];
+  evaluatedAt: string;
+}
+
+export interface AdminAnalyticsSummary {
+  totalParticipants: number;
+  activeWorkingCount: number;
+  completedCount: number;
+  notStartedCount: number;
+  passedCount: number;
+  failedCount: number;
+  passRatePercent: number;
+  averageScore: number;
+  totalQuestions: number;
+  activeQuestions: number;
+  moduleBreakdown: Array<{
+    caseCode: ExamCaseCode;
+    moduleTag: string;
+    title: string;
+    averageScore: number;
+    passedCount: number;
+    totalParticipants: number;
+  }>;
+  recentActivity: Array<{
+    nikKey: string;
+    fullName: string;
+    email: string;
+    packageName: string;
+    averageScore: number;
+    graduationStatus: 'LULUS' | 'BELUM_LULUS';
+    progressStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+    submittedReturns: number;
+    lastLoginAt?: string;
+    updatedAt: string;
+  }>;
+}
+
