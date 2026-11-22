@@ -425,3 +425,35 @@ export interface AdminAnalyticsSummary {
   }>;
 }
 
+export type AdminRole = 'SUPER_ADMIN' | 'ADMIN';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  fullName: string;
+  passwordHash: string;
+  role: AdminRole;
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPublicUser {
+  id: string;
+  email: string;
+  fullName: string;
+  role: AdminRole;
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BrandingSettings {
+  logoUrl: string;
+  brandName: string;
+  updatedAt: string;
+}
+
+

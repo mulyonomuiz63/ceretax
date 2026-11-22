@@ -244,3 +244,26 @@ CREATE TABLE IF NOT EXISTS exam_questions (
   KEY idx_exam_questions_sort (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS admin_users (
+  id VARCHAR(80) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('SUPER_ADMIN', 'ADMIN') NOT NULL DEFAULT 'ADMIN',
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  last_login_at VARCHAR(40) NULL,
+  created_at VARCHAR(40) NOT NULL,
+  updated_at VARCHAR(40) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_admin_users_email (email),
+  KEY idx_admin_users_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  setting_key VARCHAR(120) NOT NULL,
+  setting_value LONGTEXT NOT NULL,
+  updated_at VARCHAR(40) NOT NULL,
+  PRIMARY KEY (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+

@@ -4,8 +4,6 @@ import {
   Building2,
   Check,
   ChevronDown,
-  Cloud,
-  CloudOff,
   Eye,
   EyeOff,
   Link2,
@@ -29,8 +27,6 @@ interface LoginPageProps {
   onLoginNik: (nik: string, password?: string) => Promise<void>;
   language: 'id-ID' | 'en-US';
   onLanguageChange: (lang: 'id-ID' | 'en-US') => void;
-  cloudUserEmail: string | null;
-  onConnectCloud: () => Promise<void>;
   loading: boolean;
   error: string | null;
 }
@@ -62,8 +58,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onLoginNik,
   language,
   onLanguageChange,
-  cloudUserEmail,
-  onConnectCloud,
   loading,
   error,
 }) => {
@@ -948,30 +942,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               {isId ? 'Halaman Keamanan' : 'Security Landing'}
             </button>
           )}
-          <button
-            type="button"
-            onClick={onConnectCloud}
-            className={`inline-flex items-center gap-1.5 font-medium hover:underline cursor-pointer ${
-              cloudUserEmail
-                ? 'text-emerald-600'
-                : darkTheme
-                  ? 'text-slate-300'
-                  : 'text-[#475569]'
-            }`}
-            title="Opsional: Hubungkan akun Google untuk menyimpan progres simulasi di Cloud"
-          >
-            {cloudUserEmail ? (
-              <>
-                <Cloud className="w-3.5 h-3.5" />
-                <span className="max-w-[170px] truncate">{cloudUserEmail}</span>
-              </>
-            ) : (
-              <>
-                <CloudOff className="w-3.5 h-3.5 opacity-70" />
-                <span>Cloud Sync</span>
-              </>
-            )}
-          </button>
         </div>
       </footer>
 

@@ -1,16 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 import { BellRing, X } from 'lucide-react';
-import { auth, googleAuthProvider } from './lib/firebase.ts';
-import {
-  ensureCloudUserRoot,
-  syncBillingToCloud,
-  syncInvoiceToCloud,
-  syncReturnToCloud,
-  syncSlipToCloud,
-  syncTaxpayerToCloud,
-} from './lib/firebaseSync.ts';
 import {
   NotificationItem,
   OpAssetLiabilityFamily,
@@ -79,7 +69,6 @@ function CoretaxSimulatorApp() {
   const [navLoading, setNavLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Memuat Portal KelasBrevet...');
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [cloudUserEmail, setCloudUserEmail] = useState<string | null>(null);
   const [printDoc, setPrintDoc] = useState<PrintablePayload | null>(null);
   const [examOpen, setExamOpen] = useState(false);
   const [toastNotif, setToastNotif] = useState<NotificationItem | null>(null);
@@ -88,14 +77,6 @@ function CoretaxSimulatorApp() {
   const navTimerRef = useRef<number | null>(null);
 
   const SESSION_KEY = 'kelasbrevet_coretax_session_v1';
-
-  // Track Firebase Auth state for optional Cloud Firestore sync
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setCloudUserEmail(user?.email || null);
-    });
-    return () => unsub();
-  }, []);
 
   // Auto-restore active NIK session on page refresh + show branded KelasBrevet splash briefly
   useEffect(() => {
@@ -180,22 +161,6 @@ function CoretaxSimulatorApp() {
     };
   }, [workspace?.nikKey]);
 
-  const handleConnectCloud = async () => {
-    try {
-      const cred = await signInWithPopup(auth, googleAuthProvider);
-      if (cred.user?.email) {
-        setCloudUserEmail(cred.user.email);
-        if (workspace) {
-          await ensureCloudUserRoot(workspace.nikKey);
-          await syncTaxpayerToCloud(workspace.individualTaxpayer);
-          await syncTaxpayerToCloud(workspace.corporateTaxpayer);
-        }
-      }
-    } catch (err) {
-      console.error('Cloud auth cancelled or failed:', err);
-    }
-  };
-
   const handleLoginNik = async (nik: string, password?: string) => {
     setLoginLoading(true);
     setLoginError(null);
@@ -214,11 +179,6 @@ function CoretaxSimulatorApp() {
       setAccountMode('INDIVIDUAL');
       setActiveModule('portal');
       setActiveSubTab('ikhtisar');
-      if (auth.currentUser?.emailVerified) {
-        ensureCloudUserRoot(data.workspace.nikKey).catch(() => {});
-        syncTaxpayerToCloud(data.workspace.individualTaxpayer).catch(() => {});
-        syncTaxpayerToCloud(data.workspace.corporateTaxpayer).catch(() => {});
-      }
     } catch {
       setLoginError('Tidak dapat menghubungi server simulasi.');
     } finally {
@@ -298,8 +258,6 @@ function CoretaxSimulatorApp() {
           onLoginNik={handleLoginNik}
           language={language}
           onLanguageChange={setLanguage}
-          cloudUserEmail={cloudUserEmail}
-          onConnectCloud={handleConnectCloud}
           loading={loginLoading}
           error={loginError}
         />
@@ -330,8 +288,6 @@ function CoretaxSimulatorApp() {
         onOpenExamDrawer={() => setExamOpen(true)}
         language={language}
         onLanguageChange={setLanguage}
-        cloudUserEmail={cloudUserEmail}
-        onConnectCloud={handleConnectCloud}
         onLogout={() => {
           try {
             sessionStorage.removeItem(SESSION_KEY);
@@ -349,13 +305,10 @@ function CoretaxSimulatorApp() {
             onSwitchAccountMode={setAccountMode}
             onNavigate={handleNavigate}
             onUpdateProfile={async (taxpayerId, updates: Partial<Taxpayer>) => {
-              const res = await apiCall<{ taxpayer: Taxpayer }>(
+              await apiCall<{ taxpayer: Taxpayer }>(
                 `/api/workspace/${workspace.nikKey}/taxpayer/${taxpayerId}`,
                 { method: 'PATCH', body: JSON.stringify(updates) }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncTaxpayerToCloud(res.taxpayer).catch(() => {});
-              }
             }}
             onPrintDocument={setPrintDoc}
           />
@@ -370,22 +323,16 @@ function CoretaxSimulatorApp() {
             accountMode={accountMode}
             onSwitchAccountMode={setAccountMode}
             onCreateInvoice={async (inv: Omit<TaxInvoice, 'id' | 'createdAt' | 'amendmentSeq'>) => {
-              const res = await apiCall<{ invoice: TaxInvoice }>(
+              await apiCall<{ invoice: TaxInvoice }>(
                 `/api/workspace/${workspace.nikKey}/invoices`,
                 { method: 'POST', body: JSON.stringify(inv) }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncInvoiceToCloud(res.invoice).catch(() => {});
-              }
             }}
             onInvoiceAction={async (id, action, payload) => {
-              const res = await apiCall<{ invoice?: TaxInvoice }>(
+              await apiCall<{ invoice?: TaxInvoice }>(
                 `/api/workspace/${workspace.nikKey}/invoices/${id}/action`,
                 { method: 'POST', body: JSON.stringify({ action, payload }) }
               );
-              if (res.invoice && auth.currentUser?.emailVerified) {
-                syncInvoiceToCloud(res.invoice).catch(() => {});
-              }
             }}
             onPrintDocument={setPrintDoc}
           />
@@ -400,24 +347,16 @@ function CoretaxSimulatorApp() {
             accountMode={accountMode}
             onSwitchAccountMode={setAccountMode}
             onCreateSlip={async (slip: Omit<WithholdingSlip, 'id' | 'createdAt' | 'status'>) => {
-              const res = await apiCall<{ slip: WithholdingSlip }>(
+              await apiCall<{ slip: WithholdingSlip }>(
                 `/api/workspace/${workspace.nikKey}/slips`,
                 { method: 'POST', body: JSON.stringify(slip) }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncSlipToCloud(res.slip).catch(() => {});
-              }
             }}
             onIssueSlips={async (ids) => {
-              const res = await apiCall<{ workspace: WorkspaceState }>(
+              await apiCall<{ workspace: WorkspaceState }>(
                 `/api/workspace/${workspace.nikKey}/slips/issue`,
                 { method: 'POST', body: JSON.stringify({ ids }) }
               );
-              if (auth.currentUser?.emailVerified) {
-                res.workspace.slips
-                  .filter((s) => ids.includes(s.id))
-                  .forEach((s) => syncSlipToCloud(s).catch(() => {}));
-              }
             }}
             onDeleteSlip={async (id) => {
               await apiCall(`/api/workspace/${workspace.nikKey}/slips/${id}`, {
@@ -447,19 +386,13 @@ function CoretaxSimulatorApp() {
                 `/api/workspace/${workspace.nikKey}/returns`,
                 { method: 'POST', body: JSON.stringify(ret) }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncReturnToCloud(res.taxReturn).catch(() => {});
-              }
               return res.taxReturn;
             }}
             onUpdateReturn={async (ret) => {
-              const res = await apiCall<{ taxReturn: TaxReturn }>(
+              await apiCall<{ taxReturn: TaxReturn }>(
                 `/api/workspace/${workspace.nikKey}/returns/${ret.id}`,
                 { method: 'PUT', body: JSON.stringify(ret) }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncReturnToCloud(res.taxReturn).catch(() => {});
-              }
             }}
             onDeleteReturn={async (id) => {
               await apiCall(`/api/workspace/${workspace.nikKey}/returns/${id}`, {
@@ -467,13 +400,10 @@ function CoretaxSimulatorApp() {
               });
             }}
             onSubmitReturn={async (id, paymentMethod) => {
-              const res = await apiCall<{ taxReturn: TaxReturn }>(
+              await apiCall<{ taxReturn: TaxReturn }>(
                 `/api/workspace/${workspace.nikKey}/returns/${id}/submit`,
                 { method: 'POST', body: JSON.stringify({ paymentMethod }) }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncReturnToCloud(res.taxReturn).catch(() => {});
-              }
             }}
             onAddAsset={async (item: Omit<OpAssetLiabilityFamily, 'id' | 'taxpayerId'>) => {
               await apiCall(`/api/workspace/${workspace.nikKey}/assets`, {
@@ -497,22 +427,16 @@ function CoretaxSimulatorApp() {
             workspace={workspace}
             activeTaxpayer={activeTaxpayer}
             onCreateBilling={async (payload) => {
-              const res = await apiCall<{ billing: any }>(
+              await apiCall<{ billing: any }>(
                 `/api/workspace/${workspace.nikKey}/billings`,
                 { method: 'POST', body: JSON.stringify(payload) }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncBillingToCloud(res.billing).catch(() => {});
-              }
             }}
             onPayBilling={async (id) => {
-              const res = await apiCall<{ billing: any }>(
+              await apiCall<{ billing: any }>(
                 `/api/workspace/${workspace.nikKey}/billings/${id}/pay`,
                 { method: 'POST' }
               );
-              if (auth.currentUser?.emailVerified) {
-                syncBillingToCloud(res.billing).catch(() => {});
-              }
             }}
             onPrintDocument={setPrintDoc}
           />

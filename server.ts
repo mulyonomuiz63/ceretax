@@ -6,6 +6,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
 import {
+  AdminPublicUser,
+  AdminRole,
+  AdminUser,
   BillingCode,
   ExamQuestion,
   NotificationItem,
@@ -24,7 +27,6 @@ import * as mysqlRepo from './src/db/repository.ts';
 import {
   generateParticipantNik,
   generateParticipantPassword,
-  getAdminCredentials,
   getPublicSimulationUrl,
   hashPassword,
   requireAdminAuth,
@@ -973,35 +975,266 @@ async function startServer() {
   );
 
   // ==========================================================================
-  // ADMIN MANAGEMENT PORTAL API (Strictly Separate from Simulator)
+  // PUBLIC BRANDING / LOGO SETTINGS (Stored in app_settings DB table)
   // ==========================================================================
-  app.post('/api/admin/login', (req: Request, res: Response) => {
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    const password = String(req.body?.password || '');
-    const creds = getAdminCredentials();
-
-    if (email !== creds.email || password !== creds.password) {
-      return res.status(401).json({
-        error: 'Email atau kata sandi Admin tidak valid.',
-      });
+  app.get('/api/branding', async (_req: Request, res: Response) => {
+    try {
+      const branding = await mysqlRepo.getBrandingSettings();
+      return res.json({ ok: true, branding });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memuat pengaturan branding.');
     }
-
-    const token = signAdminToken(creds.email);
-    return res.json({
-      ok: true,
-      token,
-      admin: { email: creds.email, role: 'ADMIN' },
-    });
   });
 
-  app.get('/api/admin/me', requireAdminAuth, (req: Request, res: Response) => {
-    const adminUser = (req as any).adminUser;
-    return res.json({
-      ok: true,
-      admin: { email: adminUser.email, role: adminUser.role },
-      dbDriver: mysqlRepo.getActiveDriverLabel(),
-      publicUrl: getPublicSimulationUrl(req),
-    });
+  // ==========================================================================
+  // ADMIN MANAGEMENT PORTAL API (DB-Backed admin_users Table)
+  // ==========================================================================
+  function toPublicAdmin(a: AdminUser): AdminPublicUser {
+    return {
+      id: a.id,
+      email: a.email,
+      fullName: a.fullName,
+      role: a.role,
+      isActive: a.isActive,
+      lastLoginAt: a.lastLoginAt,
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+    };
+  }
+
+  app.post('/api/admin/login', async (req: Request, res: Response) => {
+    try {
+      const email = String(req.body?.email || '').trim().toLowerCase();
+      const password = String(req.body?.password || '');
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email dan kata sandi wajib diisi.' });
+      }
+
+      const admin = await mysqlRepo.getAdminUserByEmail(email);
+      if (!admin || !verifyPassword(password, admin.passwordHash)) {
+        return res.status(401).json({
+          error: 'Email atau kata sandi Admin tidak valid.',
+        });
+      }
+
+      if (!admin.isActive) {
+        return res.status(403).json({
+          error: 'Akun Admin ini sedang dinonaktifkan. Hubungi Super Admin.',
+        });
+      }
+
+      await mysqlRepo.touchAdminLastLogin(admin.id);
+      const token = signAdminToken({
+        id: admin.id,
+        email: admin.email,
+        fullName: admin.fullName,
+        role: admin.role,
+      });
+
+      return res.json({
+        ok: true,
+        token,
+        admin: toPublicAdmin({ ...admin, lastLoginAt: new Date().toISOString() }),
+      });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memverifikasi login Admin di database.');
+    }
+  });
+
+  app.get('/api/admin/me', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const tokenUser = (req as any).adminUser;
+      const dbAdmin =
+        (tokenUser?.id && (await mysqlRepo.getAdminUserById(tokenUser.id))) ||
+        (tokenUser?.email && (await mysqlRepo.getAdminUserByEmail(tokenUser.email))) ||
+        null;
+
+      if (!dbAdmin || !dbAdmin.isActive) {
+        return res.status(401).json({
+          error: 'Akun Admin tidak ditemukan atau sudah dinonaktifkan.',
+        });
+      }
+
+      return res.json({
+        ok: true,
+        admin: toPublicAdmin(dbAdmin),
+        dbDriver: mysqlRepo.getActiveDriverLabel(),
+        publicUrl: getPublicSimulationUrl(req),
+      });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memuat sesi Admin.');
+    }
+  });
+
+  // === Admin Users CRUD (Stored in admin_users table) ===
+  app.get('/api/admin/users', requireAdminAuth, async (_req: Request, res: Response) => {
+    try {
+      const admins = await mysqlRepo.listAdminUsers();
+      return res.json({ ok: true, admins: admins.map(toPublicAdmin) });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memuat daftar akun Admin.');
+    }
+  });
+
+  app.post('/api/admin/users', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const b = req.body || {};
+      const email = String(b.email || '').trim().toLowerCase();
+      const fullName = String(b.fullName || '').trim();
+      const password = String(b.password || '');
+      const role: AdminRole = b.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN';
+
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: 'Format email Admin tidak valid.' });
+      }
+      if (!fullName) {
+        return res.status(400).json({ error: 'Nama lengkap Admin wajib diisi.' });
+      }
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Kata sandi minimal 6 karakter.' });
+      }
+
+      const existing = await mysqlRepo.getAdminUserByEmail(email);
+      if (existing) {
+        return res.status(409).json({ error: 'Email Admin tersebut sudah terdaftar di database.' });
+      }
+
+      const now = new Date().toISOString();
+      const created = await mysqlRepo.createAdminUser({
+        id: `adm-${Date.now()}-${Math.floor(Math.random() * 999)}`,
+        email,
+        fullName,
+        passwordHash: hashPassword(password),
+        role,
+        isActive: b.isActive !== undefined ? Boolean(b.isActive) : true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return res.status(201).json({ ok: true, admin: toPublicAdmin(created) });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal menambahkan akun Admin.');
+    }
+  });
+
+  app.put('/api/admin/users/:id', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const targetId = req.params.id;
+      const currentAdmin = (req as any).adminUser;
+      const existing = await mysqlRepo.getAdminUserById(targetId);
+      if (!existing) {
+        return res.status(404).json({ error: 'Akun Admin tidak ditemukan.' });
+      }
+
+      const b = req.body || {};
+      const updates: Partial<AdminUser> = {};
+
+      if (b.fullName !== undefined) {
+        const cleanName = String(b.fullName).trim();
+        if (!cleanName) return res.status(400).json({ error: 'Nama lengkap tidak boleh kosong.' });
+        updates.fullName = cleanName;
+      }
+
+      if (b.email !== undefined) {
+        const cleanEmail = String(b.email).trim().toLowerCase();
+        if (!cleanEmail || !cleanEmail.includes('@')) {
+          return res.status(400).json({ error: 'Format email tidak valid.' });
+        }
+        if (cleanEmail !== existing.email) {
+          const dup = await mysqlRepo.getAdminUserByEmail(cleanEmail);
+          if (dup && dup.id !== targetId) {
+            return res.status(409).json({ error: 'Email sudah digunakan oleh akun Admin lain.' });
+          }
+        }
+        updates.email = cleanEmail;
+      }
+
+      if (b.role !== undefined) {
+        updates.role = b.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN';
+      }
+
+      if (b.password !== undefined && String(b.password).length > 0) {
+        const newPw = String(b.password);
+        if (newPw.length < 6) {
+          return res.status(400).json({ error: 'Kata sandi baru minimal 6 karakter.' });
+        }
+        updates.passwordHash = hashPassword(newPw);
+      }
+
+      if (b.isActive !== undefined) {
+        const nextActive = Boolean(b.isActive);
+        if (!nextActive && currentAdmin?.id === targetId) {
+          return res.status(400).json({ error: 'Anda tidak dapat menonaktifkan akun Anda sendiri.' });
+        }
+        if (!nextActive) {
+          const all = await mysqlRepo.listAdminUsers();
+          const otherActive = all.filter((a) => a.id !== targetId && a.isActive);
+          if (otherActive.length === 0) {
+            return res.status(400).json({ error: 'Minimal harus ada 1 akun Admin yang aktif.' });
+          }
+        }
+        updates.isActive = nextActive;
+      }
+
+      const updated = await mysqlRepo.updateAdminUser(targetId, updates);
+      if (!updated) return res.status(404).json({ error: 'Akun Admin tidak ditemukan.' });
+      return res.json({ ok: true, admin: toPublicAdmin(updated) });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memperbarui akun Admin.');
+    }
+  });
+
+  app.delete('/api/admin/users/:id', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const targetId = req.params.id;
+      const currentAdmin = (req as any).adminUser;
+      if (currentAdmin?.id === targetId) {
+        return res.status(400).json({ error: 'Anda tidak dapat menghapus akun yang sedang login.' });
+      }
+      const all = await mysqlRepo.listAdminUsers();
+      const otherActive = all.filter((a) => a.id !== targetId && a.isActive);
+      if (otherActive.length === 0) {
+        return res.status(400).json({ error: 'Minimal harus ada 1 akun Admin aktif tersisa.' });
+      }
+      const deleted = await mysqlRepo.deleteAdminUser(targetId);
+      if (!deleted) return res.status(404).json({ error: 'Akun Admin tidak ditemukan.' });
+      return res.json({ ok: true, deletedId: targetId });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal menghapus akun Admin.');
+    }
+  });
+
+  // === Admin Branding / Logo Management ===
+  app.put('/api/admin/branding', requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const b = req.body || {};
+      const logoUrl = b.logoUrl !== undefined ? String(b.logoUrl).trim() : undefined;
+      const brandName = b.brandName !== undefined ? String(b.brandName).trim() : undefined;
+
+      if (logoUrl && logoUrl.length > 3_000_000) {
+        return res.status(400).json({
+          error: 'Ukuran file logo terlalu besar (maksimal ~2 MB). Kompres gambar terlebih dahulu.',
+        });
+      }
+
+      if (
+        logoUrl &&
+        !logoUrl.startsWith('data:image/') &&
+        !logoUrl.startsWith('http://') &&
+        !logoUrl.startsWith('https://') &&
+        !logoUrl.startsWith('/')
+      ) {
+        return res.status(400).json({
+          error: 'Format logo harus berupa file gambar yang diunggah atau URL http(s)/path yang valid.',
+        });
+      }
+
+      const branding = await mysqlRepo.saveBrandingSettings({ logoUrl, brandName });
+      return res.json({ ok: true, branding });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal menyimpan logo & branding.');
+    }
   });
 
   app.get('/api/admin/analytics', requireAdminAuth, async (_req: Request, res: Response) => {

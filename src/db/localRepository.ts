@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import {
+  AdminUser,
   BillingCode,
+  BrandingSettings,
   ExamEvaluation,
   ExamQuestion,
   NotificationItem,
@@ -15,6 +17,7 @@ import {
 } from '../types/tax.ts';
 import { createSeedWorkspace } from '../data/seedData.ts';
 import { createDefaultExamQuestions } from '../lib/evaluationService.ts';
+import { getAdminCredentials, hashPassword } from '../lib/serverAuth.ts';
 import {
   formatRp,
   generateBillingCode,
@@ -29,6 +32,8 @@ const META_FILE = path.join(DATA_DIR, 'simulator-meta.json');
 interface LocalMetaStore {
   participants: ParticipantAccount[];
   examQuestions: ExamQuestion[];
+  adminUsers: AdminUser[];
+  branding: BrandingSettings;
 }
 
 let store: Record<string, WorkspaceState> | null = null;
@@ -481,6 +486,21 @@ export async function upsertExamEvaluation(
 // LOCAL META STORE (PARTICIPANTS + EXAM QUESTIONS)
 // ============================================================================
 
+function buildDefaultAdminUser(): AdminUser {
+  const seed = getAdminCredentials();
+  const now = new Date().toISOString();
+  return {
+    id: 'adm-super-1',
+    email: seed.email,
+    fullName: 'Super Admin KelasBrevet',
+    passwordHash: hashPassword(seed.password),
+    role: 'SUPER_ADMIN',
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 function ensureMetaLoaded(): LocalMetaStore {
   if (metaStore !== null) return metaStore;
   try {
@@ -490,13 +510,30 @@ function ensureMetaLoaded(): LocalMetaStore {
     if (fs.existsSync(META_FILE)) {
       const raw = fs.readFileSync(META_FILE, 'utf-8');
       const parsed = JSON.parse(raw) as Partial<LocalMetaStore>;
+      const adminUsers =
+        Array.isArray(parsed.adminUsers) && parsed.adminUsers.length > 0
+          ? parsed.adminUsers
+          : [buildDefaultAdminUser()];
+      const branding: BrandingSettings = parsed.branding
+        ? {
+            logoUrl: String(parsed.branding.logoUrl || ''),
+            brandName: String(parsed.branding.brandName || 'KelasBrevet'),
+            updatedAt: String(parsed.branding.updatedAt || ''),
+          }
+        : { logoUrl: '', brandName: 'KelasBrevet', updatedAt: '' };
+
       metaStore = {
         participants: Array.isArray(parsed.participants) ? parsed.participants : [],
         examQuestions:
           Array.isArray(parsed.examQuestions) && parsed.examQuestions.length > 0
             ? parsed.examQuestions
             : createDefaultExamQuestions(),
+        adminUsers,
+        branding,
       };
+      if (!Array.isArray(parsed.adminUsers) || parsed.adminUsers.length === 0) {
+        saveMetaStore();
+      }
       return metaStore;
     }
   } catch (err) {
@@ -505,6 +542,8 @@ function ensureMetaLoaded(): LocalMetaStore {
   metaStore = {
     participants: [],
     examQuestions: createDefaultExamQuestions(),
+    adminUsers: [buildDefaultAdminUser()],
+    branding: { logoUrl: '', brandName: 'KelasBrevet', updatedAt: '' },
   };
   saveMetaStore();
   return metaStore;
@@ -517,7 +556,16 @@ function saveMetaStore(): void {
     }
     fs.writeFileSync(
       META_FILE,
-      JSON.stringify(metaStore ?? { participants: [], examQuestions: [] }, null, 2),
+      JSON.stringify(
+        metaStore ?? {
+          participants: [],
+          examQuestions: [],
+          adminUsers: [],
+          branding: { logoUrl: '', brandName: 'KelasBrevet', updatedAt: '' },
+        },
+        null,
+        2
+      ),
       'utf-8'
     );
   } catch (err) {
@@ -676,4 +724,117 @@ export async function syncWorkspaceProfileFromParticipant(
   saveStore();
   return ws;
 }
+
+// ============================================================================
+// ADMIN USERS (LOCAL DEV STORE)
+// ============================================================================
+
+export async function ensureInitialAdminUser(): Promise<void> {
+  const meta = ensureMetaLoaded();
+  if (meta.adminUsers.length === 0) {
+    meta.adminUsers.push(buildDefaultAdminUser());
+    saveMetaStore();
+  }
+}
+
+export async function listAdminUsers(): Promise<AdminUser[]> {
+  await ensureInitialAdminUser();
+  const meta = ensureMetaLoaded();
+  return [...meta.adminUsers];
+}
+
+export async function getAdminUserByEmail(email: string): Promise<AdminUser | null> {
+  await ensureInitialAdminUser();
+  const clean = email.trim().toLowerCase();
+  if (!clean) return null;
+  const meta = ensureMetaLoaded();
+  return meta.adminUsers.find((a) => a.email.toLowerCase() === clean) || null;
+}
+
+export async function getAdminUserById(id: string): Promise<AdminUser | null> {
+  await ensureInitialAdminUser();
+  const meta = ensureMetaLoaded();
+  return meta.adminUsers.find((a) => a.id === id) || null;
+}
+
+export async function createAdminUser(admin: AdminUser): Promise<AdminUser> {
+  await ensureInitialAdminUser();
+  const meta = ensureMetaLoaded();
+  meta.adminUsers.push({
+    ...admin,
+    email: admin.email.trim().toLowerCase(),
+    fullName: admin.fullName.trim(),
+  });
+  saveMetaStore();
+  return admin;
+}
+
+export async function updateAdminUser(
+  id: string,
+  updates: Partial<AdminUser>
+): Promise<AdminUser | null> {
+  await ensureInitialAdminUser();
+  const meta = ensureMetaLoaded();
+  const idx = meta.adminUsers.findIndex((a) => a.id === id);
+  if (idx === -1) return null;
+  meta.adminUsers[idx] = {
+    ...meta.adminUsers[idx],
+    ...updates,
+    id: meta.adminUsers[idx].id,
+    email: (updates.email ?? meta.adminUsers[idx].email).trim().toLowerCase(),
+    fullName: (updates.fullName ?? meta.adminUsers[idx].fullName).trim(),
+    updatedAt: new Date().toISOString(),
+  };
+  saveMetaStore();
+  return meta.adminUsers[idx];
+}
+
+export async function touchAdminLastLogin(id: string): Promise<void> {
+  const meta = ensureMetaLoaded();
+  const target = meta.adminUsers.find((a) => a.id === id);
+  if (!target) return;
+  const now = new Date().toISOString();
+  target.lastLoginAt = now;
+  target.updatedAt = now;
+  saveMetaStore();
+}
+
+export async function deleteAdminUser(id: string): Promise<boolean> {
+  const meta = ensureMetaLoaded();
+  const before = meta.adminUsers.length;
+  meta.adminUsers = meta.adminUsers.filter((a) => a.id !== id);
+  if (meta.adminUsers.length !== before) {
+    saveMetaStore();
+    return true;
+  }
+  return false;
+}
+
+// ============================================================================
+// APP SETTINGS / BRANDING (LOCAL DEV STORE)
+// ============================================================================
+
+export async function getBrandingSettings(): Promise<BrandingSettings> {
+  const meta = ensureMetaLoaded();
+  return { ...meta.branding };
+}
+
+export async function saveBrandingSettings(updates: {
+  logoUrl?: string;
+  brandName?: string;
+}): Promise<BrandingSettings> {
+  const meta = ensureMetaLoaded();
+  const now = new Date().toISOString();
+  meta.branding = {
+    logoUrl: updates.logoUrl !== undefined ? updates.logoUrl : meta.branding.logoUrl,
+    brandName:
+      updates.brandName !== undefined
+        ? updates.brandName.trim() || 'KelasBrevet'
+        : meta.branding.brandName,
+    updatedAt: now,
+  };
+  saveMetaStore();
+  return { ...meta.branding };
+}
+
 

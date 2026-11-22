@@ -106,4 +106,25 @@ export const deleteParticipant: typeof mysqlRepo.deleteParticipant = (...args) =
   activeRepo().deleteParticipant(...args);
 export const syncWorkspaceProfileFromParticipant: typeof mysqlRepo.syncWorkspaceProfileFromParticipant =
   (...args) => activeRepo().syncWorkspaceProfileFromParticipant(...args);
+export const ensureInitialAdminUser: typeof mysqlRepo.ensureInitialAdminUser = (...args) =>
+  activeRepo().ensureInitialAdminUser(...args);
+export const listAdminUsers: typeof mysqlRepo.listAdminUsers = (...args) =>
+  activeRepo().listAdminUsers(...args);
+export const getAdminUserByEmail: typeof mysqlRepo.getAdminUserByEmail = (...args) =>
+  activeRepo().getAdminUserByEmail(...args);
+export const getAdminUserById: typeof mysqlRepo.getAdminUserById = (...args) =>
+  activeRepo().getAdminUserById(...args);
+export const createAdminUser: typeof mysqlRepo.createAdminUser = (...args) =>
+  activeRepo().createAdminUser(...args);
+export const updateAdminUser: typeof mysqlRepo.updateAdminUser = (...args) =>
+  activeRepo().updateAdminUser(...args);
+export const touchAdminLastLogin: typeof mysqlRepo.touchAdminLastLogin = (...args) =>
+  activeRepo().touchAdminLastLogin(...args);
+export const deleteAdminUser: typeof mysqlRepo.deleteAdminUser = (...args) =>
+  activeRepo().deleteAdminUser(...args);
+export const getBrandingSettings: typeof mysqlRepo.getBrandingSettings = (...args) =>
+  activeRepo().getBrandingSettings(...args);
+export const saveBrandingSettings: typeof mysqlRepo.saveBrandingSettings = (...args) =>
+  activeRepo().saveBrandingSettings(...args);
+
 

@@ -1,249 +1,160 @@
 import React from 'react';
+import { useBranding } from '../lib/brandingStore.ts';
 
 interface KelasBrevetLogoProps {
-  variant?: 'header' | 'login' | 'light' | 'topbar' | 'hero' | 'portalbar';
+  variant?: 'header' | 'login' | 'light' | 'topbar' | 'hero' | 'portalbar' | 'admin';
   dark?: boolean;
   className?: string;
+  /** Optional explicit override (used for live preview inside Admin Logo Editor) */
+  logoUrlOverride?: string;
+  brandNameOverride?: string;
 }
+
+/**
+ * Official KelasBrevet geometric blue double-chevron emblem (matches uploaded brand mark).
+ */
+export const KelasBrevetEmblem: React.FC<{ size?: number; className?: string }> = ({
+  size = 34,
+  className = '',
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 64 64"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={`shrink-0 ${className}`}
+    aria-label="Emblem KelasBrevet"
+  >
+    {/* Top royal blue mountain/chevron peak */}
+    <path
+      d="M32 4.5C33.2 4.5 34.3 5 35.1 5.9L59.4 30.8C61.1 32.5 61.1 35.2 59.4 36.9C57.7 38.5 55 38.5 53.3 36.8L44.2 27.6C43.1 26.5 41.3 26.5 40.2 27.6L34.7 33.1C33.2 34.6 30.8 34.6 29.3 33.1L23.8 27.6C22.7 26.5 20.9 26.5 19.8 27.6L10.7 36.8C9 38.5 6.3 38.5 4.6 36.9C2.9 35.2 2.9 32.5 4.6 30.8L28.9 5.9C29.7 5 30.8 4.5 32 4.5Z"
+      fill="#155EEF"
+    />
+    {/* Bottom periwinkle-blue nested chevron + pillar stem */}
+    <path
+      d="M21.8 34.5C22.9 33.4 24.7 33.4 25.8 34.5L32 40.7L38.2 34.5C39.3 33.4 41.1 33.4 42.2 34.5L52.6 44.9C54 46.3 54 48.6 52.6 50L50.8 51.8C49.4 53.2 47.1 53.2 45.7 51.8L41.8 47.9C40.7 46.8 38.8 47.6 38.8 49.2V51.4C38.8 52.4 38.4 53.4 37.7 54.1L34.2 57.6C33 58.8 31 58.8 29.8 57.6L26.3 54.1C25.6 53.4 25.2 52.4 25.2 51.4V49.2C25.2 47.6 23.3 46.8 22.2 47.9L18.3 51.8C16.9 53.2 14.6 53.2 13.2 51.8L11.4 50C10 48.6 10 46.3 11.4 44.9L21.8 34.5Z"
+      fill="#95B5F6"
+    />
+  </svg>
+);
 
 export const KelasBrevetLogo: React.FC<KelasBrevetLogoProps> = ({
   variant = 'header',
   dark = false,
   className = '',
+  logoUrlOverride,
+  brandNameOverride,
 }) => {
-  // 3-segment horizontal lockup replacing [Kemenkeu | djp | CORETAX] in the 2026 Home-Portal header
+  const branding = useBranding();
+  const customLogoUrl =
+    logoUrlOverride !== undefined ? logoUrlOverride : branding.logoUrl;
+  const brandName =
+    brandNameOverride !== undefined ? brandNameOverride : branding.brandName || 'KelasBrevet';
+
+  // Height presets per placement when rendering an uploaded custom logo image
+  const imgHeightClass: Record<NonNullable<KelasBrevetLogoProps['variant']>, string> = {
+    portalbar: 'h-8 sm:h-9 max-w-[180px]',
+    topbar: 'h-9 sm:h-10 max-w-[200px]',
+    hero: 'h-12 sm:h-14 max-w-[260px]',
+    login: 'h-11 max-w-[220px]',
+    header: 'h-9 max-w-[190px]',
+    light: 'h-9 max-w-[190px]',
+    admin: 'h-8 max-w-[170px]',
+  };
+
+  if (customLogoUrl) {
+    return (
+      <div className={`inline-flex items-center select-none shrink-0 ${className}`}>
+        <img
+          src={customLogoUrl}
+          alt={brandName}
+          className={`${imgHeightClass[variant]} w-auto object-contain ${
+            dark || variant === 'light' || variant === 'admin'
+              ? 'bg-white/95 rounded-lg px-2 py-1'
+              : ''
+          }`}
+        />
+      </div>
+    );
+  }
+
+  const isDarkSurface = dark || variant === 'light' || variant === 'admin';
+  const primaryTextClass = isDarkSurface ? 'text-white' : 'text-[#0B0F19]';
+  const accentTextClass = isDarkSurface ? 'text-[#60A5FA]' : 'text-[#155EEF]';
+
+  // Split "KelasBrevet" cleanly into "Kelas" + "Brevet" (or render custom brandName)
+  const renderWordmark = (sizeClass: string) => {
+    if (brandName.toLowerCase() === 'kelasbrevet') {
+      return (
+        <span className={`font-display font-extrabold tracking-[-0.03em] leading-none ${sizeClass}`}>
+          <span className={primaryTextClass}>Kelas</span>
+          <span className={accentTextClass}>Brevet</span>
+        </span>
+      );
+    }
+    return (
+      <span
+        className={`font-display font-extrabold tracking-[-0.03em] leading-none ${sizeClass} ${primaryTextClass}`}
+      >
+        {brandName}
+      </span>
+    );
+  };
+
   if (variant === 'portalbar') {
-    const textClass = dark ? 'text-white' : 'text-[#1E2C5E]';
-    const dividerClass = dark ? 'bg-slate-600' : 'bg-slate-300';
     return (
-      <div className={`inline-flex items-center gap-2 xl:gap-2.5 select-none shrink-0 ${className}`}>
-        {/* Segment 1: Shield Crest Emblem */}
-        <svg
-          width="28"
-          height="28"
-          viewBox="0 0 48 48"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="shrink-0 xl:w-[30px] xl:h-[30px]"
-          aria-label="Emblem KelasBrevet"
-        >
-          <path
-            d="M24 3L6 10.5V23.5C6 34.4 13.7 42.9 24 46C34.3 42.9 42 34.4 42 23.5V10.5L24 3Z"
-            fill="#1E2C5E"
-          />
-          <path
-            d="M24 6.2L9.2 12.4V23.4C9.2 32.5 15.6 39.8 24 42.6C32.4 39.8 38.8 32.5 38.8 23.4V12.4L24 6.2Z"
-            stroke="#F4C430"
-            strokeWidth="2"
-            fill="none"
-          />
-          <path d="M24 12.5L34.5 17.5L24 22.5L13.5 17.5L24 12.5Z" fill="#F4C430" />
-          <path
-            d="M17.5 21.5V28.2C17.5 30.1 20.4 32 24 32C27.6 32 30.5 30.1 30.5 28.2V21.5"
-            stroke="#FFFFFF"
-            strokeWidth="2.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-
-        <span className={`hidden xl:inline-block h-6 w-[1px] ${dividerClass}`} aria-hidden="true" />
-
-        {/* Segment 2: Compact Badge + kb mark (exact rhythm of djp, shown on xl+ desktop) */}
-        <div className="hidden xl:inline-flex items-center gap-1.5">
-          <svg
-            width="22"
-            height="20"
-            viewBox="0 0 32 26"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="shrink-0"
-            aria-hidden="true"
-          >
-            <rect x="2" y="2" width="24" height="22" rx="5.5" fill="#1E2C5E" />
-            <path
-              d="M2 8C2 4.68629 4.68629 2 8 2H20.5C23.5376 2 26 4.46243 26 7.5V12.5H13.5C7.14873 12.5 2 10.4853 2 8Z"
-              fill="#F5BC1B"
-            />
-            <rect x="8.5" y="7.5" width="11" height="11" rx="2.5" fill="#FFFFFF" />
-          </svg>
-          <span className={`font-display font-extrabold text-[15px] tracking-tight leading-none ${textClass}`}>
-            kb
-          </span>
-        </div>
-
-        <span className={`h-5 xl:h-6 w-[1px] ${dividerClass}`} aria-hidden="true" />
-
-        {/* Segment 3: Bold Wordmark (replaces CORETAX in exact navy + gold styling) */}
-        <div className="font-display font-black tracking-[-0.02em] text-[15px] sm:text-[16px] xl:text-[17px] leading-none flex items-baseline">
-          <span className={textClass}>KELAS</span>
-          <span className="text-[#F4B81B]">BREVET</span>
-        </div>
+      <div className={`inline-flex items-center gap-2.5 select-none shrink-0 ${className}`}>
+        <KelasBrevetEmblem size={30} />
+        {renderWordmark('text-[19px] sm:text-[21px]')}
       </div>
     );
   }
 
-  // Top-left institutional lockup replacing [Kemenkeu | djp] on Landing & Login screens
   if (variant === 'topbar') {
-    const textClass = dark ? 'text-white' : 'text-[#1E2C5E]';
-    const dividerClass = dark ? 'bg-slate-600' : 'bg-slate-300';
     return (
-      <div className={`inline-flex items-center gap-3.5 select-none ${className}`}>
-        {/* Official KelasBrevet Crest Emblem */}
-        <svg
-          width="36"
-          height="36"
-          viewBox="0 0 48 48"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="shrink-0"
-          aria-label="Emblem KelasBrevet"
-        >
-          <path
-            d="M24 3L6 10.5V23.5C6 34.4 13.7 42.9 24 46C34.3 42.9 42 34.4 42 23.5V10.5L24 3Z"
-            fill="#1E2C5E"
-          />
-          <path
-            d="M24 6.2L9.2 12.4V23.4C9.2 32.5 15.6 39.8 24 42.6C32.4 39.8 38.8 32.5 38.8 23.4V12.4L24 6.2Z"
-            stroke="#F4C430"
-            strokeWidth="2"
-            fill="none"
-          />
-          <path d="M24 12.5L34.5 17.5L24 22.5L13.5 17.5L24 12.5Z" fill="#F4C430" />
-          <path
-            d="M17.5 21.5V28.2C17.5 30.1 20.4 32 24 32C27.6 32 30.5 30.1 30.5 28.2V21.5"
-            stroke="#FFFFFF"
-            strokeWidth="2.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path d="M34.5 17.5V25.5" stroke="#F4C430" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="34.5" cy="26.5" r="1.8" fill="#F4C430" />
-        </svg>
-
-        <span className={`h-8 w-[1px] ${dividerClass}`} aria-hidden="true" />
-
-        {/* Stylized Mark matching DJP square-mark + lowercase bold wordmark proportion */}
-        <div className="inline-flex items-center gap-2">
-          <svg
-            width="28"
-            height="24"
-            viewBox="0 0 32 26"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="shrink-0"
-            aria-hidden="true"
-          >
-            <rect x="2" y="2" width="24" height="22" rx="5.5" fill="#1E2C5E" />
-            <path
-              d="M2 8C2 4.68629 4.68629 2 8 2H20.5C23.5376 2 26 4.46243 26 7.5V12.5H13.5C7.14873 12.5 2 10.4853 2 8Z"
-              fill="#F5BC1B"
-            />
-            <rect x="8.5" y="7.5" width="11" height="11" rx="2.5" fill="#FFFFFF" />
-            <path d="M12 10.5V15.5M12 13L15.8 10.5M13.5 12.2L16.2 15.5" stroke="#1E2C5E" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className={`font-display font-extrabold text-[19px] tracking-tight leading-none ${textClass}`}>
-            kelasbrevet
-          </span>
-        </div>
+      <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
+        <KelasBrevetEmblem size={34} />
+        {renderWordmark('text-[21px] sm:text-[23px]')}
       </div>
     );
   }
 
-  // Hero wordmark replacing CORETAX on Landing & Login screens (same visual scale, navy + gold palette)
   if (variant === 'hero') {
-    const primaryText = dark ? 'text-white' : 'text-[#1B2A5B]';
     return (
-      <div className={`inline-flex items-center gap-2.5 select-none ${className}`} aria-label="KelasBrevet">
-        <svg
-          width="42"
-          height="42"
-          viewBox="0 0 48 48"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="shrink-0"
-          aria-hidden="true"
-        >
-          <circle cx="24" cy="24" r="21" fill="#1B2A5B" />
-          <path
-            d="M24 3C35.598 3 45 12.402 45 24C45 27.6 44.08 31 42.47 33.96L24 24V3Z"
-            fill="#F4C430"
-          />
-          <circle cx="24" cy="24" r="13.5" fill="#FFFFFF" />
-          <path d="M24 14.5L32.5 18.8L24 23L15.5 18.8L24 14.5Z" fill="#1B2A5B" />
-          <path
-            d="M18.5 21.8V27.6C18.5 29.2 21 30.8 24 30.8C27 30.8 29.5 29.2 29.5 27.6V21.8"
-            stroke="#1B2A5B"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="24" cy="25.5" r="2.8" fill="#DC2626" />
-        </svg>
-        <div className="font-display font-black tracking-[-0.03em] text-[34px] sm:text-[38px] leading-none flex items-baseline">
-          <span className={primaryText}>KELAS</span>
-          <span className="text-[#F4B81B]">BREVET</span>
-        </div>
+      <div className={`inline-flex items-center gap-3.5 select-none ${className}`} aria-label={brandName}>
+        <KelasBrevetEmblem size={48} />
+        {renderWordmark('text-[34px] sm:text-[40px]')}
       </div>
     );
   }
 
-  const isLight = variant === 'light';
-  const primaryColorClass = isLight ? 'text-white' : 'text-[#1D2B53]';
-  const subtitleColorClass = isLight ? 'text-slate-300' : 'text-slate-600';
+  if (variant === 'admin') {
+    return (
+      <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
+        <KelasBrevetEmblem size={30} />
+        {renderWordmark('text-[19px]')}
+      </div>
+    );
+  }
 
+  const subtitleColorClass = isDarkSurface ? 'text-slate-300' : 'text-slate-500';
   return (
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      <svg
-        width={variant === 'login' ? 44 : 36}
-        height={variant === 'login' ? 44 : 36}
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0"
-        aria-label="Logo KelasBrevet"
-      >
-        <path
-          d="M24 3L6 10.5V23.5C6 34.4 13.7 42.9 24 46C34.3 42.9 42 34.4 42 23.5V10.5L24 3Z"
-          fill="#1D2B53"
-        />
-        <path
-          d="M24 6.2L9.2 12.4V23.4C9.2 32.5 15.6 39.8 24 42.6C32.4 39.8 38.8 32.5 38.8 23.4V12.4L24 6.2Z"
-          stroke="#F4C430"
-          strokeWidth="1.8"
-          fill="none"
-        />
-        <path d="M24 12.5L34.5 17.5L24 22.5L13.5 17.5L24 12.5Z" fill="#F4C430" />
-        <path
-          d="M17.5 21.5V28.2C17.5 30.1 20.4 32 24 32C27.6 32 30.5 30.1 30.5 28.2V21.5"
-          stroke="#FFFFFF"
-          strokeWidth="2.3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path d="M34.5 17.5V25.5" stroke="#F4C430" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="34.5" cy="26.5" r="1.8" fill="#F4C430" />
-      </svg>
-
+      <KelasBrevetEmblem size={variant === 'login' ? 40 : 34} />
       <div className="flex flex-col leading-none">
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`font-display font-extrabold tracking-tight ${
-              variant === 'login' ? 'text-[22px]' : 'text-[17px]'
-            } ${primaryColorClass}`}
-          >
-            kelas<span className="text-[#D49E00]">brevet</span>
-          </span>
-          <span className="h-4 w-[1.5px] bg-slate-300 mx-0.5" />
+        <div className="flex items-center gap-2">
+          {renderWordmark(variant === 'login' ? 'text-[23px]' : 'text-[19px]')}
+          <span className="h-4 w-[1px] bg-slate-300" />
           <span
             className={`font-display font-bold tracking-wider uppercase ${
-              variant === 'login' ? 'text-[13px]' : 'text-[11px]'
-            } ${primaryColorClass}`}
+              variant === 'login' ? 'text-[12px]' : 'text-[11px]'
+            } ${primaryTextClass}`}
           >
             CORETAX
           </span>
         </div>
-        <span className={`text-[10px] font-medium tracking-wide mt-0.5 ${subtitleColorClass}`}>
+        <span className={`text-[10px] font-medium tracking-wide mt-1 ${subtitleColorClass}`}>
           Lisensi Edukasi &amp; Simulasi Perpajakan
         </span>
       </div>

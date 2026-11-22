@@ -1,6 +1,9 @@
 import { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import {
+  AdminRole,
+  AdminUser,
   BillingCode,
+  BrandingSettings,
   ExamCaseCode,
   ExamCheckItem,
   ExamEvaluation,
@@ -23,6 +26,7 @@ import {
 } from '../types/tax.ts';
 import { createSeedWorkspace } from '../data/seedData.ts';
 import { createDefaultExamQuestions } from '../lib/evaluationService.ts';
+import { getAdminCredentials, hashPassword } from '../lib/serverAuth.ts';
 import {
   formatRp,
   generateBillingCode,
@@ -1474,4 +1478,209 @@ export async function syncWorkspaceProfileFromParticipant(
   const latest = await loadWorkspace(nikKey);
   return latest || ws;
 }
+
+// ============================================================================
+// ADMIN USERS TABLE (DB-BACKED ADMIN LOGIN & MANAGEMENT)
+// ============================================================================
+
+function mapAdminUserRow(row: RowDataPacket): AdminUser {
+  return {
+    id: String(row.id),
+    email: String(row.email).toLowerCase(),
+    fullName: String(row.full_name || 'Administrator'),
+    passwordHash: String(row.password_hash || ''),
+    role: (String(row.role || 'ADMIN') === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN') as AdminRole,
+    isActive: Boolean(row.is_active),
+    lastLoginAt: row.last_login_at ? String(row.last_login_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export async function ensureInitialAdminUser(): Promise<void> {
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(`SELECT COUNT(*) AS cnt FROM admin_users`);
+  const cnt = Number(rows[0]?.cnt || 0);
+  if (cnt > 0) return;
+
+  const seed = getAdminCredentials();
+  const now = new Date().toISOString();
+  await pool.execute(
+    `INSERT IGNORE INTO admin_users (
+      id, email, full_name, password_hash, role, is_active, last_login_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      'adm-super-1',
+      seed.email,
+      'Super Admin KelasBrevet',
+      hashPassword(seed.password),
+      'SUPER_ADMIN',
+      1,
+      null,
+      now,
+      now,
+    ]
+  );
+}
+
+export async function listAdminUsers(): Promise<AdminUser[]> {
+  await ensureInitialAdminUser();
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM admin_users ORDER BY role ASC, created_at ASC`
+  );
+  return rows.map(mapAdminUserRow);
+}
+
+export async function getAdminUserByEmail(email: string): Promise<AdminUser | null> {
+  await ensureInitialAdminUser();
+  const clean = email.trim().toLowerCase();
+  if (!clean) return null;
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM admin_users WHERE LOWER(email) = ? LIMIT 1`,
+    [clean]
+  );
+  return rows.length > 0 ? mapAdminUserRow(rows[0]) : null;
+}
+
+export async function getAdminUserById(id: string): Promise<AdminUser | null> {
+  await ensureInitialAdminUser();
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM admin_users WHERE id = ? LIMIT 1`,
+    [id]
+  );
+  return rows.length > 0 ? mapAdminUserRow(rows[0]) : null;
+}
+
+export async function createAdminUser(admin: AdminUser): Promise<AdminUser> {
+  await ensureInitialAdminUser();
+  const pool = await ensureMysqlSchema();
+  await pool.execute(
+    `INSERT INTO admin_users (
+      id, email, full_name, password_hash, role, is_active, last_login_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      admin.id,
+      admin.email.trim().toLowerCase(),
+      admin.fullName.trim(),
+      admin.passwordHash,
+      admin.role,
+      admin.isActive ? 1 : 0,
+      admin.lastLoginAt || null,
+      admin.createdAt,
+      admin.updatedAt,
+    ]
+  );
+  return admin;
+}
+
+export async function updateAdminUser(
+  id: string,
+  updates: Partial<AdminUser>
+): Promise<AdminUser | null> {
+  const existing = await getAdminUserById(id);
+  if (!existing) return null;
+
+  const merged: AdminUser = {
+    ...existing,
+    ...updates,
+    id: existing.id,
+    email: (updates.email ?? existing.email).trim().toLowerCase(),
+    fullName: (updates.fullName ?? existing.fullName).trim(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const pool = await ensureMysqlSchema();
+  await pool.execute(
+    `UPDATE admin_users
+     SET email = ?, full_name = ?, password_hash = ?, role = ?, is_active = ?,
+         last_login_at = ?, updated_at = ?
+     WHERE id = ?`,
+    [
+      merged.email,
+      merged.fullName,
+      merged.passwordHash,
+      merged.role,
+      merged.isActive ? 1 : 0,
+      merged.lastLoginAt || null,
+      merged.updatedAt,
+      id,
+    ]
+  );
+  return merged;
+}
+
+export async function touchAdminLastLogin(id: string): Promise<void> {
+  const pool = await ensureMysqlSchema();
+  const now = new Date().toISOString();
+  await pool.execute(
+    `UPDATE admin_users SET last_login_at = ?, updated_at = ? WHERE id = ?`,
+    [now, now, id]
+  );
+}
+
+export async function deleteAdminUser(id: string): Promise<boolean> {
+  const pool = await ensureMysqlSchema();
+  const [res]: any = await pool.execute(`DELETE FROM admin_users WHERE id = ?`, [id]);
+  return Number(res?.affectedRows || 0) > 0;
+}
+
+// ============================================================================
+// APP SETTINGS TABLE (BRANDING / LOGO SETTINGS)
+// ============================================================================
+
+export async function getBrandingSettings(): Promise<BrandingSettings> {
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT setting_key, setting_value, updated_at
+     FROM app_settings
+     WHERE setting_key IN ('brand_logo_url', 'brand_name')`
+  );
+
+  let logoUrl = '';
+  let brandName = 'KelasBrevet';
+  let updatedAt = '';
+
+  for (const row of rows) {
+    const key = String(row.setting_key);
+    const val = String(row.setting_value || '');
+    const ts = String(row.updated_at || '');
+    if (key === 'brand_logo_url') logoUrl = val;
+    if (key === 'brand_name' && val.trim()) brandName = val.trim();
+    if (ts && ts > updatedAt) updatedAt = ts;
+  }
+
+  return { logoUrl, brandName, updatedAt };
+}
+
+export async function saveBrandingSettings(updates: {
+  logoUrl?: string;
+  brandName?: string;
+}): Promise<BrandingSettings> {
+  const pool = await ensureMysqlSchema();
+  const now = new Date().toISOString();
+
+  if (updates.logoUrl !== undefined) {
+    await pool.execute(
+      `INSERT INTO app_settings (setting_key, setting_value, updated_at)
+       VALUES ('brand_logo_url', ?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = VALUES(updated_at)`,
+      [updates.logoUrl, now]
+    );
+  }
+
+  if (updates.brandName !== undefined) {
+    await pool.execute(
+      `INSERT INTO app_settings (setting_key, setting_value, updated_at)
+       VALUES ('brand_name', ?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = VALUES(updated_at)`,
+      [updates.brandName.trim() || 'KelasBrevet', now]
+    );
+  }
+
+  return getBrandingSettings();
+}
+
 

@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   FileDown,
+  Image as ImageIcon,
   KeyRound,
   LogOut,
   Plus,
@@ -18,7 +19,9 @@ import {
   RotateCcw,
   Search,
   Shield,
+  ShieldCheck,
   Trash2,
+  Upload,
   UserPlus,
   Users,
   X,
@@ -26,16 +29,23 @@ import {
 } from 'lucide-react';
 import {
   AdminAnalyticsSummary,
+  AdminPublicUser,
+  AdminRole,
+  BrandingSettings,
   ExamQuestion,
   ParticipantResultSummary,
 } from '../types/tax.ts';
+import { KelasBrevetLogo } from '../components/KelasBrevetLogo.tsx';
+import { setBrandingCache } from '../lib/brandingStore.ts';
 
-type AdminTab = 'analytics' | 'participants' | 'questions' | 'integration';
+type AdminTab = 'analytics' | 'participants' | 'questions' | 'admins' | 'branding' | 'integration';
 
 const ADMIN_TOKEN_STORAGE = 'kelasbrevet_admin_console_token_v1';
 
 interface AdminSession {
+  id: string;
   email: string;
+  fullName: string;
   role: string;
   dbDriver?: string;
   publicUrl?: string;
@@ -125,6 +135,23 @@ export const AdminApp: React.FC = () => {
   const [qIsActive, setQIsActive] = useState(true);
   const [savingQuestion, setSavingQuestion] = useState(false);
 
+  // Admin Users DB Management State
+  const [adminUsers, setAdminUsers] = useState<AdminPublicUser[]>([]);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [editingAdminUser, setEditingAdminUser] = useState<AdminPublicUser | null>(null);
+  const [admFullName, setAdmFullName] = useState('');
+  const [admEmail, setAdmEmail] = useState('');
+  const [admPassword, setAdmPassword] = useState('');
+  const [admRole, setAdmRole] = useState<AdminRole>('ADMIN');
+  const [admIsActive, setAdmIsActive] = useState(true);
+  const [savingAdminUser, setSavingAdminUser] = useState(false);
+
+  // Logo & Branding Settings State
+  const [brandLogoUrl, setBrandLogoUrl] = useState('');
+  const [brandName, setBrandName] = useState('KelasBrevet');
+  const [brandUpdatedAt, setBrandUpdatedAt] = useState('');
+  const [savingBranding, setSavingBranding] = useState(false);
+
   // Integration Simulator Form
   const [simExtId, setSimExtId] = useState('KB-USR-2026-001');
   const [simName, setSimName] = useState('Rizky Pratama');
@@ -179,14 +206,24 @@ export const AdminApp: React.FC = () => {
     setLoadingData(true);
     setErrorBanner(null);
     try {
-      const [anRes, partRes, qRes] = await Promise.all([
+      const [anRes, partRes, qRes, admRes, brandRes] = await Promise.all([
         adminFetch<{ analytics: AdminAnalyticsSummary }>('/api/admin/analytics'),
         adminFetch<{ participants: ParticipantResultSummary[] }>('/api/admin/participants'),
         adminFetch<{ questions: ExamQuestion[] }>('/api/admin/questions'),
+        adminFetch<{ admins: AdminPublicUser[] }>('/api/admin/users'),
+        fetch('/api/branding').then((r) => (r.ok ? r.json() : null)),
       ]);
       setAnalytics(anRes.analytics);
       setParticipants(partRes.participants);
       setQuestions(qRes.questions);
+      setAdminUsers(admRes.admins || []);
+      if (brandRes?.branding) {
+        const b: BrandingSettings = brandRes.branding;
+        setBrandLogoUrl(b.logoUrl || '');
+        setBrandName(b.brandName || 'KelasBrevet');
+        setBrandUpdatedAt(b.updatedAt || '');
+        setBrandingCache(b);
+      }
     } catch (err: any) {
       setErrorBanner(err?.message || 'Gagal memuat data konsol admin.');
     } finally {
@@ -210,7 +247,9 @@ export const AdminApp: React.FC = () => {
         if (!active) return;
         if (data?.ok && data.admin) {
           setSession({
+            id: data.admin.id || '',
             email: data.admin.email,
+            fullName: data.admin.fullName || 'Administrator',
             role: data.admin.role,
             dbDriver: data.dbDriver,
             publicUrl: data.publicUrl,
@@ -259,7 +298,12 @@ export const AdminApp: React.FC = () => {
         sessionStorage.setItem(ADMIN_TOKEN_STORAGE, data.token);
       } catch {}
       setToken(data.token);
-      setSession({ email: data.admin.email, role: data.admin.role });
+      setSession({
+        id: data.admin.id || '',
+        email: data.admin.email,
+        fullName: data.admin.fullName || 'Administrator',
+        role: data.admin.role,
+      });
       setLoginPassword('');
     } catch {
       setLoginError('Tidak dapat terhubung ke server.');
@@ -277,6 +321,126 @@ export const AdminApp: React.FC = () => {
     setAnalytics(null);
     setParticipants([]);
     setQuestions([]);
+    setAdminUsers([]);
+  };
+
+  // === Admin Users CRUD Handlers ===
+  const openNewAdminModal = () => {
+    setEditingAdminUser(null);
+    setAdmFullName('');
+    setAdmEmail('');
+    setAdmPassword('');
+    setAdmRole('ADMIN');
+    setAdmIsActive(true);
+    setAdminModalOpen(true);
+  };
+
+  const openEditAdminModal = (adm: AdminPublicUser) => {
+    setEditingAdminUser(adm);
+    setAdmFullName(adm.fullName);
+    setAdmEmail(adm.email);
+    setAdmPassword('');
+    setAdmRole(adm.role);
+    setAdmIsActive(adm.isActive);
+    setAdminModalOpen(true);
+  };
+
+  const handleSaveAdminUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingAdminUser(true);
+    setErrorBanner(null);
+    try {
+      const payload: Record<string, any> = {
+        fullName: admFullName.trim(),
+        email: admEmail.trim().toLowerCase(),
+        role: admRole,
+        isActive: admIsActive,
+      };
+      if (admPassword.trim()) {
+        payload.password = admPassword;
+      }
+      if (editingAdminUser) {
+        await adminFetch(`/api/admin/users/${encodeURIComponent(editingAdminUser.id)}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        showToast(`Akun admin ${payload.email} berhasil diperbarui di database.`);
+      } else {
+        await adminFetch('/api/admin/users', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        showToast(`Akun admin baru ${payload.email} berhasil ditambahkan ke database.`);
+      }
+      setAdminModalOpen(false);
+      await loadAllData();
+    } catch (err: any) {
+      setErrorBanner(err?.message || 'Gagal menyimpan akun admin.');
+    } finally {
+      setSavingAdminUser(false);
+    }
+  };
+
+  const handleDeleteAdminUser = async (adm: AdminPublicUser) => {
+    setErrorBanner(null);
+    try {
+      await adminFetch(`/api/admin/users/${encodeURIComponent(adm.id)}`, {
+        method: 'DELETE',
+      });
+      showToast(`Akun admin ${adm.email} telah dihapus dari database.`);
+      await loadAllData();
+    } catch (err: any) {
+      setErrorBanner(err?.message || 'Gagal menghapus akun admin.');
+    }
+  };
+
+  // === Branding / Logo Upload Handlers ===
+  const handleLogoFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorBanner('File harus berupa gambar (PNG, JPG, SVG, atau WebP).');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorBanner('Ukuran gambar maksimal 2 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setBrandLogoUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBranding = async (nextLogoUrl?: string) => {
+    setSavingBranding(true);
+    setErrorBanner(null);
+    try {
+      const targetUrl = nextLogoUrl !== undefined ? nextLogoUrl : brandLogoUrl.trim();
+      const res = await adminFetch<{ branding: BrandingSettings }>('/api/admin/branding', {
+        method: 'PUT',
+        body: JSON.stringify({
+          logoUrl: targetUrl,
+          brandName: brandName.trim() || 'KelasBrevet',
+        }),
+      });
+      setBrandLogoUrl(res.branding.logoUrl || '');
+      setBrandName(res.branding.brandName || 'KelasBrevet');
+      setBrandUpdatedAt(res.branding.updatedAt || '');
+      setBrandingCache(res.branding);
+      showToast(
+        targetUrl
+          ? 'Logo KelasBrevet berhasil disimpan ke database & langsung diterapkan di seluruh aplikasi.'
+          : 'Logo dikembalikan ke logo default resmi KelasBrevet.'
+      );
+    } catch (err: any) {
+      setErrorBanner(err?.message || 'Gagal menyimpan pengaturan logo.');
+    } finally {
+      setSavingBranding(false);
+    }
   };
 
   const filteredParticipants = useMemo(() => {
@@ -586,12 +750,10 @@ export const AdminApp: React.FC = () => {
       <div className="min-h-screen bg-[#0F172A] flex flex-col lg:flex-row">
         {/* Left Editorial Brand Panel */}
         <div className="lg:w-1/2 p-8 sm:p-14 flex flex-col justify-between bg-[#0B1120] border-b lg:border-b-0 lg:border-r border-slate-800">
-          <div className="flex items-center gap-2.5 text-white">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold text-base tracking-tight">
-              KelasBrevet Console
+          <div className="flex items-center gap-3 text-white">
+            <KelasBrevetLogo variant="admin" dark />
+            <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+              Admin
             </span>
           </div>
 
@@ -700,6 +862,8 @@ export const AdminApp: React.FC = () => {
     { id: 'analytics', label: 'Analitik Peserta', icon: BarChart3 },
     { id: 'participants', label: 'Peserta & Nilai', icon: Users },
     { id: 'questions', label: 'Manajemen Soal', icon: BookOpen },
+    { id: 'admins', label: 'Akun Admin', icon: ShieldCheck },
+    { id: 'branding', label: 'Logo & Branding', icon: ImageIcon },
     { id: 'integration', label: 'Integrasi API', icon: Code2 },
   ];
 
@@ -707,6 +871,8 @@ export const AdminApp: React.FC = () => {
     analytics: 'Analitik & Progres Simulasi',
     participants: 'Daftar Peserta, Nilai & Kelulusan',
     questions: 'Manajemen Bank Soal Latihan',
+    admins: 'Manajemen Akun Admin (Database)',
+    branding: 'Pengaturan Logo KelasBrevet',
     integration: 'Integrasi API kelasbrevet.com',
   };
 
@@ -715,13 +881,8 @@ export const AdminApp: React.FC = () => {
       {/* LEFT DARK SLATE SIDEBAR (256px) */}
       <aside className="w-full lg:w-64 bg-[#0F172A] text-slate-200 shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-800">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center shrink-0">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold text-sm text-white truncate">
-              KelasBrevet Admin
-            </span>
+          <div className="flex items-center gap-2 min-w-0">
+            <KelasBrevetLogo variant="admin" dark />
           </div>
         </div>
 
@@ -749,8 +910,11 @@ export const AdminApp: React.FC = () => {
 
         <div className="p-4 border-t border-slate-800 hidden lg:block space-y-3">
           <div className="text-xs">
-            <div className="text-slate-100 font-semibold truncate">{session.email}</div>
-            <div className="text-slate-400 text-[11px] mt-0.5">Administrator Simulasi</div>
+            <div className="text-slate-100 font-semibold truncate">{session.fullName || session.email}</div>
+            <div className="text-slate-400 text-[11px] truncate mt-0.5">{session.email}</div>
+            <div className="text-indigo-300 text-[10px] font-semibold uppercase tracking-wider mt-1">
+              {session.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'} &middot; {session.dbDriver || 'Database'}
+            </div>
           </div>
           <button
             type="button"
@@ -808,6 +972,17 @@ export const AdminApp: React.FC = () => {
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Tambah Soal</span>
+              </button>
+            )}
+
+            {activeTab === 'admins' && (
+              <button
+                type="button"
+                onClick={openNewAdminModal}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer whitespace-nowrap"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Tambah Admin</span>
               </button>
             )}
 
@@ -1473,6 +1648,286 @@ export const AdminApp: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* =============================================================== */}
+          {/* TAB 5: MANAJEMEN AKUN ADMIN (TABEL DATABASE admin_users)         */}
+          {/* =============================================================== */}
+          {activeTab === 'admins' && (
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-display font-bold text-base text-slate-900">
+                    Daftar Akun Administrator (Tabel <code className="font-mono text-indigo-700">admin_users</code>)
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Seluruh kredensial login Admin disimpan terenkripsi (scrypt hash) di database MySQL, bukan hardcoded pada konfigurasi manual.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openNewAdminModal}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer whitespace-nowrap shrink-0"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Tambah Akun Admin</span>
+                </button>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
+                        <th className="py-3 px-4">Administrator</th>
+                        <th className="py-3 px-4">Email Login</th>
+                        <th className="py-3 px-4">Peran</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Login Terakhir</th>
+                        <th className="py-3 px-4 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {adminUsers.map((adm) => {
+                        const isSelf = session?.id === adm.id || session?.email === adm.email;
+                        return (
+                          <tr key={adm.id} className="hover:bg-slate-50/70">
+                            <td className="py-3 px-4">
+                              <div className="font-semibold text-slate-900 flex items-center gap-2">
+                                <span>{adm.fullName}</span>
+                                {isSelf && (
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                    Akun Anda
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] font-mono text-slate-400 mt-0.5">{adm.id}</div>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-slate-700">{adm.email}</td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                                  adm.role === 'SUPER_ADMIN'
+                                    ? 'bg-slate-900 text-white border-slate-900'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {adm.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
+                                  adm.isActive ? 'text-emerald-700' : 'text-slate-400'
+                                }`}
+                              >
+                                <span
+                                  className={`w-2 h-2 rounded-full ${
+                                    adm.isActive ? 'bg-emerald-500' : 'bg-slate-300'
+                                  }`}
+                                />
+                                {adm.isActive ? 'Aktif' : 'Nonaktif'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-500">
+                              {adm.lastLoginAt
+                                ? new Date(adm.lastLoginAt).toLocaleString('id-ID')
+                                : 'Belum pernah login'}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditAdminModal(adm)}
+                                  className="px-2.5 py-1.5 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md cursor-pointer inline-flex items-center gap-1"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Edit / Password</span>
+                                </button>
+                                {!isSelf && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteAdminUser(adm)}
+                                    className="p-1.5 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-md cursor-pointer"
+                                    title="Hapus akun admin"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {adminUsers.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400">
+                            Belum ada akun admin terdaftar.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =============================================================== */}
+          {/* TAB 6: PENGATURAN LOGO & BRANDING KELASBREVET                   */}
+          {/* =============================================================== */}
+          {activeTab === 'branding' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: Upload & Form */}
+              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+                <div>
+                  <h2 className="font-display font-bold text-base text-slate-900">
+                    Ubah Logo KelasBrevet
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Logo yang disimpan di tabel <code className="font-mono text-indigo-700">app_settings</code> akan otomatis tampil pada halaman Login, Header Simulasi, Layar Loading, Dokumen Cetak, dan Konsol Admin.
+                  </p>
+                </div>
+
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1.5">
+                      Nama Brand
+                    </label>
+                    <input
+                      type="text"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      placeholder="KelasBrevet"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1.5">
+                      Unggah Foto / File Logo Baru (PNG, JPG, SVG, WebP — maks. 2 MB)
+                    </label>
+                    <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-6 bg-slate-50/70 hover:bg-indigo-50/30 transition cursor-pointer text-center">
+                      <Upload className="w-6 h-6 text-indigo-600" />
+                      <div className="font-semibold text-slate-700">
+                        Klik untuk pilih file logo dari komputer Anda
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        Disarankan PNG / SVG transparan horizontal (misal 400&times;100 px)
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        onChange={handleLogoFileSelected}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1.5">
+                      Atau Masukkan URL Gambar Logo (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={brandLogoUrl.startsWith('data:') ? '' : brandLogoUrl}
+                      onChange={(e) => setBrandLogoUrl(e.target.value)}
+                      placeholder="https://kelasbrevet.com/assets/logo.png (kosongkan untuk logo default)"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-[11.5px] text-slate-800"
+                    />
+                    {brandLogoUrl.startsWith('data:') && (
+                      <div className="mt-1.5 text-[11px] text-emerald-700 font-medium">
+                        File gambar siap disimpan (Data URL terpasang).
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      disabled={savingBranding}
+                      onClick={() => handleSaveBranding()}
+                      className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-lg transition cursor-pointer"
+                    >
+                      {savingBranding ? 'Menyimpan...' : 'Simpan Logo ke Database'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingBranding}
+                      onClick={() => handleSaveBranding('')}
+                      className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition cursor-pointer"
+                    >
+                      Reset ke Logo Default KelasBrevet
+                    </button>
+                  </div>
+
+                  {brandUpdatedAt && (
+                    <div className="text-[11px] text-slate-400">
+                      Terakhir diperbarui: {new Date(brandUpdatedAt).toLocaleString('id-ID')}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Live Multi-Surface Preview */}
+              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                <div>
+                  <h3 className="font-display font-bold text-sm text-slate-900">
+                    Pratinjau Langsung di Aplikasi
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Perubahan logo akan langsung terlihat pada tampilan simulasi di bawah ini.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-slate-200 p-4 bg-white">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+                      Header Portal Simulasi (Mode Terang)
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <KelasBrevetLogo
+                        variant="portalbar"
+                        logoUrlOverride={brandLogoUrl}
+                        brandNameOverride={brandName}
+                      />
+                      <span className="text-[11px] text-slate-400">Cari layanan...</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-800 p-4 bg-[#0F172A]">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+                      Header Gelap &amp; Konsol Admin
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-[#1E293B] border border-slate-700">
+                      <KelasBrevetLogo
+                        variant="admin"
+                        dark
+                        logoUrlOverride={brandLogoUrl}
+                        brandNameOverride={brandName}
+                      />
+                      <span className="text-[11px] text-slate-400">Administrator</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 p-4 bg-[#EEF2FA]">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2.5">
+                      Halaman Login &amp; Layar Loading
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 py-5 px-6 flex flex-col items-center gap-2">
+                      <KelasBrevetLogo
+                        variant="hero"
+                        logoUrlOverride={brandLogoUrl}
+                        brandNameOverride={brandName}
+                      />
+                      <span className="text-[11px] text-slate-500">
+                        Memuat layanan {brandName || 'KelasBrevet'}...
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -1994,6 +2449,109 @@ export const AdminApp: React.FC = () => {
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold cursor-pointer"
                 >
                   {savingQuestion ? 'Menyimpan...' : 'Simpan Soal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =================================================================== */}
+      {/* MODAL: TAMBAH / EDIT AKUN ADMIN (admin_users)                       */}
+      {/* =================================================================== */}
+      {adminModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-display font-bold text-base text-slate-900">
+                {editingAdminUser ? 'Edit Akun Administrator' : 'Tambah Akun Administrator Baru'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setAdminModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAdminUser} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
+                <input
+                  type="text"
+                  required
+                  value={admFullName}
+                  onChange={(e) => setAdmFullName(e.target.value)}
+                  placeholder="Mis. Admin Akademik Brevet"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Email Login *</label>
+                <input
+                  type="email"
+                  required
+                  value={admEmail}
+                  onChange={(e) => setAdmEmail(e.target.value)}
+                  placeholder="admin2@kelasbrevet.com"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  {editingAdminUser
+                    ? 'Kata Sandi Baru (Kosongkan jika tidak ingin mengubah)'
+                    : 'Kata Sandi * (min. 6 karakter)'}
+                </label>
+                <input
+                  type="password"
+                  required={!editingAdminUser}
+                  minLength={editingAdminUser ? undefined : 6}
+                  value={admPassword}
+                  onChange={(e) => setAdmPassword(e.target.value)}
+                  placeholder={editingAdminUser ? 'Isi hanya jika ingin ganti password' : 'Minimal 6 karakter'}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Peran</label>
+                <select
+                  value={admRole}
+                  onChange={(e) => setAdmRole(e.target.value as AdminRole)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                >
+                  <option value="ADMIN">Admin Manajemen Simulasi</option>
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                </select>
+              </div>
+
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={admIsActive}
+                  onChange={(e) => setAdmIsActive(e.target.checked)}
+                />
+                <span className="font-medium text-slate-700">Akun aktif dan dapat login</span>
+              </label>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setAdminModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAdminUser}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold cursor-pointer"
+                >
+                  {savingAdminUser ? 'Menyimpan...' : 'Simpan Akun Admin'}
                 </button>
               </div>
             </form>

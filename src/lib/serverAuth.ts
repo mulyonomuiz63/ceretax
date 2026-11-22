@@ -69,8 +69,10 @@ export function generateParticipantNik(seedHint?: string): string {
 }
 
 export interface AdminTokenPayload {
+  id: string;
   email: string;
-  role: 'ADMIN';
+  fullName: string;
+  role: 'SUPER_ADMIN' | 'ADMIN';
   iat: number;
   exp: number;
 }
@@ -79,10 +81,17 @@ function getTokenSecret(): string {
   return process.env.ADMIN_TOKEN_SECRET || DEFAULT_TOKEN_SECRET;
 }
 
-export function signAdminToken(email: string): string {
+export function signAdminToken(admin: {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'SUPER_ADMIN' | 'ADMIN';
+}): string {
   const payload: AdminTokenPayload = {
-    email,
-    role: 'ADMIN',
+    id: admin.id,
+    email: admin.email,
+    fullName: admin.fullName,
+    role: admin.role,
     iat: Date.now(),
     exp: Date.now() + 1000 * 60 * 60 * 12, // 12 hours
   };
@@ -112,7 +121,8 @@ export function verifyAdminToken(token: string): AdminTokenPayload | null {
 
   try {
     const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf-8')) as AdminTokenPayload;
-    if (payload.role !== 'ADMIN' || !payload.exp || Date.now() > payload.exp) {
+    const validRole = payload.role === 'ADMIN' || payload.role === 'SUPER_ADMIN';
+    if (!validRole || !payload.email || !payload.exp || Date.now() > payload.exp) {
       return null;
     }
     return payload;

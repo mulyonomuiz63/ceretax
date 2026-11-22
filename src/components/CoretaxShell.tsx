@@ -9,7 +9,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
-  Cloud,
   CreditCard,
   FileSpreadsheet,
   FileText,
@@ -45,8 +44,6 @@ interface CoretaxShellProps {
   onOpenExamDrawer: () => void;
   language: 'id-ID' | 'en-US';
   onLanguageChange: (lang: 'id-ID' | 'en-US') => void;
-  cloudUserEmail: string | null;
-  onConnectCloud: () => void;
   onLogout: () => void;
   children: React.ReactNode;
 }
@@ -198,8 +195,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   onOpenExamDrawer,
   language,
   onLanguageChange,
-  cloudUserEmail,
-  onConnectCloud,
   onLogout,
   children,
 }) => {
@@ -724,19 +719,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     </button>
 
                     <div className="p-2 space-y-1 bg-[#F8FAFC]">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onConnectCloud();
-                          setAccountMenuOpen(false);
-                        }}
-                        className="w-full px-3 py-2 rounded-lg text-left text-xs font-medium text-slate-700 hover:bg-white flex items-center gap-2 cursor-pointer"
-                      >
-                        <Cloud className="w-3.5 h-3.5 text-[#1E2C5E]" />
-                        <span className="truncate">
-                          {cloudUserEmail ? `Cloud: ${cloudUserEmail}` : 'Hubungkan Cloud Sync'}
-                        </span>
-                      </button>
                       <button
                         type="button"
                         onClick={onLogout}
