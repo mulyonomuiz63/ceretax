@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ArrowRight,
-  Building2,
   Check,
   ChevronDown,
   Eye,
@@ -15,13 +14,11 @@ import {
   ShieldX,
   Sun,
   User,
-  UserCheck,
   UserX,
   Wifi,
   X,
 } from 'lucide-react';
 import { KelasBrevetLogo } from './KelasBrevetLogo.tsx';
-import { DEMO_ACCOUNTS } from '../data/seedData.ts';
 
 interface LoginPageProps {
   onLoginNik: (nik: string, password?: string) => Promise<void>;
@@ -76,7 +73,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [humanVerified, setHumanVerified] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [modalMode, setModalMode] = useState<'NONE' | 'FORGOT' | 'DEMO'>('NONE');
+  const [modalMode, setModalMode] = useState<'NONE' | 'FORGOT'>('NONE');
 
   const isId = language === 'id-ID';
   const displayError = localError || error;
@@ -100,15 +97,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
 
     await onLoginNik(cleanedNik, password.trim() || undefined);
-  };
-
-  const handleQuickDemo = async (demoNik: string) => {
-    setNik(demoNik);
-    setPassword('');
-    setHumanVerified(true);
-    setLocalError(null);
-    setModalMode('NONE');
-    await onLoginNik(demoNik);
   };
 
   return (
@@ -315,6 +303,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-12 lg:gap-10">
             {/* LEFT HERO COLUMN */}
             <div className="lg:col-span-6 space-y-6">
+              <KelasBrevetLogo variant="hero" dark={darkTheme} />
+
               <h1
                 className={`font-display font-extrabold text-[36px] sm:text-[44px] lg:text-[48px] leading-[1.16] tracking-[-0.02em] ${
                   darkTheme ? 'text-white' : 'text-[#1B2958]'
@@ -637,7 +627,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         <main className="relative z-10 w-full max-w-[1260px] mx-auto px-6 sm:px-10 lg:px-14 flex-1 flex items-center py-6">
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-10 lg:gap-12">
             {/* LEFT BRANDING COLUMN (Lower-middle balanced exactly like official Login screenshot) */}
-            <div className="lg:col-span-6 lg:pt-28 space-y-4">
+            <div className="lg:col-span-6 lg:pt-20 space-y-4">
+              <KelasBrevetLogo variant="hero" dark={darkTheme} />
+
               <h1
                 className={`font-display font-extrabold text-[34px] sm:text-[40px] leading-[1.18] tracking-[-0.02em] ${
                   darkTheme ? 'text-white' : 'text-[#1B2958]'
@@ -863,48 +855,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         : 'Sign In'}
                   </button>
                 </form>
-
-                {/* Clean unboxed helper links for student demo NIK access */}
-                <div
-                  className={`mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2 text-[12px] ${
-                    darkTheme
-                      ? 'border-slate-800 text-slate-400'
-                      : 'border-slate-100 text-[#64748B]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span>{isId ? 'Simulasi NIK:' : 'Demo NIK:'}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo(DEMO_ACCOUNTS[0].nik)}
-                      className={`font-semibold hover:underline cursor-pointer ${
-                        darkTheme ? 'text-[#F4C430]' : 'text-[#1E2C5E]'
-                      }`}
-                    >
-                      Tuan A
-                    </button>
-                    <span aria-hidden="true">·</span>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo(DEMO_ACCOUNTS[1].nik)}
-                      className={`font-semibold hover:underline cursor-pointer ${
-                        darkTheme ? 'text-[#F4C430]' : 'text-[#1E2C5E]'
-                      }`}
-                    >
-                      Siti R.
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setModalMode('DEMO')}
-                    className={`font-medium hover:underline cursor-pointer ${
-                      darkTheme ? 'text-slate-300' : 'text-[#475569]'
-                    }`}
-                  >
-                    {isId ? 'Panduan NIK' : 'NIK Guide'}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -937,15 +887,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </div>
       </footer>
 
-      {/* HELPER MODAL FOR LUPA KATA SANDI / AKUN SIMULASI */}
+      {/* HELPER MODAL FOR LUPA KATA SANDI */}
       {modalMode !== 'NONE' && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-4">
           <div className="bg-white text-slate-800 rounded-[16px] shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
             <div className="bg-[#1E2C5E] text-white px-5 py-4 flex items-center justify-between">
               <h3 className="font-display font-bold text-sm">
-                {modalMode === 'FORGOT'
-                  ? 'Informasi Login & Kata Sandi Simulasi'
-                  : 'Daftar Akun Studi Kasus & Login NIK'}
+                Informasi Login &amp; Kata Sandi Simulasi
               </h3>
               <button
                 type="button"
@@ -957,46 +905,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
 
             <div className="p-5 space-y-4 text-xs text-slate-700">
-              {modalMode === 'FORGOT' ? (
-                <div className="space-y-3 leading-relaxed">
-                  <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E3A8A] p-3.5 rounded-lg">
-                    Bagi peserta paket Brevet dari <strong>kelasbrevet.com</strong>, silakan gunakan <strong>ID Pengguna (NIK/NPWP)</strong> dan <strong>Kata Sandi</strong> yang ditampilkan pada menu Simulasi di dashboard <strong>kelasbrevet.com</strong>.
-                  </div>
-                  <p>
-                    Untuk penandatanganan elektronik (e-Faktur, e-Bupot, dan SPT), gunakan Passphrase default Kode Otorisasi DJP: <strong className="font-mono-num text-[#1E2C5E]">123456</strong>.
-                  </p>
+              <div className="space-y-3 leading-relaxed">
+                <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E3A8A] p-3.5 rounded-lg">
+                  Bagi peserta paket Brevet dari <strong>kelasbrevet.com</strong>, silakan gunakan <strong>ID Pengguna (NIK/NPWP)</strong> dan <strong>Kata Sandi</strong> yang ditampilkan pada menu Simulasi di dashboard <strong>kelasbrevet.com</strong>.
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="leading-relaxed">
-                    Masukkan <strong>NIK 16 digit</strong> bebas untuk otomatis membuat profil Wajib Pajak Orang Pribadi &amp; akun Perusahaan PKP (Impersonate), atau pilih langsung akun latihan berikut:
-                  </p>
-                  <div className="space-y-2">
-                    {DEMO_ACCOUNTS.map((acc) => (
-                      <button
-                        key={acc.nik}
-                        type="button"
-                        onClick={() => handleQuickDemo(acc.nik)}
-                        className="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-[#1E2C5E] hover:bg-slate-50 transition cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-[#1E2C5E] inline-flex items-center gap-1.5">
-                            <UserCheck className="w-3.5 h-3.5" />
-                            {acc.name}
-                          </span>
-                          <span className="font-mono-num text-[11px] font-bold text-[#1E2C5E]">
-                            {acc.nik}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-600 mt-1 flex items-center gap-1">
-                          <Building2 className="w-3 h-3 text-[#D49E00]" />
-                          <span>Impersonate: {acc.companyName}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                <p>
+                  Untuk penandatanganan elektronik (e-Faktur, e-Bupot, dan SPT), gunakan Passphrase default Kode Otorisasi DJP: <strong className="font-mono-num text-[#1E2C5E]">123456</strong>.
+                </p>
+              </div>
 
               <div className="flex justify-end pt-2 border-t border-slate-100">
                 <button

@@ -1,6 +1,5 @@
 import React from 'react';
-import { KelasBrevetEmblem, KelasBrevetLogo } from './KelasBrevetLogo.tsx';
-import { useBranding } from '../lib/brandingStore.ts';
+import { DEFAULT_ICON_LOGO_URL, KelasBrevetLogo } from './KelasBrevetLogo.tsx';
 
 interface LoadingOverlayProps {
   visible: boolean;
@@ -13,8 +12,6 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   message = 'Memuat layanan KelasBrevet...',
   fullscreen = true,
 }) => {
-  const branding = useBranding();
-
   if (!visible) return null;
 
   return (
@@ -26,28 +23,24 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       } flex items-center justify-center bg-[#EEF2FA]/85 backdrop-blur-[5px] transition-opacity duration-200`}
     >
       <div className="bg-white/95 border border-[#DCE4F2] rounded-[22px] shadow-[0_24px_64px_rgba(27,41,88,0.14)] px-9 py-8 flex flex-col items-center gap-5 max-w-[340px] w-[90%]">
-        {/* Animated Halo Ring + Branded KelasBrevet Emblem */}
+        {/* Animated Halo Ring + Icon-Only Emblem */}
         <div className="relative flex items-center justify-center">
           <div
             className="w-20 h-20 rounded-full border-[3px] border-[#E5EAF2] border-t-[#155EEF] border-r-[#95B5F6] animate-spin"
             aria-hidden="true"
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            {branding.logoUrl ? (
-              <img
-                src={branding.logoUrl}
-                alt={branding.brandName}
-                className="w-11 h-11 object-contain"
-              />
-            ) : (
-              <KelasBrevetEmblem size={40} />
-            )}
+            <img
+              src={DEFAULT_ICON_LOGO_URL}
+              alt="KelasBrevet"
+              className="w-10 h-10 object-contain"
+            />
           </div>
         </div>
 
-        {/* Official KelasBrevet Wordmark / Custom Uploaded Logo */}
+        {/* Full KelasBrevet Logo (or Admin Custom Logo) */}
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <KelasBrevetLogo variant="portalbar" />
+          <KelasBrevetLogo variant="header" />
           <p className="text-[12.5px] font-semibold text-[#52607A] mt-1">{message}</p>
         </div>
 

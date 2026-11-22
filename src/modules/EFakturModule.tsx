@@ -1,13 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
+  ArrowUpDown,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   Edit3,
   Eye,
+  Filter,
   Info,
+  Layers,
   Plus,
-  RefreshCw,
   RotateCcw,
   ShieldCheck,
   Trash2,
@@ -24,6 +27,11 @@ import {
 } from '../utils/taxCalc.ts';
 import { SignModal } from '../components/SignModal.tsx';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
+import {
+  CoretaxIconToolbar,
+  CoretaxPagination,
+  downloadCsvFile,
+} from '../components/CoretaxTableChrome.tsx';
 
 interface EFakturModuleProps {
   subTab: string;
@@ -103,8 +111,19 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         : subTab || 'dashboard';
 
   const [dashboardPeriod, setDashboardPeriod] = useState('2025-01');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [npwpFilter, setNpwpFilter] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
+  const [txCodeFilter, setTxCodeFilter] = useState('ALL');
+  const [invoiceNumFilter, setInvoiceNumFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [showColumnFilters, setShowColumnFilters] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [monitoringOpen, setMonitoringOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [signTarget, setSignTarget] = useState<TaxInvoice | null>(null);
   const [returnTarget, setReturnTarget] = useState<TaxInvoice | null>(null);
@@ -173,43 +192,68 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
   const filteredInvoices = workspace.invoices.filter((inv) => {
     if (normalizedTab === 'retur_keluaran') {
-      return (
-        inv.direction === 'OUTPUT' &&
-        (inv.status === 'APPROVED' || inv.status === 'AMENDED' || inv.returnAmount > 0)
-      );
-    }
-    if (normalizedTab === 'retur_masukan') {
-      return (
-        inv.direction === 'INPUT' &&
-        (inv.status === 'APPROVED' || inv.status === 'AMENDED' || inv.returnAmount > 0)
-      );
-    }
-    if (normalizedTab === 'retur_dok_lain_keluaran') {
-      return inv.direction === 'EXPORT' && inv.returnAmount > 0;
-    }
-    if (normalizedTab === 'retur_dok_lain_masukan') {
-      return inv.direction === 'INPUT' && inv.returnAmount > 0 && inv.transactionCode === '01';
+      if (
+        !(
+          inv.direction === 'OUTPUT' &&
+          (inv.status === 'APPROVED' || inv.status === 'AMENDED' || inv.returnAmount > 0)
+        )
+      ) {
+        return false;
+      }
+    } else if (normalizedTab === 'retur_masukan') {
+      if (
+        !(
+          inv.direction === 'INPUT' &&
+          (inv.status === 'APPROVED' || inv.status === 'AMENDED' || inv.returnAmount > 0)
+        )
+      ) {
+        return false;
+      }
+    } else if (normalizedTab === 'retur_dok_lain_keluaran') {
+      if (!(inv.direction === 'EXPORT' && inv.returnAmount > 0)) return false;
+    } else if (normalizedTab === 'retur_dok_lain_masukan') {
+      if (!(inv.direction === 'INPUT' && inv.returnAmount > 0 && inv.transactionCode === '01'))
+        return false;
+    } else {
+      const expectedDir: InvoiceDirection =
+        normalizedTab === 'output'
+          ? 'OUTPUT'
+          : normalizedTab === 'input' || normalizedTab === 'dok_lain_masukan'
+            ? 'INPUT'
+            : 'EXPORT';
+      if (inv.direction !== expectedDir) return false;
     }
 
-    const expectedDir: InvoiceDirection =
-      normalizedTab === 'output'
-        ? 'OUTPUT'
-        : normalizedTab === 'input' || normalizedTab === 'dok_lain_masukan'
-          ? 'INPUT'
-          : 'EXPORT';
-
-    if (inv.direction !== expectedDir) return false;
     if (statusFilter !== 'ALL' && inv.status !== statusFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        inv.invoiceNumber.toLowerCase().includes(q) ||
-        inv.counterpartyName.toLowerCase().includes(q) ||
-        inv.counterpartyNpwp.includes(q)
-      );
+    if (txCodeFilter !== 'ALL' && inv.transactionCode !== txCodeFilter) return false;
+    if (monthFilter !== 'ALL' && String(inv.taxPeriodMonth) !== monthFilter) return false;
+    if (npwpFilter.trim() && !inv.counterpartyNpwp.toLowerCase().includes(npwpFilter.trim().toLowerCase())) {
+      return false;
+    }
+    if (nameFilter.trim() && !inv.counterpartyName.toLowerCase().includes(nameFilter.trim().toLowerCase())) {
+      return false;
+    }
+    if (
+      invoiceNumFilter.trim() &&
+      !inv.invoiceNumber.toLowerCase().includes(invoiceNumFilter.trim().toLowerCase()) &&
+      !inv.referenceCode.toLowerCase().includes(invoiceNumFilter.trim().toLowerCase())
+    ) {
+      return false;
     }
     return true;
   });
+
+  const paginatedInvoices = filteredInvoices.slice((page - 1) * pageSize, page * pageSize);
+
+  const resetTableFilters = () => {
+    setNpwpFilter('');
+    setNameFilter('');
+    setTxCodeFilter('ALL');
+    setInvoiceNumFilter('');
+    setMonthFilter('ALL');
+    setStatusFilter('ALL');
+    setPage(1);
+  };
 
   // Dashboard metrics for selected period
   const [dashYear, dashMonth] = dashboardPeriod.split('-').map(Number);
@@ -583,57 +627,22 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
           ) : (
             /* ============================================================= */
             /* DATA TABLE FOR ALL e-FAKTUR & DOKUMEN LAIN SUBMENUS           */
+            /* (Authentic Coretax DJP Pajak Keluaran Yellow-Header Table)    */
             /* ============================================================= */
-            <div className="bg-white border border-[#D9E0E8] rounded-lg overflow-hidden">
+            <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
               {/* Module Header */}
-              <div className="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="px-5 py-3.5 border-b border-[#E5EAF2] flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h1 className="font-display font-bold text-base text-[#1D2B53]">
-                    {activeTabTitle}
+                  <h1 className="font-display font-bold text-[17px] text-[#1E2C5E]">
+                    {activeTabTitle.replace(/^e-Faktur — |^Dokumen Lain — /, '')}
                   </h1>
-                  <p className="text-xs text-slate-500">
-                    Administrasi Faktur Pajak &amp; Dokumen Lain (PMK 131/2024 — PPN 12% &amp; DPP Nilai Lain 11/12)
+                  <p className="text-[11.5px] text-slate-500">
+                    PMK 131/2024 — Perhitungan Otomatis DPP Nilai Lain 11/12 &amp; PPN 12%
                   </p>
                 </div>
-              </div>
-
-              {/* Action Toolbar */}
-              <div className="px-5 py-3 bg-[#F8FAFC] border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  {!isReturTab && (
-                    <button
-                      type="button"
-                      onClick={() => setCreateModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 bg-[#1D2B53] hover:bg-[#273A6E] text-white font-bold text-xs px-3.5 py-2 rounded shadow-sm cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-[#F4C430]" />
-                      <span>
-                        {normalizedTab === 'output'
-                          ? 'Rekam Faktur'
-                          : normalizedTab === 'input'
-                            ? 'Tambah Simulasi Faktur Masukan'
-                            : normalizedTab === 'dok_lain_keluaran'
-                              ? 'Catat Dokumen Lain Keluaran (PEB)'
-                              : 'Catat Dokumen Lain Masukan'}
-                      </span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setStatusFilter('ALL');
-                    }}
-                    className="inline-flex items-center gap-1 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3 py-2 rounded cursor-pointer"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Reset Filter</span>
-                  </button>
-                </div>
-
                 <div className="text-xs text-slate-600 font-mono-num">
-                  Total PPN pada Tampilan:{' '}
-                  <strong className="text-[#1D2B53]">
+                  Total PPN:{' '}
+                  <strong className="text-[#1E2C5E]">
                     {formatRp(
                       filteredInvoices.reduce(
                         (s, i) => s + (i.status === 'CANCELLED' ? 0 : i.ppnTotal),
@@ -644,252 +653,587 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                 </div>
               </div>
 
-              {/* Coretax Yellow-Header Data Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-[#F4C430] text-[#1D2B53] font-bold">
-                      <th className="px-3 py-2.5 text-left whitespace-nowrap">Aksi</th>
-                      <th className="px-3 py-2.5 text-left whitespace-nowrap">Kode &amp; No. Faktur</th>
-                      <th className="px-3 py-2.5 text-left whitespace-nowrap">Lawan Transaksi (NPWP / Nama)</th>
-                      <th className="px-3 py-2.5 text-left whitespace-nowrap">Tanggal / Masa</th>
-                      <th className="px-3 py-2.5 text-right whitespace-nowrap">Harga Jual / DPP</th>
-                      <th className="px-3 py-2.5 text-right whitespace-nowrap">DPP Nilai Lain</th>
-                      <th className="px-3 py-2.5 text-right whitespace-nowrap">PPN</th>
-                      {isInputTab && !isReturTab && (
-                        <th className="px-3 py-2.5 text-center whitespace-nowrap">Pengkreditan</th>
-                      )}
-                      {isReturTab && (
-                        <th className="px-3 py-2.5 text-right whitespace-nowrap">PPN Diretur</th>
-                      )}
-                      <th className="px-3 py-2.5 text-center whitespace-nowrap">Status Faktur</th>
-                    </tr>
-                    <tr className="bg-[#FFFBEB] border-b border-slate-200">
-                      <th className="px-2 py-1.5" />
-                      <th colSpan={2} className="px-2 py-1.5">
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Filter nomor faktur / nama lawan transaksi..."
-                          className="w-full border border-slate-300 bg-white rounded px-2.5 py-1 text-[11px] font-normal"
-                        />
-                      </th>
-                      <th colSpan={isInputTab || isReturTab ? 5 : 4} className="px-2 py-1.5" />
-                      <th className="px-2 py-1.5">
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                          className="w-full border border-slate-300 bg-white rounded px-2 py-1 text-[11px] font-normal"
-                        >
-                          <option value="ALL">Semua Status</option>
-                          <option value="DRAFT">DRAFT</option>
-                          <option value="APPROVED">APPROVED</option>
-                          <option value="WAITING_FOR_AMENDMENT">WAITING_FOR_AMENDMENT</option>
-                          <option value="AMENDED">AMENDED</option>
-                          <option value="WAITING_FOR_CANCELLATION">WAITING_FOR_CANCELLATION</option>
-                          <option value="CANCELLED">CANCELLED</option>
-                        </select>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
-                    {filteredInvoices.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
-                          Tidak ada data yang ditemukan.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-[#F8FAFC]">
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onPrintDocument({
-                                    type: 'FAKTUR',
-                                    invoice: inv,
-                                    seller: workspace.corporateTaxpayer,
-                                  })
+              {/* Official Coretax Navy Action Bar (Monitoring v · Bulk Process v · + Buat Faktur Pajak) */}
+              <div className="px-5 pt-3.5 pb-1 flex flex-wrap items-center gap-2 relative">
+                {!isReturTab && (
+                  <button
+                    type="button"
+                    onClick={() => setCreateModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-[#F4C430]" />
+                    <span>
+                      {normalizedTab === 'output'
+                        ? 'Buat Faktur Pajak'
+                        : normalizedTab === 'input'
+                          ? 'Tambah Simulasi Faktur Masukan'
+                          : normalizedTab === 'dok_lain_keluaran'
+                            ? 'Catat Dokumen Lain Keluaran (PEB)'
+                            : 'Catat Dokumen Lain Masukan'}
+                    </span>
+                  </button>
+                )}
+
+                {/* Monitoring Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMonitoringOpen((p) => !p);
+                      setBulkOpen(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                    <span>Monitoring</span>
+                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                  </button>
+                  {monitoringOpen && (
+                    <div className="absolute left-0 top-full mt-1.5 w-64 bg-white border border-[#E2E8F0] rounded-lg shadow-xl p-3 z-30 text-xs space-y-1.5">
+                      <div className="font-bold text-[#1E2C5E] pb-1 border-b border-slate-100">
+                        Ringkasan Status Faktur
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Total Faktur Tampil</span>
+                        <strong className="font-mono-num">{filteredInvoices.length}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">APPROVED</span>
+                        <strong className="font-mono-num text-emerald-700">
+                          {filteredInvoices.filter((i) => i.status === 'APPROVED').length}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">DRAFT (Belum Upload)</span>
+                        <strong className="font-mono-num text-amber-700">
+                          {filteredInvoices.filter((i) => i.status === 'DRAFT').length}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">AMENDED / CANCELLED</span>
+                        <strong className="font-mono-num text-blue-700">
+                          {
+                            filteredInvoices.filter(
+                              (i) => i.status === 'AMENDED' || i.status === 'CANCELLED'
+                            ).length
+                          }
+                        </strong>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bulk Process Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBulkOpen((p) => !p);
+                      setMonitoringOpen(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Bulk Process</span>
+                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                  </button>
+                  {bulkOpen && (
+                    <div className="absolute left-0 top-full mt-1.5 w-60 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1.5 z-30 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const firstDraft = filteredInvoices.find(
+                            (i) => selectedIds.includes(i.id) && i.status === 'DRAFT'
+                          ) || filteredInvoices.find((i) => i.status === 'DRAFT');
+                          setBulkOpen(false);
+                          if (firstDraft) setSignTarget(firstDraft);
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
+                      >
+                        Upload / Tandatangani Faktur DRAFT
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetTableFilters();
+                          setSelectedIds([]);
+                          setBulkOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-600 cursor-pointer"
+                      >
+                        Reset Semua Filter &amp; Pilihan
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Official Coretax Icon Toolbar */}
+              <div className="px-5">
+                <CoretaxIconToolbar
+                  onRefresh={resetTableFilters}
+                  onExportCsv={() =>
+                    downloadCsvFile(
+                      `eFaktur_${normalizedTab}.csv`,
+                      [
+                        'NPWP Lawan Transaksi',
+                        'Nama Lawan Transaksi',
+                        'Kode Transaksi',
+                        'Nomor Faktur',
+                        'Tanggal',
+                        'DPP',
+                        'DPP Nilai Lain',
+                        'PPN',
+                        'Status',
+                      ],
+                      filteredInvoices.map((i) => [
+                        i.counterpartyNpwp,
+                        i.counterpartyName,
+                        i.transactionCode,
+                        i.invoiceNumber,
+                        i.invoiceDate,
+                        i.dppTotal,
+                        i.dppOtherValue,
+                        i.ppnTotal,
+                        i.status,
+                      ])
+                    )
+                  }
+                  onExportExcel={() =>
+                    downloadCsvFile(
+                      `eFaktur_${normalizedTab}.csv`,
+                      [
+                        'NPWP Lawan Transaksi',
+                        'Nama Lawan Transaksi',
+                        'Kode Transaksi',
+                        'Nomor Faktur',
+                        'Tanggal',
+                        'DPP',
+                        'DPP Nilai Lain',
+                        'PPN',
+                        'Status',
+                      ],
+                      filteredInvoices.map((i) => [
+                        i.counterpartyNpwp,
+                        i.counterpartyName,
+                        i.transactionCode,
+                        i.invoiceNumber,
+                        i.invoiceDate,
+                        i.dppTotal,
+                        i.dppOtherValue,
+                        i.ppnTotal,
+                        i.status,
+                      ])
+                    )
+                  }
+                  onPrintPdf={() => window.print()}
+                  onToggleFilter={() => setShowColumnFilters((prev) => !prev)}
+                  filterActive={showColumnFilters}
+                />
+              </div>
+
+              {/* Official Coretax Golden-Yellow Data Table */}
+              <div className="px-5 pb-4">
+                <div className="border border-[#E2E8F0] rounded-[8px] overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11.5px] border-collapse">
+                      <thead>
+                        <tr className="bg-[#FCD34D] text-[#1E293B] font-bold border-b border-[#EAB308]/40">
+                          <th className="px-2.5 py-2.5 w-9 text-center border-r border-white/50">
+                            <input
+                              type="checkbox"
+                              checked={
+                                paginatedInvoices.length > 0 &&
+                                paginatedInvoices.every((i) => selectedIds.includes(i.id))
+                              }
+                              onChange={() => {
+                                if (paginatedInvoices.every((i) => selectedIds.includes(i.id))) {
+                                  setSelectedIds([]);
+                                } else {
+                                  setSelectedIds(paginatedInvoices.map((i) => i.id));
                                 }
-                                className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1D2B53] cursor-pointer"
-                                title="Pratinjau / Cetak Faktur"
+                              }}
+                            />
+                          </th>
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            Aksi
+                          </th>
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            <span className="inline-flex items-center gap-1">
+                              {isInputTab ? 'NPWP Penjual' : 'NPWP Pembeli / Identitas Lainnya'}
+                              <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            </span>
+                          </th>
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            {isInputTab ? 'Nama Penjual' : 'Nama Pembeli'}
+                          </th>
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            <span className="inline-flex items-center gap-1">
+                              Kode Transaksi
+                              <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            </span>
+                          </th>
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            Nomor Faktur Pajak
+                          </th>
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            <span className="inline-flex items-center gap-1">
+                              Tanggal Faktur Pajak
+                              <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            </span>
+                          </th>
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            <span className="inline-flex items-center gap-1">
+                              Masa Pajak
+                              <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            </span>
+                          </th>
+                          <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                            Harga Jual / DPP
+                          </th>
+                          <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                            DPP Nilai Lain
+                          </th>
+                          <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                            PPN
+                          </th>
+                          {isInputTab && !isReturTab && (
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Pengkreditan
+                            </th>
+                          )}
+                          {isReturTab && (
+                            <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                              PPN Diretur
+                            </th>
+                          )}
+                          <th className="px-3 py-2.5 text-center whitespace-nowrap">
+                            Status Faktur
+                          </th>
+                        </tr>
+
+                        {/* Inline White Filter Row (Exact Coretax Pajak Keluaran Screenshot) */}
+                        {showColumnFilters && (
+                          <tr className="bg-white border-b border-[#E2E8F0]">
+                            <th className="px-2 py-2 border-r border-slate-100" />
+                            <th className="px-2 py-2 border-r border-slate-100" />
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={npwpFilter}
+                                  onChange={(e) => {
+                                    setNpwpFilter(e.target.value);
+                                    setPage(1);
+                                  }}
+                                  placeholder="NPWP..."
+                                  className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                />
+                                <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                              </div>
+                            </th>
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <input
+                                type="text"
+                                value={nameFilter}
+                                onChange={(e) => {
+                                  setNameFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                placeholder="Nama..."
+                                className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                              />
+                            </th>
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <select
+                                value={txCodeFilter}
+                                onChange={(e) => {
+                                  setTxCodeFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
                               >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
+                                <option value="ALL">Pilih Kode Transaksi</option>
+                                {FAKTUR_TRANSACTION_CODES.map((c) => (
+                                  <option key={c.code} value={c.code}>
+                                    {c.code}
+                                  </option>
+                                ))}
+                              </select>
+                            </th>
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <input
+                                type="text"
+                                value={invoiceNumFilter}
+                                onChange={(e) => {
+                                  setInvoiceNumFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                placeholder="Nomor Faktur..."
+                                className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                              />
+                            </th>
+                            <th className="px-2 py-2 border-r border-slate-100" />
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <select
+                                value={monthFilter}
+                                onChange={(e) => {
+                                  setMonthFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                className="w-full min-w-[95px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                              >
+                                <option value="ALL">Semua Masa</option>
+                                {MONTHS_ID.map((m, idx) => (
+                                  <option key={m} value={String(idx + 1)}>
+                                    {m}
+                                  </option>
+                                ))}
+                              </select>
+                            </th>
+                            <th colSpan={isInputTab || isReturTab ? 4 : 3} className="px-2 py-2 border-r border-slate-100" />
+                            <th className="px-2 py-2">
+                              <select
+                                value={statusFilter}
+                                onChange={(e) => {
+                                  setStatusFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                className="w-full min-w-[105px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                              >
+                                <option value="ALL">Semua Status</option>
+                                <option value="DRAFT">DRAFT</option>
+                                <option value="APPROVED">APPROVED</option>
+                                <option value="WAITING_FOR_AMENDMENT">WAITING_FOR_AMENDMENT</option>
+                                <option value="AMENDED">AMENDED</option>
+                                <option value="WAITING_FOR_CANCELLATION">WAITING_FOR_CANCELLATION</option>
+                                <option value="CANCELLED">CANCELLED</option>
+                              </select>
+                            </th>
+                          </tr>
+                        )}
+                      </thead>
 
-                              {normalizedTab === 'output' && inv.status === 'DRAFT' && (
-                                <>
+                      <tbody className="divide-y divide-[#EEF2F6] bg-white">
+                        {paginatedInvoices.length === 0 ? (
+                          <tr>
+                            <td colSpan={13} className="px-4 py-8 text-left text-slate-500">
+                              Tidak ada data yang ditemukan.
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedInvoices.map((inv) => (
+                            <tr key={inv.id} className="hover:bg-[#F8FAFC]">
+                              <td className="px-2.5 py-2.5 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.includes(inv.id)}
+                                  onChange={() =>
+                                    setSelectedIds((prev) =>
+                                      prev.includes(inv.id)
+                                        ? prev.filter((x) => x !== inv.id)
+                                        : [...prev, inv.id]
+                                    )
+                                  }
+                                />
+                              </td>
+                              <td className="px-3 py-2.5 whitespace-nowrap">
+                                <div className="flex items-center gap-1">
                                   <button
                                     type="button"
-                                    onClick={() => setSignTarget(inv)}
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold cursor-pointer"
-                                    title="Tanda Tangani & Setujui Faktur"
+                                    onClick={() =>
+                                      onPrintDocument({
+                                        type: 'FAKTUR',
+                                        invoice: inv,
+                                        seller: workspace.corporateTaxpayer,
+                                      })
+                                    }
+                                    className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1D2B53] cursor-pointer"
+                                    title="Pratinjau / Cetak Faktur"
                                   >
-                                    <ShieldCheck className="w-3 h-3" />
-                                    <span>Upload / Sign</span>
+                                    <Eye className="w-3.5 h-3.5" />
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onInvoiceAction(inv.id, 'DELETE')}
-                                    className="p-1.5 rounded border border-red-200 hover:bg-red-50 text-red-600 cursor-pointer"
-                                    title="Hapus Draft"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
 
-                              {normalizedTab === 'output' &&
-                                (inv.status === 'APPROVED' || inv.status === 'AMENDED') && (
-                                  <>
+                                  {normalizedTab === 'output' && inv.status === 'DRAFT' && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => setSignTarget(inv)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold cursor-pointer"
+                                        title="Tanda Tangani & Setujui Faktur"
+                                      >
+                                        <ShieldCheck className="w-3 h-3" />
+                                        <span>Upload / Sign</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => onInvoiceAction(inv.id, 'DELETE')}
+                                        className="p-1.5 rounded border border-red-200 hover:bg-red-50 text-red-600 cursor-pointer"
+                                        title="Hapus Draft"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </>
+                                  )}
+
+                                  {normalizedTab === 'output' &&
+                                    (inv.status === 'APPROVED' || inv.status === 'AMENDED') && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setAmendTarget(inv);
+                                            setAmendDpp(inv.dppTotal);
+                                          }}
+                                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-50 border border-blue-300 text-blue-800 hover:bg-blue-100 text-[11px] font-bold cursor-pointer"
+                                          title="Buat Faktur Pengganti (Amend)"
+                                        >
+                                          <Edit3 className="w-3 h-3" />
+                                          <span>Pengganti</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => onInvoiceAction(inv.id, 'REQUEST_CANCEL')}
+                                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 text-[11px] font-bold cursor-pointer"
+                                          title="Batalkan Faktur"
+                                        >
+                                          <XCircle className="w-3 h-3" />
+                                          <span>Batal</span>
+                                        </button>
+                                      </>
+                                    )}
+
+                                  {inv.status === 'WAITING_FOR_AMENDMENT' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onInvoiceAction(inv.id, 'APPROVE_AMEND')}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold cursor-pointer"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span>Setujui Pengganti</span>
+                                    </button>
+                                  )}
+
+                                  {inv.status === 'WAITING_FOR_CANCELLATION' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onInvoiceAction(inv.id, 'APPROVE_CANCEL')}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold cursor-pointer"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span>Konfirmasi Batal</span>
+                                    </button>
+                                  )}
+
+                                  {isInputTab && !isReturTab && inv.status !== 'CANCELLED' && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        onInvoiceAction(inv.id, 'TOGGLE_CREDIT', {
+                                          isCredited: !inv.isCredited,
+                                        })
+                                      }
+                                      className={`px-2.5 py-1 rounded text-[11px] font-bold border cursor-pointer ${
+                                        inv.isCredited
+                                          ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
+                                          : 'bg-[#1D2B53] border-[#1D2B53] text-[#F4C430] hover:bg-[#273A6E]'
+                                      }`}
+                                    >
+                                      {inv.isCredited ? 'Batal Kreditkan' : 'Kreditkan Faktur'}
+                                    </button>
+                                  )}
+
+                                  {isReturTab && inv.status !== 'CANCELLED' && (
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        setAmendTarget(inv);
-                                        setAmendDpp(inv.dppTotal);
+                                        setReturnTarget(inv);
+                                        setReturnAmount(
+                                          inv.returnAmount || Math.round(inv.ppnTotal * 0.2)
+                                        );
                                       }}
-                                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-50 border border-blue-300 text-blue-800 hover:bg-blue-100 text-[11px] font-bold cursor-pointer"
-                                      title="Buat Faktur Pengganti (Amend)"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1D2B53] text-[#F4C430] text-[11px] font-bold cursor-pointer"
                                     >
-                                      <Edit3 className="w-3 h-3" />
-                                      <span>Pengganti</span>
+                                      <RotateCcw className="w-3 h-3" />
+                                      <span>Input Retur</span>
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => onInvoiceAction(inv.id, 'REQUEST_CANCEL')}
-                                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 text-[11px] font-bold cursor-pointer"
-                                      title="Batalkan Faktur"
-                                    >
-                                      <XCircle className="w-3 h-3" />
-                                      <span>Batal</span>
-                                    </button>
-                                  </>
-                                )}
-
-                              {inv.status === 'WAITING_FOR_AMENDMENT' && (
-                                <button
-                                  type="button"
-                                  onClick={() => onInvoiceAction(inv.id, 'APPROVE_AMEND')}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  <span>Setujui Pengganti</span>
-                                </button>
-                              )}
-
-                              {inv.status === 'WAITING_FOR_CANCELLATION' && (
-                                <button
-                                  type="button"
-                                  onClick={() => onInvoiceAction(inv.id, 'APPROVE_CANCEL')}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  <span>Konfirmasi Batal</span>
-                                </button>
-                              )}
-
-                              {isInputTab && !isReturTab && inv.status !== 'CANCELLED' && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    onInvoiceAction(inv.id, 'TOGGLE_CREDIT', {
-                                      isCredited: !inv.isCredited,
-                                    })
-                                  }
-                                  className={`px-2.5 py-1 rounded text-[11px] font-bold border cursor-pointer ${
-                                    inv.isCredited
-                                      ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-                                      : 'bg-[#1D2B53] border-[#1D2B53] text-[#F4C430] hover:bg-[#273A6E]'
-                                  }`}
-                                >
-                                  {inv.isCredited ? 'Batal Kreditkan' : 'Kreditkan Faktur'}
-                                </button>
-                              )}
-
-                              {isReturTab && inv.status !== 'CANCELLED' && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setReturnTarget(inv);
-                                    setReturnAmount(
-                                      inv.returnAmount || Math.round(inv.ppnTotal * 0.2)
-                                    );
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1D2B53] text-[#F4C430] text-[11px] font-bold cursor-pointer"
-                                >
-                                  <RotateCcw className="w-3 h-3" />
-                                  <span>Input Retur</span>
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5 font-mono-num">
-                            <div className="font-bold text-[#1D2B53]">{inv.invoiceNumber}</div>
-                            <div className="text-[10px] text-slate-500">
-                              Kode {inv.transactionCode} · Ref: {inv.referenceCode}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <div className="font-semibold text-slate-800">
-                              {inv.counterpartyName}
-                            </div>
-                            <div className="text-[10px] font-mono-num text-slate-500">
-                              {inv.counterpartyNpwp}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5 font-mono-num">
-                            <div>{inv.invoiceDate}</div>
-                            <div className="text-[10px] text-slate-500">
-                              {MONTHS_ID[inv.taxPeriodMonth - 1]} {inv.taxPeriodYear}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono-num">
-                            {formatRp(inv.dppTotal)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono-num">
-                            {formatRp(inv.dppOtherValue)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1D2B53]">
-                            {formatRp(inv.ppnTotal)}
-                          </td>
-                          {isInputTab && !isReturTab && (
-                            <td className="px-3 py-2.5 text-center">
-                              <span
-                                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${
-                                  inv.isCredited
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                    : 'bg-slate-100 text-slate-600 border-slate-300'
-                                }`}
-                              >
-                                {inv.isCredited ? 'DIKREDITKAN (B2)' : 'TIDAK DIKREDITKAN (B3)'}
-                              </span>
-                            </td>
-                          )}
-                          {isReturTab && (
-                            <td className="px-3 py-2.5 text-right font-mono-num font-bold text-red-700">
-                              {inv.returnAmount > 0 ? formatRp(inv.returnAmount) : '-'}
-                              {inv.returnNoteNumber && (
-                                <div className="text-[10px] text-slate-500">
-                                  {inv.returnNoteNumber}
+                                  )}
                                 </div>
+                              </td>
+                              <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                {inv.counterpartyNpwp}
+                              </td>
+                              <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
+                                {inv.counterpartyName}
+                              </td>
+                              <td className="px-3 py-2.5 font-mono-num text-center font-semibold text-[#1E2C5E]">
+                                {inv.transactionCode}
+                              </td>
+                              <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                <div className="font-bold text-[#1E2C5E]">{inv.invoiceNumber}</div>
+                                <div className="text-[10px] text-slate-500">Ref: {inv.referenceCode}</div>
+                              </td>
+                              <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                {inv.invoiceDate}
+                              </td>
+                              <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)]} {inv.taxPeriodYear}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                {formatRp(inv.dppTotal)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                {formatRp(inv.dppOtherValue)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                {formatRp(inv.ppnTotal)}
+                              </td>
+                              {isInputTab && !isReturTab && (
+                                <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                                  <span
+                                    className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                      inv.isCredited
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                        : 'bg-slate-100 text-slate-600 border-slate-300'
+                                    }`}
+                                  >
+                                    {inv.isCredited ? 'DIKREDITKAN (B2)' : 'TIDAK DIKREDITKAN (B3)'}
+                                  </span>
+                                </td>
                               )}
-                            </td>
-                          )}
-                          <td className="px-3 py-2.5 text-center">
-                            <span
-                              className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}
-                            >
-                              {inv.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                              {isReturTab && (
+                                <td className="px-3 py-2.5 text-right font-mono-num font-bold text-red-700 whitespace-nowrap">
+                                  {inv.returnAmount > 0 ? formatRp(inv.returnAmount) : '-'}
+                                  {inv.returnNoteNumber && (
+                                    <div className="text-[10px] text-slate-500">
+                                      {inv.returnNoteNumber}
+                                    </div>
+                                  )}
+                                </td>
+                              )}
+                              <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                                <span
+                                  className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}
+                                >
+                                  {inv.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <CoretaxPagination
+                    totalItems={filteredInvoices.length}
+                    page={page}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={setPageSize}
+                    pageSizeOptions={[10, 25, 50]}
+                  />
+                </div>
               </div>
             </div>
           )}

@@ -48,6 +48,17 @@ interface CoretaxShellProps {
   children: React.ReactNode;
 }
 
+interface NavItemDef {
+  id: string;
+  label: string;
+  breadcrumbLabel?: string;
+}
+
+interface NavGroupDef {
+  groupLabel: string;
+  items: NavItemDef[];
+}
+
 const NAV_CONFIG: Array<{
   key: MainNavKey;
   label: string;
@@ -55,7 +66,8 @@ const NAV_CONFIG: Array<{
   popoverTitle: string;
   hasChevron: boolean;
   icon: React.FC<{ className?: string }>;
-  items: Array<{ id: string; label: string; breadcrumbLabel?: string }>;
+  items: NavItemDef[];
+  groups?: NavGroupDef[];
 }> = [
   {
     key: 'portal',
@@ -65,10 +77,36 @@ const NAV_CONFIG: Array<{
     hasChevron: true,
     icon: ShieldUser,
     items: [
-      { id: 'ikhtisar', label: 'Home', breadcrumbLabel: 'Home' },
       { id: 'dokumen', label: 'Dokumen Saya' },
       { id: 'notifikasi', label: 'Notifikasi Saya' },
+      { id: 'kasus', label: 'Kasus Saya' },
+      { id: 'kasus_berjalan', label: 'Kasus Berjalan Saya' },
       { id: 'profil', label: 'Profil Saya' },
+      { id: 'aktivasi_spln', label: 'Aktivasi WP SPLN' },
+      { id: 'kode_otorisasi', label: 'Permintaan Kode Otorisasi/Sertifikat' },
+      { id: 'pengukuhan_pkp', label: 'Pengukuhan PKP' },
+      { id: 'pbb_p5l', label: 'Pendaftaran Objek Pajak PBB P5L' },
+      { id: 'penghapusan', label: 'Penghapusan & Pencabutan' },
+    ],
+    groups: [
+      {
+        groupLabel: 'Perubahan Data',
+        items: [
+          { id: 'perubahan_identitas', label: 'Identitas Wajib Pajak' },
+          { id: 'perubahan_alamat', label: 'Perubahan Alamat Utama' },
+          { id: 'perubahan_pbb', label: 'Perubahan Data Objek Pajak PBB P5L' },
+          { id: 'perubahan_pmse', label: 'Perubahan Data Pemungut PPN PMSE' },
+        ],
+      },
+      {
+        groupLabel: 'Perubahan Status',
+        items: [
+          { id: 'status_nonaktif', label: 'Penetapan Wajib Pajak Nonaktif' },
+          { id: 'status_aktif_kembali', label: 'Pengaktifan Kembali Wajib Pajak Nonaktif' },
+          { id: 'status_kuasa', label: 'Penunjukan Wakil/Kuasa' },
+          { id: 'status_cabut_kuasa', label: 'Pencabutan Wakil/Kuasa' },
+        ],
+      },
     ],
   },
   {
@@ -88,11 +126,18 @@ const NAV_CONFIG: Array<{
     hasChevron: true,
     icon: FileSpreadsheet,
     items: [
+      { id: 'bukti_potong_saya', label: 'Bukti Potong Saya' },
       { id: 'bppu', label: 'BPPU' },
-      { id: 'bp21', label: 'BP 21 - Bukti Pemotongan Selain Pegawai Tetap' },
-      { id: 'bpa1', label: 'BP A1 - Bukti Pemotongan A1 Masa Pajak Terakhir' },
+      { id: 'bpnr', label: 'BPNR' },
+      { id: 'penyetoran_sendiri', label: 'Penyetoran Sendiri' },
+      { id: 'digunggung', label: 'Pemotongan Secara Digunggung' },
+      { id: 'dokumen_dipersamakan', label: 'Dokumen yang Dipersamakan dengan Bukti Pemotongan' },
+      { id: 'bp21', label: 'BP 21 – Bukti Pemotongan Selain Pegawai Tetap' },
+      { id: 'bp26', label: 'BP 26 – Bukti Pemotongan Wajib Pajak Luar Negeri' },
+      { id: 'bpa1', label: 'BP A1 – Bukti Pemotongan A1 Masa Pajak Terakhir' },
+      { id: 'bpa2', label: 'BP A2 – Bukti Pemotongan A2 Masa Pajak Terakhir' },
       { id: 'bpmp', label: 'Bukti Pemotongan Bulanan Pegawai Tetap' },
-      { id: 'xml', label: 'Impor Data' },
+      { id: 'xml', label: 'Impor Data (XML)' },
     ],
   },
   {
@@ -114,8 +159,13 @@ const NAV_CONFIG: Array<{
     hasChevron: true,
     icon: CreditCard,
     items: [
+      { id: 'pemindahbukuan', label: 'Permohonan Pemindahbukuan' },
       { id: 'buat', label: 'Layanan Mandiri Kode Billing' },
+      { id: 'tagihan', label: 'Pembuatan Kode Billing atas Tagihan Pajak' },
       { id: 'daftar', label: 'Daftar Kode Billing Belum Dibayar' },
+      { id: 'restitusi', label: 'Formulir Restitusi Pajak' },
+      { id: 'imbalan_bunga', label: 'Permohonan Pemberian Imbalan Bunga' },
+      { id: 'pph_dtp', label: 'Permohonan PPh DTP atas Penghasilan' },
       { id: 'deposit', label: 'Deposit Pajak' },
     ],
   },
@@ -130,24 +180,42 @@ const NAV_CONFIG: Array<{
   },
 ];
 
+const EFAKTUR_BREADCRUMB_MAP: Record<string, string> = {
+  dashboard: 'Dasbor e-Faktur',
+  output: 'Pajak Keluaran',
+  input: 'Pajak Masukan',
+  retur_keluaran: 'Retur Pajak Keluaran',
+  retur_masukan: 'Retur Pajak Masukan',
+  dok_lain_keluaran: 'Dokumen Lain Keluaran',
+  dok_lain_masukan: 'Dokumen Lain Masukan',
+  retur_dok_lain_keluaran: 'Retur Dokumen Lain Keluaran',
+  retur_dok_lain_masukan: 'Retur Dokumen Lain Masukan',
+};
+
 const QUICK_SERVICES = [
-  { label: 'Portal Saya — Dokumen Saya', module: 'portal' as MainNavKey, subTab: 'dokumen' },
+  { label: 'Portal Saya — Beranda / Ikhtisar', module: 'portal' as MainNavKey, subTab: 'ikhtisar' },
+  { label: 'Portal Saya — Dokumen Saya (BPA1 & BPE)', module: 'portal' as MainNavKey, subTab: 'dokumen' },
   { label: 'Portal Saya — Profil Saya', module: 'portal' as MainNavKey, subTab: 'profil' },
+  { label: 'Portal Saya — Permintaan Kode Otorisasi/Sertifikat', module: 'portal' as MainNavKey, subTab: 'kode_otorisasi' },
   { label: 'e-Faktur — Dashboard', module: 'efaktur' as MainNavKey, subTab: 'dashboard' },
   { label: 'e-Faktur — Pajak Keluaran', module: 'efaktur' as MainNavKey, subTab: 'output' },
   { label: 'e-Faktur — Pajak Masukan', module: 'efaktur' as MainNavKey, subTab: 'input' },
   { label: 'e-Faktur — Retur Pajak Keluaran', module: 'efaktur' as MainNavKey, subTab: 'retur_keluaran' },
   { label: 'e-Faktur — Retur Pajak Masukan', module: 'efaktur' as MainNavKey, subTab: 'retur_masukan' },
   { label: 'e-Faktur — Dokumen Lain Pajak Keluaran', module: 'efaktur' as MainNavKey, subTab: 'dok_lain_keluaran' },
-  { label: 'eBupot — Bukti Pemotongan Bulanan Pegawai Tetap', module: 'ebupot' as MainNavKey, subTab: 'bpmp' },
-  { label: 'eBupot — BP 21 - Bukti Pemotongan Selain Pegawai Tetap', module: 'ebupot' as MainNavKey, subTab: 'bp21' },
-  { label: 'eBupot — BP A1 - Bukti Pemotongan A1 Masa Pajak Terakhir', module: 'ebupot' as MainNavKey, subTab: 'bpa1' },
-  { label: 'eBupot — BPPU', module: 'ebupot' as MainNavKey, subTab: 'bppu' },
+  { label: 'eBupot — Bukti Potong Saya', module: 'ebupot' as MainNavKey, subTab: 'bukti_potong_saya' },
+  { label: 'eBupot — BPPU (PPh 23 Unifikasi)', module: 'ebupot' as MainNavKey, subTab: 'bppu' },
+  { label: 'eBupot — BP 21 – Bukti Pemotongan Selain Pegawai Tetap', module: 'ebupot' as MainNavKey, subTab: 'bp21' },
+  { label: 'eBupot — BP A1 – Bukti Pemotongan A1 Masa Pajak Terakhir', module: 'ebupot' as MainNavKey, subTab: 'bpa1' },
+  { label: 'eBupot — Bukti Pemotongan Bulanan Pegawai Tetap (BPMP)', module: 'ebupot' as MainNavKey, subTab: 'bpmp' },
+  { label: 'eBupot — Impor Data (XML)', module: 'ebupot' as MainNavKey, subTab: 'xml' },
   { label: 'Surat Pemberitahuan (SPT) — Konsep SPT', module: 'spt' as MainNavKey, subTab: 'konsep' },
   { label: 'Surat Pemberitahuan (SPT) — SPT Menunggu Pembayaran', module: 'spt' as MainNavKey, subTab: 'menunggu' },
   { label: 'Surat Pemberitahuan (SPT) — SPT Dilaporkan', module: 'spt' as MainNavKey, subTab: 'dilaporkan' },
+  { label: 'Pembayaran — Permohonan Pemindahbukuan', module: 'pembayaran' as MainNavKey, subTab: 'pemindahbukuan' },
   { label: 'Pembayaran — Layanan Mandiri Kode Billing', module: 'pembayaran' as MainNavKey, subTab: 'buat' },
   { label: 'Pembayaran — Daftar Kode Billing Belum Dibayar', module: 'pembayaran' as MainNavKey, subTab: 'daftar' },
+  { label: 'Pembayaran — Deposit Pajak', module: 'pembayaran' as MainNavKey, subTab: 'deposit' },
   { label: 'Buku Besar — Buku Besar Saya', module: 'bukubesar' as MainNavKey, subTab: 'ringkasan' },
 ];
 
@@ -202,7 +270,10 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [autoHideOnScroll, setAutoHideOnScroll] = useState(true);
-  const [scrolledDown, setScrolledDown] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    'Perubahan Data': true,
+    'Perubahan Status': true,
+  });
 
   const [openDropdown, setOpenDropdown] = useState<MainNavKey | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -239,17 +310,13 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Auto-hide header on scroll toggle (authentic Coretax feature from bottom-left switch)
+  // Auto-hide LEFT SIDEBAR when scrolling down (if toggle is active); header navbar always stays sticky!
+  // Sidebar remains hidden until page refresh or switching to another main module.
   useEffect(() => {
-    let lastY = window.scrollY;
     const handleScroll = () => {
-      const y = window.scrollY;
-      if (autoHideOnScroll && y > 130 && y > lastY) {
-        setScrolledDown(true);
-      } else {
-        setScrolledDown(false);
+      if (autoHideOnScroll && window.scrollY > 40) {
+        setLeftCollapsed(true);
       }
-      lastY = y;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -274,11 +341,19 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const filteredServices = searchTerm.trim()
     ? QUICK_SERVICES.filter((s) => s.label.toLowerCase().includes(searchTerm.toLowerCase()))
-    : QUICK_SERVICES.slice(0, 6);
+    : QUICK_SERVICES.slice(0, 7);
 
   const activeNavMeta = NAV_CONFIG.find((n) => n.key === activeModule) || NAV_CONFIG[0];
-  const activeSubMeta =
-    activeNavMeta.items.find((i) => i.id === activeSubTab) || activeNavMeta.items[0] || null;
+  const allActiveItems: NavItemDef[] = [
+    ...activeNavMeta.items,
+    ...(activeNavMeta.groups ? activeNavMeta.groups.flatMap((g) => g.items) : []),
+  ];
+  const activeSubMeta: NavItemDef | null =
+    activeModule === 'efaktur' && activeSubTab && EFAKTUR_BREADCRUMB_MAP[activeSubTab]
+      ? { id: activeSubTab, label: EFAKTUR_BREADCRUMB_MAP[activeSubTab] }
+      : activeModule === 'portal' && activeSubTab === 'ikhtisar'
+        ? { id: 'ikhtisar', label: 'Beranda' }
+        : allActiveItems.find((i) => i.id === activeSubTab) || activeNavMeta.items[0] || null;
 
   return (
     <div
@@ -339,13 +414,9 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       )}
 
       {/* ===================================================================== */}
-      {/* FLOATING 2-ROW WHITE HEADER CARD (EXACT MATCH TO 2026 CORETAX)        */}
+      {/* PERMANENTLY STICKY 2-ROW WHITE HEADER CARD (EXACT CORETAX DJP)        */}
       {/* ===================================================================== */}
-      <header
-        className={`sticky top-2.5 z-30 mx-3 sm:mx-4 mt-3 transition-transform duration-300 ${
-          scrolledDown ? '-translate-y-[125%]' : 'translate-y-0'
-        }`}
-      >
+      <header className="sticky top-0 sm:top-2 z-40 mx-3 sm:mx-4 mt-2.5">
         <div
           className={`rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.07)] transition-colors ${
             darkHeader
@@ -882,7 +953,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                           </div>
 
                           {/* Submenu List */}
-                          <div className="p-2 space-y-0.5">
+                          <div className="p-2 space-y-0.5 max-h-[65vh] overflow-y-auto">
                             {item.items.map((sub) => {
                               const isCurrentSub =
                                 isActive &&
@@ -895,7 +966,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                                     onNavigate(item.key, sub.id);
                                     setOpenDropdown(null);
                                   }}
-                                  className={`w-full text-left px-3.5 py-2 rounded-[10px] text-[13px] transition cursor-pointer flex items-center justify-between gap-2 ${
+                                  className={`w-full text-left px-3.5 py-2 rounded-[10px] text-[12.5px] transition cursor-pointer flex items-center justify-between gap-2 ${
                                     isCurrentSub
                                       ? 'bg-[#EEF2FA] text-[#1B2958] font-bold'
                                       : 'text-[#1B2958] hover:bg-[#F4F6FA] font-semibold'
@@ -997,19 +1068,19 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                           onNavigate(sidebarMeta.key, sub.id);
                           setOpenDropdown(null);
                         }}
-                        className={`relative w-full text-left px-3.5 py-2.5 rounded-[10px] text-[13px] transition cursor-pointer flex items-center justify-between gap-2 ${
+                        className={`relative w-full text-left px-3 py-2 rounded-[9px] text-[12.5px] transition cursor-pointer flex items-center justify-between gap-2 ${
                           isSubActive
                             ? darkHeader
                               ? 'bg-slate-800 text-[#F4C430] font-bold'
                               : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
                             : darkHeader
                               ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
-                              : 'text-[#52607A] hover:bg-[#F6F8FC] hover:text-[#1B2958] font-medium'
+                              : 'text-[#475569] hover:bg-[#F6F8FC] hover:text-[#1B2958] font-medium'
                         }`}
                       >
                         {isSubActive && (
                           <span
-                            className="w-[3px] h-5 rounded-full bg-[#F4C430] absolute left-1 top-1/2 -translate-y-1/2"
+                            className="w-[3px] h-5 rounded-full bg-[#F4C430] absolute left-0.5 top-1/2 -translate-y-1/2"
                             aria-hidden="true"
                           />
                         )}
@@ -1028,24 +1099,68 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     );
                   })}
 
-                  {/* Extra contextual Impersonate shortcut when on Portal Saya */}
-                  {sidebarMeta.key === 'portal' && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onSwitchAccountMode(accountMode === 'CORPORATE' ? 'INDIVIDUAL' : 'CORPORATE')
-                      }
-                      className={`w-full text-left px-3.5 py-2.5 rounded-[10px] text-[13px] font-medium transition cursor-pointer ${
-                        darkHeader
-                          ? 'text-slate-300 hover:bg-slate-800/60'
-                          : 'text-[#52607A] hover:bg-[#F6F8FC] hover:text-[#1B2958]'
-                      }`}
-                    >
-                      {accountMode === 'CORPORATE'
-                        ? 'Kembali ke Orang Pribadi'
-                        : 'Impersonate Badan / PKP'}
-                    </button>
-                  )}
+                  {/* Collapsible Portal Saya Sub-Groups (Perubahan Data & Perubahan Status) */}
+                  {sidebarMeta.groups &&
+                    sidebarMeta.groups.map((grp) => {
+                      const isExpanded = openGroups[grp.groupLabel] ?? true;
+                      return (
+                        <div key={grp.groupLabel} className="pt-2 mt-1.5 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenGroups((prev) => ({
+                                ...prev,
+                                [grp.groupLabel]: !isExpanded,
+                              }))
+                            }
+                            className={`w-full px-3 py-1.5 flex items-center justify-between text-[12px] font-bold rounded-lg transition cursor-pointer ${
+                              darkHeader
+                                ? 'text-slate-300 hover:bg-slate-800/60'
+                                : 'text-[#334155] hover:bg-[#F6F8FC]'
+                            }`}
+                          >
+                            <span className="truncate">{grp.groupLabel}</span>
+                            <ChevronDown
+                              className={`w-3.5 h-3.5 opacity-70 transition-transform ${
+                                isExpanded ? '' : '-rotate-90'
+                              }`}
+                            />
+                          </button>
+
+                          {isExpanded && (
+                            <div className="mt-0.5 space-y-0.5 pl-2">
+                              {grp.items.map((sub) => {
+                                const isSubActive =
+                                  activeModule === sidebarMeta.key && activeSubTab === sub.id;
+                                return (
+                                  <button
+                                    key={sub.id}
+                                    type="button"
+                                    title={sub.label}
+                                    onClick={() => {
+                                      onNavigate(sidebarMeta.key, sub.id);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className={`relative w-full text-left px-2.5 py-1.5 rounded-[8px] text-[11.5px] transition cursor-pointer flex items-center gap-2 ${
+                                      isSubActive
+                                        ? darkHeader
+                                          ? 'bg-slate-800 text-[#F4C430] font-bold'
+                                          : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
+                                        : darkHeader
+                                          ? 'text-slate-400 hover:bg-slate-800/60 font-medium'
+                                          : 'text-[#64748B] hover:bg-[#F6F8FC] hover:text-[#1B2958] font-medium'
+                                    }`}
+                                  >
+                                    <span className="w-1 h-1 rounded-full bg-current opacity-50 shrink-0" />
+                                    <span className="truncate">{sub.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
 
                 {/* Bottom "Auto hide saat di-scroll" Toggle Switch */}

@@ -222,11 +222,11 @@ function CoretaxSimulatorApp() {
       setActiveSubTab(subTab);
     } else {
       const defaults: Record<MainNavKey, string> = {
-        portal: 'ikhtisar',
+        portal: 'dokumen',
         efaktur: 'dashboard',
-        ebupot: 'bpmp',
+        ebupot: 'bukti_potong_saya',
         spt: 'konsep',
-        pembayaran: 'daftar',
+        pembayaran: 'pemindahbukuan',
         bukubesar: 'ringkasan',
       };
       setActiveSubTab(defaults[module]);
