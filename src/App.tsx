@@ -26,11 +26,13 @@ import { LoginPage } from './components/LoginPage.tsx';
 import { CoretaxShell, MainNavKey } from './components/CoretaxShell.tsx';
 import { DocumentPrintModal, PrintablePayload } from './components/DocumentPrintModal.tsx';
 import { ExamDrawer } from './components/ExamDrawer.tsx';
+import { LoadingOverlay } from './components/LoadingOverlay.tsx';
 import { PortalSayaModule } from './modules/PortalSayaModule.tsx';
 import { EFakturModule } from './modules/EFakturModule.tsx';
 import { EBupotModule } from './modules/EBupotModule.tsx';
 import { SptModule } from './modules/SptModule.tsx';
 import { PembayaranModule } from './modules/PembayaranModule.tsx';
+import { BukuBesarModule } from './modules/BukuBesarModule.tsx';
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -74,6 +76,9 @@ function CoretaxSimulatorApp() {
   const [activeSubTab, setActiveSubTab] = useState<string>('ikhtisar');
   const [language, setLanguage] = useState<'id-ID' | 'en-US'>('id-ID');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [bootLoading, setBootLoading] = useState(true);
+  const [navLoading, setNavLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Memuat Portal KelasBrevet...');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [cloudUserEmail, setCloudUserEmail] = useState<string | null>(null);
   const [printDoc, setPrintDoc] = useState<PrintablePayload | null>(null);
@@ -81,6 +86,9 @@ function CoretaxSimulatorApp() {
   const [toastNotif, setToastNotif] = useState<NotificationItem | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
+  const navTimerRef = useRef<number | null>(null);
+
+  const SESSION_KEY = 'kelasbrevet_coretax_session_v1';
 
   // Track Firebase Auth state for optional Cloud Firestore sync
   useEffect(() => {
@@ -89,6 +97,61 @@ function CoretaxSimulatorApp() {
     });
     return () => unsub();
   }, []);
+
+  // Auto-restore active NIK session on page refresh + show branded KelasBrevet splash briefly
+  useEffect(() => {
+    let active = true;
+    const minSplash = new Promise<void>((resolve) => window.setTimeout(resolve, 420));
+    const restoreTask = (async () => {
+      try {
+        const raw = sessionStorage.getItem(SESSION_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw) as {
+          nikKey?: string;
+          accountMode?: 'INDIVIDUAL' | 'CORPORATE';
+          activeModule?: MainNavKey;
+          activeSubTab?: string;
+        };
+        if (!saved.nikKey) return;
+        const resp = await fetch(`/api/workspace/${encodeURIComponent(saved.nikKey)}`);
+        if (!resp.ok) return;
+        const ws: WorkspaceState = await resp.json();
+        if (active && ws?.nikKey) {
+          setWorkspace(ws);
+          if (saved.accountMode) setAccountMode(saved.accountMode);
+          if (saved.activeModule) setActiveModule(saved.activeModule);
+          if (saved.activeSubTab) setActiveSubTab(saved.activeSubTab);
+        }
+      } catch {
+        // Ignore malformed sessionStorage or network errors on restore
+      }
+    })();
+
+    Promise.all([minSplash, restoreTask]).finally(() => {
+      if (active) setBootLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!workspace?.nikKey) return;
+    try {
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          nikKey: workspace.nikKey,
+          accountMode,
+          activeModule,
+          activeSubTab,
+        })
+      );
+    } catch {
+      // Ignore storage quota errors
+    }
+  }, [workspace?.nikKey, accountMode, activeModule, activeSubTab]);
 
   // Connect Socket.io real-time notification room when logged in with NIK
   useEffect(() => {
@@ -182,7 +245,19 @@ function CoretaxSimulatorApp() {
     []
   );
 
+  const triggerTransitionLoading = useCallback((msg: string, durationMs = 260) => {
+    setLoadingMessage(msg);
+    setNavLoading(true);
+    if (navTimerRef.current) window.clearTimeout(navTimerRef.current);
+    navTimerRef.current = window.setTimeout(() => {
+      setNavLoading(false);
+    }, durationMs);
+  }, []);
+
   const handleNavigate = (module: MainNavKey, subTab?: string) => {
+    if (module !== activeModule) {
+      triggerTransitionLoading('Memuat modul layanan KelasBrevet...');
+    }
     setActiveModule(module);
     if (subTab) {
       setActiveSubTab(subTab);
@@ -193,22 +268,43 @@ function CoretaxSimulatorApp() {
         ebupot: 'bpmp',
         spt: 'konsep',
         pembayaran: 'daftar',
+        bukubesar: 'ringkasan',
       };
       setActiveSubTab(defaults[module]);
     }
   };
 
+  const handleSwitchAccountMode = (mode: 'INDIVIDUAL' | 'CORPORATE') => {
+    if (mode !== accountMode) {
+      triggerTransitionLoading(
+        mode === 'CORPORATE'
+          ? 'Beralih ke akun Badan / PKP (Impersonating)...'
+          : 'Kembali ke akun Utama Orang Pribadi...',
+        320
+      );
+      setAccountMode(mode);
+    }
+  };
+
+  const globalLoadingVisible = bootLoading || loginLoading || navLoading;
+
   if (!workspace) {
     return (
-      <LoginPage
-        onLoginNik={handleLoginNik}
-        language={language}
-        onLanguageChange={setLanguage}
-        cloudUserEmail={cloudUserEmail}
-        onConnectCloud={handleConnectCloud}
-        loading={loginLoading}
-        error={loginError}
-      />
+      <>
+        <LoadingOverlay
+          visible={globalLoadingVisible}
+          message={loginLoading ? 'Memverifikasi akun KelasBrevet...' : loadingMessage}
+        />
+        <LoginPage
+          onLoginNik={handleLoginNik}
+          language={language}
+          onLanguageChange={setLanguage}
+          cloudUserEmail={cloudUserEmail}
+          onConnectCloud={handleConnectCloud}
+          loading={loginLoading}
+          error={loginError}
+        />
+      </>
     );
   }
 
@@ -221,6 +317,7 @@ function CoretaxSimulatorApp() {
 
   return (
     <>
+      <LoadingOverlay visible={globalLoadingVisible} message={loadingMessage} />
       <CoretaxShell
         activeModule={activeModule}
         activeSubTab={activeSubTab}
@@ -228,7 +325,7 @@ function CoretaxSimulatorApp() {
         individualTaxpayer={workspace.individualTaxpayer}
         corporateTaxpayer={workspace.corporateTaxpayer}
         accountMode={accountMode}
-        onSwitchAccountMode={setAccountMode}
+        onSwitchAccountMode={handleSwitchAccountMode}
         notifications={workspace.notifications}
         onMarkAllNotificationsRead={() => {
           apiCall(`/api/workspace/${workspace.nikKey}/notifications/read-all`, {
@@ -241,7 +338,12 @@ function CoretaxSimulatorApp() {
         onLanguageChange={setLanguage}
         cloudUserEmail={cloudUserEmail}
         onConnectCloud={handleConnectCloud}
-        onLogout={() => setWorkspace(null)}
+        onLogout={() => {
+          try {
+            sessionStorage.removeItem(SESSION_KEY);
+          } catch {}
+          setWorkspace(null);
+        }}
       >
         {activeModule === 'portal' && (
           <PortalSayaModule
@@ -420,6 +522,10 @@ function CoretaxSimulatorApp() {
             }}
             onPrintDocument={setPrintDoc}
           />
+        )}
+
+        {activeModule === 'bukubesar' && (
+          <BukuBesarModule workspace={workspace} activeTaxpayer={activeTaxpayer} />
         )}
       </CoretaxShell>
 

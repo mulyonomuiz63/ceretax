@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Award,
   Bell,
+  BookOpen,
   Building2,
   Check,
   CheckCheck,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight,
   Cloud,
   CreditCard,
   FileSpreadsheet,
@@ -30,7 +30,7 @@ import {
 import { KelasBrevetLogo } from './KelasBrevetLogo.tsx';
 import { NotificationItem, Taxpayer } from '../types/tax.ts';
 
-export type MainNavKey = 'portal' | 'efaktur' | 'ebupot' | 'spt' | 'pembayaran';
+export type MainNavKey = 'portal' | 'efaktur' | 'ebupot' | 'spt' | 'pembayaran' | 'bukubesar';
 
 interface CoretaxShellProps {
   activeModule: MainNavKey;
@@ -128,6 +128,15 @@ const NAV_CONFIG: Array<{
       { id: 'deposit', label: 'Deposit Pajak' },
     ],
   },
+  {
+    key: 'bukubesar',
+    label: 'Buku Besar',
+    sidebarLabel: 'Buku Besar',
+    popoverTitle: 'BUKU BESAR',
+    hasChevron: false,
+    icon: BookOpen,
+    items: [],
+  },
 ];
 
 const QUICK_SERVICES = [
@@ -145,6 +154,7 @@ const QUICK_SERVICES = [
   { label: 'Surat Pemberitahuan (SPT) — SPT Dilaporkan', module: 'spt' as MainNavKey, subTab: 'dilaporkan' },
   { label: 'Pembayaran — Layanan Mandiri Kode Billing', module: 'pembayaran' as MainNavKey, subTab: 'buat' },
   { label: 'Pembayaran — Daftar Kode Billing Belum Dibayar', module: 'pembayaran' as MainNavKey, subTab: 'daftar' },
+  { label: 'Buku Besar — Buku Besar Saya', module: 'bukubesar' as MainNavKey, subTab: 'ringkasan' },
 ];
 
 const FlagMini: React.FC<{ lang: 'id-ID' | 'en-US' }> = ({ lang }) => {
@@ -272,7 +282,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
 
   const activeNavMeta = NAV_CONFIG.find((n) => n.key === activeModule) || NAV_CONFIG[0];
   const activeSubMeta =
-    activeNavMeta.items.find((i) => i.id === activeSubTab) || activeNavMeta.items[0];
+    activeNavMeta.items.find((i) => i.id === activeSubTab) || activeNavMeta.items[0] || null;
 
   return (
     <div
@@ -854,7 +864,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        onNavigate(item.key, item.items[0].id);
+                        onNavigate(item.key, item.items[0]?.id);
                         setOpenDropdown(null);
                       }}
                       className={`inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-[10px] text-[12px] lg:text-[13px] transition-all duration-150 cursor-pointer whitespace-nowrap ${
@@ -952,26 +962,26 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* FLOATING 2-COLUMN WORKSPACE (LEFT SUBMENU CARD + RIGHT CONTENT CARD)  */}
       {/* ===================================================================== */}
       <div className="relative z-10 flex-1 flex gap-4 px-3 sm:px-4 py-4 items-start">
-        {/* LEFT FLOATING WHITE SUBMENU CARD (Syncs with hovered navbar module like screenshots 2-4) */}
-        {(() => {
-          const sidebarMeta =
-            (openDropdown ? NAV_CONFIG.find((n) => n.key === openDropdown) : activeNavMeta) ||
-            activeNavMeta;
-          const SidebarModuleIcon = sidebarMeta.icon;
+        {/* LEFT FLOATING WHITE SUBMENU CARD (Completely hidden when closed via «, restored on page refresh) */}
+        {!leftCollapsed &&
+          (() => {
+            const sidebarMeta =
+              (openDropdown ? NAV_CONFIG.find((n) => n.key === openDropdown) : activeNavMeta) ||
+              activeNavMeta;
+            const SidebarModuleIcon = sidebarMeta.icon;
 
-          return (
-            <aside
-              className={`hidden lg:flex flex-col shrink-0 rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] transition-all duration-200 sticky top-[132px] max-h-[calc(100vh-148px)] ${
-                darkHeader ? 'bg-slate-900 border-slate-700/80' : 'bg-white border-[#E5EAF2]'
-              } ${leftCollapsed ? 'w-[64px]' : 'w-[224px] xl:w-[258px]'}`}
-            >
-              {/* Top Shaded Module Header inside Left Panel */}
-              <div
-                className={`m-3 rounded-[12px] px-3 py-2.5 flex items-center ${
-                  leftCollapsed ? 'justify-center' : 'justify-between gap-2'
-                } ${darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'}`}
+            return (
+              <aside
+                className={`hidden lg:flex flex-col shrink-0 rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] transition-all duration-200 sticky top-[132px] max-h-[calc(100vh-148px)] w-[224px] xl:w-[258px] ${
+                  darkHeader ? 'bg-slate-900 border-slate-700/80' : 'bg-white border-[#E5EAF2]'
+                }`}
               >
-                {!leftCollapsed && (
+                {/* Top Shaded Module Header inside Left Panel */}
+                <div
+                  className={`m-3 rounded-[12px] px-3 py-2.5 flex items-center justify-between gap-2 ${
+                    darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
+                  }`}
+                >
                   <div className="flex items-center gap-2 min-w-0">
                     <ModuleBadgeIcon icon={SidebarModuleIcon} />
                     <span
@@ -983,28 +993,23 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       {sidebarMeta.sidebarLabel}
                     </span>
                   </div>
-                )}
 
-                <button
-                  type="button"
-                  onClick={() => setLeftCollapsed((prev) => !prev)}
-                  title={leftCollapsed ? 'Tampilkan panel menu' : 'Sembunyikan panel menu'}
-                  className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition cursor-pointer ${
-                    darkHeader
-                      ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
-                      : 'bg-white border-[#E2E8F0] text-[#475569] hover:text-[#1B2958]'
-                  }`}
-                >
-                  {leftCollapsed ? (
-                    <ChevronsRight className="w-4 h-4" />
-                  ) : (
+                  <button
+                    type="button"
+                    onClick={() => setLeftCollapsed(true)}
+                    title="Tutup sidebar"
+                    aria-label="Tutup sidebar"
+                    className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition cursor-pointer ${
+                      darkHeader
+                        ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
+                        : 'bg-white border-[#E2E8F0] text-[#475569] hover:text-[#1B2958]'
+                    }`}
+                  >
                     <ChevronsLeft className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
+                  </button>
+                </div>
 
-              {/* Vertical Submenu Items List with authentic subtle gold active indicator */}
-              {!leftCollapsed && (
+                {/* Vertical Submenu Items List with authentic subtle gold active indicator */}
                 <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
                   {sidebarMeta.items.map((sub) => {
                     const isSubActive =
@@ -1069,10 +1074,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     </button>
                   )}
                 </div>
-              )}
 
-              {/* Bottom "Auto hide saat di-scroll" Toggle Switch */}
-              {!leftCollapsed && (
+                {/* Bottom "Auto hide saat di-scroll" Toggle Switch */}
                 <div
                   className={`px-4 py-3 border-t flex items-center justify-between gap-2 text-[12px] ${
                     darkHeader ? 'border-slate-800 text-slate-400' : 'border-[#F1F5F9] text-[#52607A]'
@@ -1096,10 +1099,9 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     <span className="w-4 h-4 rounded-full bg-white shadow-sm block" />
                   </button>
                 </div>
-              )}
-            </aside>
-          );
-        })()}
+              </aside>
+            );
+          })()}
 
         {/* MOBILE SUBMENU SLIDE-OVER DRAWER */}
         {mobileMenuOpen && (
@@ -1179,7 +1181,9 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 <span>Beranda</span>
               </button>
               <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
-              {(activeSubMeta.breadcrumbLabel || activeSubMeta.label) === activeNavMeta.sidebarLabel ? (
+              {!activeSubMeta ||
+              (activeSubMeta.breadcrumbLabel || activeSubMeta.label) ===
+                activeNavMeta.sidebarLabel ? (
                 <span
                   className={`font-bold truncate ${
                     darkHeader ? 'text-[#F4C430]' : 'text-[#1B2958]'
@@ -1191,7 +1195,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 <>
                   <button
                     type="button"
-                    onClick={() => onNavigate(activeModule, activeNavMeta.items[0].id)}
+                    onClick={() => onNavigate(activeModule, activeNavMeta.items[0]?.id)}
                     className={`font-semibold hover:underline cursor-pointer whitespace-nowrap ${
                       darkHeader ? 'text-slate-200' : 'text-[#1B2958]'
                     }`}

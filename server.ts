@@ -19,7 +19,7 @@ import {
   generateBillingCode,
   generateFakturNumber,
 } from './src/utils/taxCalc.ts';
-import * as mysqlRepo from './src/db/mysqlRepository.ts';
+import * as mysqlRepo from './src/db/repository.ts';
 
 const PORT = Number(process.env.PORT || 3000);
 
@@ -606,7 +606,9 @@ async function startServer() {
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`KelasBrevet Coretax Simulator (MySQL Production Backend) running on http://0.0.0.0:${PORT}`);
+    console.log(
+      `KelasBrevet Coretax Simulator running on http://0.0.0.0:${PORT} [DB: ${mysqlRepo.getActiveDriverLabel()}]`
+    );
   });
 }
 
