@@ -315,10 +315,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-12 lg:gap-10">
             {/* LEFT HERO COLUMN */}
             <div className="lg:col-span-6 space-y-6">
-              <div>
-                <KelasBrevetLogo variant="hero" dark={darkTheme} />
-              </div>
-
               <h1
                 className={`font-display font-extrabold text-[36px] sm:text-[44px] lg:text-[48px] leading-[1.16] tracking-[-0.02em] ${
                   darkTheme ? 'text-white' : 'text-[#1B2958]'
@@ -642,10 +638,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-10 lg:gap-12">
             {/* LEFT BRANDING COLUMN (Lower-middle balanced exactly like official Login screenshot) */}
             <div className="lg:col-span-6 lg:pt-28 space-y-4">
-              <div>
-                <KelasBrevetLogo variant="hero" dark={darkTheme} />
-              </div>
-
               <h1
                 className={`font-display font-extrabold text-[34px] sm:text-[40px] leading-[1.18] tracking-[-0.02em] ${
                   darkTheme ? 'text-white' : 'text-[#1B2958]'
