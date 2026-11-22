@@ -18,4 +18,10 @@ if (!fs.existsSync(compiledServerPath) || !fs.existsSync(distIndexPath)) {
   execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
 }
 
-await import(pathToFileURL(compiledServerPath).href);
+// IMPORTANT: Do NOT use top-level await here!
+// LiteSpeed lsnode.js (Hostinger) loads server.js via CJS require(), which throws
+// ERR_REQUIRE_ASYNC_MODULE if an ESM entry file contains top-level await.
+import(pathToFileURL(compiledServerPath).href).catch((err) => {
+  console.error('[server.js] Fatal error starting KelasBrevet server:', err);
+  process.exit(1);
+});
