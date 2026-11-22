@@ -1,12 +1,12 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
+import fs from 'fs';
 import http from 'http';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
-import { createServer as createViteServer } from 'vite';
 import {
   BillingCode,
-  ExamCaseCode,
   ExamQuestion,
   NotificationItem,
   OpAssetLiabilityFamily,
@@ -15,7 +15,6 @@ import {
   TaxReturn,
   WithholdingSlip,
 } from './src/types/tax.ts';
-import { evaluateExamCase } from './src/data/seedData.ts';
 import {
   formatRp,
   generateBillingCode,
@@ -1228,13 +1227,20 @@ async function startServer() {
 
   // === Mount Vite in dev or serve dist in prod ===
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(process.cwd(), 'dist');
+    const serverDir = path.dirname(fileURLToPath(import.meta.url));
+    const candidates = [
+      path.resolve(process.cwd(), 'dist'),
+      path.resolve(serverDir, '..', 'dist'),
+      path.resolve(serverDir, 'dist'),
+    ];
+    const distPath = candidates.find((dir) => fs.existsSync(path.join(dir, 'index.html'))) || candidates[0];
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
