@@ -42,7 +42,9 @@ import {
   toPublicParticipant,
 } from './src/lib/evaluationService.ts';
 
-const PORT = Number(process.env.PORT || 3000);
+const rawPort = process.env.PORT;
+const PORT: number | string =
+  rawPort && !Number.isNaN(Number(rawPort)) ? Number(rawPort) : rawPort || 3000;
 
 function normalizeNik(nik: string): string {
   return String(nik || '')
@@ -1480,11 +1482,19 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  const onListening = () => {
     console.log(
-      `KelasBrevet Coretax Simulator running on http://0.0.0.0:${PORT} [DB: ${mysqlRepo.getActiveDriverLabel()}]`
+      `KelasBrevet Coretax Simulator running on ${
+        typeof PORT === 'number' ? `http://0.0.0.0:${PORT}` : PORT
+      } [DB: ${mysqlRepo.getActiveDriverLabel()}]`
     );
-  });
+  };
+
+  if (typeof PORT === 'number') {
+    httpServer.listen(PORT, '0.0.0.0', onListening);
+  } else {
+    httpServer.listen(PORT, onListening);
+  }
 }
 
 startServer();

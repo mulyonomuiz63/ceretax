@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { execSync } from 'node:child_process';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const compiledServerPath = path.join(rootDir, 'dist-server', 'server.js');
@@ -12,16 +11,21 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV.toLowerCase() === 'prodaction'
   process.env.NODE_ENV = 'production';
 }
 
-// Auto-build frontend & backend once if host deployed with "Build command: none"
-if (!fs.existsSync(compiledServerPath) || !fs.existsSync(distIndexPath)) {
-  console.log('[server.js] Build artifacts not found. Running "npm run build"...');
-  execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
+// IMPORTANT: Do NOT use top-level await or execSync('npm ...') here!
+// LiteSpeed lsnode.js (Hostinger) loads server.js via CJS require() and does not expose npm in PATH.
+async function boot() {
+  if (!fs.existsSync(compiledServerPath) || !fs.existsSync(distIndexPath)) {
+    console.log('[server.js] Build artifacts missing, building programmatically via Vite & esbuild...');
+    const { runProductionBuild } = await import(
+      pathToFileURL(path.join(rootDir, 'scripts', 'build-prod.mjs')).href
+    );
+    await runProductionBuild({ onlyIfMissing: false });
+  }
+
+  await import(pathToFileURL(compiledServerPath).href);
 }
 
-// IMPORTANT: Do NOT use top-level await here!
-// LiteSpeed lsnode.js (Hostinger) loads server.js via CJS require(), which throws
-// ERR_REQUIRE_ASYNC_MODULE if an ESM entry file contains top-level await.
-import(pathToFileURL(compiledServerPath).href).catch((err) => {
+boot().catch((err) => {
   console.error('[server.js] Fatal error starting KelasBrevet server:', err);
   process.exit(1);
 });
