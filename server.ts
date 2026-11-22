@@ -977,7 +977,7 @@ async function startServer() {
   );
 
   // ==========================================================================
-  // PUBLIC BRANDING / LOGO SETTINGS (Stored in app_settings DB table)
+  // PUBLIC BRANDING / LOGO & META ICON SETTINGS (Stored in app_settings DB table)
   // ==========================================================================
   app.get('/api/branding', async (_req: Request, res: Response) => {
     try {
@@ -985,6 +985,54 @@ async function startServer() {
       return res.json({ ok: true, branding });
     } catch (err) {
       return handleDbError(res, err, 'Gagal memuat pengaturan branding.');
+    }
+  });
+
+  app.get('/api/branding/meta-icon', async (_req: Request, res: Response) => {
+    try {
+      const branding = await mysqlRepo.getBrandingSettings();
+      const raw = (branding.metaIconUrl || '').trim();
+
+      if (raw.startsWith('data:image/')) {
+        const match = /^data:(image\/[a-zA-Z0-9.+-]+)(?:;charset=[^;,]+)?(;base64)?,([\s\S]+)$/.exec(raw);
+        if (match) {
+          const mime = match[1];
+          const isBase64 = Boolean(match[2]);
+          const dataPayload = match[3];
+          const buf = isBase64
+            ? Buffer.from(dataPayload, 'base64')
+            : Buffer.from(decodeURIComponent(dataPayload), 'utf-8');
+          res.setHeader('Content-Type', mime);
+          res.setHeader('Cache-Control', 'public, max-age=300');
+          return res.send(buf);
+        }
+      }
+
+      if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        return res.redirect(302, raw);
+      }
+
+      const serverDir = path.dirname(fileURLToPath(import.meta.url));
+      const relPath =
+        raw.startsWith('/') && !raw.includes('..')
+          ? raw.replace(/^\/+/, '')
+          : 'assets/aistudio/kelasbrevet_icon_transparent.png';
+      const iconCandidates = [
+        path.resolve(process.cwd(), 'public', relPath),
+        path.resolve(process.cwd(), 'dist', relPath),
+        path.resolve(serverDir, '..', 'dist', relPath),
+        path.resolve(serverDir, '..', 'public', relPath),
+        path.resolve(process.cwd(), 'public/assets/aistudio/kelasbrevet_icon_transparent.png'),
+        path.resolve(process.cwd(), 'dist/assets/aistudio/kelasbrevet_icon_transparent.png'),
+      ];
+      const foundIcon = iconCandidates.find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
+      if (foundIcon) {
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        return res.sendFile(foundIcon);
+      }
+      return res.status(404).end();
+    } catch {
+      return res.status(404).end();
     }
   });
 
@@ -1207,11 +1255,12 @@ async function startServer() {
     }
   });
 
-  // === Admin Branding / Logo Management ===
+  // === Admin Branding / Logo & Meta Icon Management ===
   app.put('/api/admin/branding', requireAdminAuth, async (req: Request, res: Response) => {
     try {
       const b = req.body || {};
       const logoUrl = b.logoUrl !== undefined ? String(b.logoUrl).trim() : undefined;
+      const metaIconUrl = b.metaIconUrl !== undefined ? String(b.metaIconUrl).trim() : undefined;
       const brandName = b.brandName !== undefined ? String(b.brandName).trim() : undefined;
 
       if (logoUrl && logoUrl.length > 3_000_000) {
@@ -1232,10 +1281,28 @@ async function startServer() {
         });
       }
 
-      const branding = await mysqlRepo.saveBrandingSettings({ logoUrl, brandName });
+      if (metaIconUrl && metaIconUrl.length > 3_000_000) {
+        return res.status(400).json({
+          error: 'Ukuran file Icon Meta terlalu besar (maksimal ~2 MB). Kompres gambar terlebih dahulu.',
+        });
+      }
+
+      if (
+        metaIconUrl &&
+        !metaIconUrl.startsWith('data:image/') &&
+        !metaIconUrl.startsWith('http://') &&
+        !metaIconUrl.startsWith('https://') &&
+        !metaIconUrl.startsWith('/')
+      ) {
+        return res.status(400).json({
+          error: 'Format Icon Meta harus berupa file gambar (PNG/ICO/SVG/JPG/WebP) atau URL yang valid.',
+        });
+      }
+
+      const branding = await mysqlRepo.saveBrandingSettings({ logoUrl, metaIconUrl, brandName });
       return res.json({ ok: true, branding });
     } catch (err) {
-      return handleDbError(res, err, 'Gagal menyimpan logo & branding.');
+      return handleDbError(res, err, 'Gagal menyimpan logo & icon meta.');
     }
   });
 

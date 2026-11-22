@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   FileDown,
+  Globe,
   Image as ImageIcon,
   KeyRound,
   LogOut,
@@ -36,7 +37,7 @@ import {
   ParticipantResultSummary,
 } from '../types/tax.ts';
 import { KelasBrevetLogo } from '../components/KelasBrevetLogo.tsx';
-import { setBrandingCache } from '../lib/brandingStore.ts';
+import { DEFAULT_META_ICON_URL, setBrandingCache } from '../lib/brandingStore.ts';
 
 type AdminTab = 'analytics' | 'participants' | 'questions' | 'admins' | 'branding' | 'integration';
 
@@ -148,6 +149,7 @@ export const AdminApp: React.FC = () => {
 
   // Logo & Branding Settings State
   const [brandLogoUrl, setBrandLogoUrl] = useState('');
+  const [brandMetaIconUrl, setBrandMetaIconUrl] = useState('');
   const [brandName, setBrandName] = useState('KelasBrevet');
   const [brandUpdatedAt, setBrandUpdatedAt] = useState('');
   const [savingBranding, setSavingBranding] = useState(false);
@@ -220,6 +222,7 @@ export const AdminApp: React.FC = () => {
       if (brandRes?.branding) {
         const b: BrandingSettings = brandRes.branding;
         setBrandLogoUrl(b.logoUrl || '');
+        setBrandMetaIconUrl(b.metaIconUrl || '');
         setBrandName(b.brandName || 'KelasBrevet');
         setBrandUpdatedAt(b.updatedAt || '');
         setBrandingCache(b);
@@ -394,7 +397,7 @@ export const AdminApp: React.FC = () => {
     }
   };
 
-  // === Branding / Logo Upload Handlers ===
+  // === Branding / Logo & Meta Icon Upload Handlers ===
   const handleLogoFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -415,29 +418,62 @@ export const AdminApp: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveBranding = async (nextLogoUrl?: string) => {
+  const handleMetaIconFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isIco = file.name.toLowerCase().endsWith('.ico');
+    if (!file.type.startsWith('image/') && !isIco) {
+      setErrorBanner('File Icon Meta harus berupa gambar (PNG, ICO, SVG, JPG, atau WebP).');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorBanner('Ukuran Icon Meta maksimal 2 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        let result = reader.result;
+        if (isIco && result.startsWith('data:application/octet-stream;')) {
+          result = result.replace('data:application/octet-stream;', 'data:image/x-icon;');
+        }
+        setBrandMetaIconUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBranding = async (overrides?: {
+    logoUrl?: string;
+    metaIconUrl?: string;
+    toastMessage?: string;
+  }) => {
     setSavingBranding(true);
     setErrorBanner(null);
     try {
-      const targetUrl = nextLogoUrl !== undefined ? nextLogoUrl : brandLogoUrl.trim();
+      const targetLogoUrl =
+        overrides?.logoUrl !== undefined ? overrides.logoUrl : brandLogoUrl.trim();
+      const targetMetaIconUrl =
+        overrides?.metaIconUrl !== undefined ? overrides.metaIconUrl : brandMetaIconUrl.trim();
       const res = await adminFetch<{ branding: BrandingSettings }>('/api/admin/branding', {
         method: 'PUT',
         body: JSON.stringify({
-          logoUrl: targetUrl,
+          logoUrl: targetLogoUrl,
+          metaIconUrl: targetMetaIconUrl,
           brandName: brandName.trim() || 'KelasBrevet',
         }),
       });
       setBrandLogoUrl(res.branding.logoUrl || '');
+      setBrandMetaIconUrl(res.branding.metaIconUrl || '');
       setBrandName(res.branding.brandName || 'KelasBrevet');
       setBrandUpdatedAt(res.branding.updatedAt || '');
       setBrandingCache(res.branding);
       showToast(
-        targetUrl
-          ? 'Logo KelasBrevet berhasil disimpan ke database & langsung diterapkan di seluruh aplikasi.'
-          : 'Logo dikembalikan ke logo default resmi KelasBrevet.'
+        overrides?.toastMessage ||
+          'Pengaturan Logo & Icon Meta berhasil disimpan ke database dan langsung diterapkan.'
       );
     } catch (err: any) {
-      setErrorBanner(err?.message || 'Gagal menyimpan pengaturan logo.');
+      setErrorBanner(err?.message || 'Gagal menyimpan pengaturan branding.');
     } finally {
       setSavingBranding(false);
     }
@@ -863,7 +899,7 @@ export const AdminApp: React.FC = () => {
     { id: 'participants', label: 'Peserta & Nilai', icon: Users },
     { id: 'questions', label: 'Manajemen Soal', icon: BookOpen },
     { id: 'admins', label: 'Akun Admin', icon: ShieldCheck },
-    { id: 'branding', label: 'Logo & Branding', icon: ImageIcon },
+    { id: 'branding', label: 'Logo & Icon Meta', icon: ImageIcon },
     { id: 'integration', label: 'Integrasi API', icon: Code2 },
   ];
 
@@ -872,7 +908,7 @@ export const AdminApp: React.FC = () => {
     participants: 'Daftar Peserta, Nilai & Kelulusan',
     questions: 'Manajemen Bank Soal Latihan',
     admins: 'Manajemen Akun Admin (Database)',
-    branding: 'Pengaturan Logo KelasBrevet',
+    branding: 'Pengaturan Logo & Icon Meta',
     integration: 'Integrasi API kelasbrevet.com',
   };
 
@@ -1773,155 +1809,343 @@ export const AdminApp: React.FC = () => {
           )}
 
           {/* =============================================================== */}
-          {/* TAB 6: PENGATURAN LOGO & BRANDING KELASBREVET                   */}
+          {/* TAB 6: PENGATURAN LOGO & ICON META KELASBREVET                  */}
           {/* =============================================================== */}
           {activeTab === 'branding' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left: Upload & Form */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
-                <div>
-                  <h2 className="font-display font-bold text-base text-slate-900">
-                    Ubah Logo KelasBrevet
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Logo yang disimpan di tabel <code className="font-mono text-indigo-700">app_settings</code> akan otomatis tampil pada halaman Login, Header Simulasi, Layar Loading, Dokumen Cetak, dan Konsol Admin.
-                  </p>
+              {/* Left Column: Logo Form + Icon Meta Form */}
+              <div className="space-y-6">
+                {/* Card 1: Main Logo */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+                  <div>
+                    <h2 className="font-display font-bold text-base text-slate-900">
+                      Ubah Logo KelasBrevet
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Logo yang disimpan di tabel{' '}
+                      <code className="font-mono text-indigo-700">app_settings</code> akan otomatis
+                      tampil pada halaman Login, Header Simulasi, Layar Loading, Dokumen Cetak, dan
+                      Konsol Admin.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 text-xs">
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1.5">
+                        Nama Brand
+                      </label>
+                      <input
+                        type="text"
+                        value={brandName}
+                        onChange={(e) => setBrandName(e.target.value)}
+                        placeholder="KelasBrevet"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1.5">
+                        Unggah Foto / File Logo Baru (PNG, JPG, SVG, WebP — maks. 2 MB)
+                      </label>
+                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-5 bg-slate-50/70 hover:bg-indigo-50/30 transition cursor-pointer text-center">
+                        <Upload className="w-6 h-6 text-indigo-600" />
+                        <div className="font-semibold text-slate-700">
+                          Klik untuk pilih file logo dari komputer Anda
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Disarankan PNG / SVG transparan horizontal (misal 400&times;100 px)
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          onChange={handleLogoFileSelected}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1.5">
+                        Atau Masukkan URL Gambar Logo (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={brandLogoUrl.startsWith('data:') ? '' : brandLogoUrl}
+                        onChange={(e) => setBrandLogoUrl(e.target.value)}
+                        placeholder="https://kelasbrevet.com/assets/logo.png (kosongkan untuk logo default)"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-[11.5px] text-slate-800"
+                      />
+                      {brandLogoUrl.startsWith('data:') && (
+                        <div className="mt-1.5 text-[11px] text-emerald-700 font-medium">
+                          File logo siap disimpan (Data URL terpasang).
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                      <button
+                        type="button"
+                        disabled={savingBranding}
+                        onClick={() =>
+                          handleSaveBranding({
+                            toastMessage:
+                              'Logo & Nama Brand berhasil disimpan ke database dan diterapkan.',
+                          })
+                        }
+                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-lg transition cursor-pointer"
+                      >
+                        {savingBranding ? 'Menyimpan...' : 'Simpan Logo ke Database'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingBranding}
+                        onClick={() =>
+                          handleSaveBranding({
+                            logoUrl: '',
+                            toastMessage: 'Logo dikembalikan ke logo default resmi KelasBrevet.',
+                          })
+                        }
+                        className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition cursor-pointer"
+                      >
+                        Reset ke Logo Default
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-4 text-xs">
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1.5">
-                      Nama Brand
-                    </label>
-                    <input
-                      type="text"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      placeholder="KelasBrevet"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1.5">
-                      Unggah Foto / File Logo Baru (PNG, JPG, SVG, WebP — maks. 2 MB)
-                    </label>
-                    <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-6 bg-slate-50/70 hover:bg-indigo-50/30 transition cursor-pointer text-center">
-                      <Upload className="w-6 h-6 text-indigo-600" />
-                      <div className="font-semibold text-slate-700">
-                        Klik untuk pilih file logo dari komputer Anda
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        Disarankan PNG / SVG transparan horizontal (misal 400&times;100 px)
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        onChange={handleLogoFileSelected}
-                        className="hidden"
+                {/* Card 2: Meta Icon (Favicon & OpenGraph / Social Icon) */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="font-display font-bold text-base text-slate-900 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-indigo-600" />
+                        Upload Icon Meta (Favicon &amp; Meta Tag)
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Icon Meta digunakan sebagai <strong>Favicon Tab Browser</strong>,{' '}
+                        <strong>Apple Touch Icon</strong>, serta{' '}
+                        <strong>og:image / twitter:image</strong> saat tautan aplikasi dibagikan ke
+                        WhatsApp, Telegram, atau media sosial.
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 p-1.5">
+                      <img
+                        src={brandMetaIconUrl || DEFAULT_META_ICON_URL}
+                        alt="Icon Meta Saat Ini"
+                        className="w-full h-full object-contain"
                       />
-                    </label>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1.5">
-                      Atau Masukkan URL Gambar Logo (Opsional)
-                    </label>
-                    <input
-                      type="text"
-                      value={brandLogoUrl.startsWith('data:') ? '' : brandLogoUrl}
-                      onChange={(e) => setBrandLogoUrl(e.target.value)}
-                      placeholder="https://kelasbrevet.com/assets/logo.png (kosongkan untuk logo default)"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-[11.5px] text-slate-800"
-                    />
-                    {brandLogoUrl.startsWith('data:') && (
-                      <div className="mt-1.5 text-[11px] text-emerald-700 font-medium">
-                        File gambar siap disimpan (Data URL terpasang).
+                  <div className="space-y-4 text-xs">
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1.5">
+                        Unggah File Icon Meta (PNG, ICO, SVG, JPG, WebP — maks. 2 MB)
+                      </label>
+                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-5 bg-slate-50/70 hover:bg-indigo-50/30 transition cursor-pointer text-center">
+                        <Upload className="w-6 h-6 text-indigo-600" />
+                        <div className="font-semibold text-slate-700">
+                          Klik untuk unggah Icon Meta (Favicon)
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Disarankan rasio persegi 1:1 (misal 512&times;512 px atau 180&times;180 px PNG/ICO)
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml,image/jpeg,image/webp,.ico"
+                          onChange={handleMetaIconFileSelected}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1.5">
+                        Atau Masukkan URL Icon Meta (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={brandMetaIconUrl.startsWith('data:') ? '' : brandMetaIconUrl}
+                        onChange={(e) => setBrandMetaIconUrl(e.target.value)}
+                        placeholder="https://kelasbrevet.com/favicon.png (kosongkan untuk icon default)"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-[11.5px] text-slate-800"
+                      />
+                      {brandMetaIconUrl.startsWith('data:') && (
+                        <div className="mt-1.5 text-[11px] text-emerald-700 font-medium">
+                          File Icon Meta siap disimpan (Data URL terpasang).
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                      <button
+                        type="button"
+                        disabled={savingBranding}
+                        onClick={() =>
+                          handleSaveBranding({
+                            toastMessage:
+                              'Icon Meta berhasil disimpan ke database dan langsung aktif pada tab browser & meta tag.',
+                          })
+                        }
+                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-lg transition cursor-pointer"
+                      >
+                        {savingBranding ? 'Menyimpan...' : 'Simpan Icon Meta ke Database'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingBranding}
+                        onClick={() =>
+                          handleSaveBranding({
+                            metaIconUrl: '',
+                            toastMessage: 'Icon Meta dikembalikan ke ikon default KelasBrevet.',
+                          })
+                        }
+                        className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition cursor-pointer"
+                      >
+                        Reset ke Icon Default
+                      </button>
+                    </div>
+
+                    {brandUpdatedAt && (
+                      <div className="text-[11px] text-slate-400">
+                        Terakhir diperbarui: {new Date(brandUpdatedAt).toLocaleString('id-ID')}
                       </div>
                     )}
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-2.5 pt-2">
-                    <button
-                      type="button"
-                      disabled={savingBranding}
-                      onClick={() => handleSaveBranding()}
-                      className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-lg transition cursor-pointer"
-                    >
-                      {savingBranding ? 'Menyimpan...' : 'Simpan Logo ke Database'}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={savingBranding}
-                      onClick={() => handleSaveBranding('')}
-                      className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition cursor-pointer"
-                    >
-                      Reset ke Logo Default KelasBrevet
-                    </button>
-                  </div>
-
-                  {brandUpdatedAt && (
-                    <div className="text-[11px] text-slate-400">
-                      Terakhir diperbarui: {new Date(brandUpdatedAt).toLocaleString('id-ID')}
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Right: Live Multi-Surface Preview */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                <div>
-                  <h3 className="font-display font-bold text-sm text-slate-900">
-                    Pratinjau Langsung di Aplikasi
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Perubahan logo akan langsung terlihat pada tampilan simulasi di bawah ini.
-                  </p>
+              {/* Right Column: Live Multi-Surface Preview (Icon Meta + Logo) */}
+              <div className="space-y-6">
+                {/* Preview Card 1: Browser Tab & Social Meta Preview */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-slate-900">
+                      Pratinjau Icon Meta (Tab Browser &amp; Bagikan Tautan)
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Tampilan langsung Favicon di tab browser, shortcut layar utama, dan kartu
+                      meta link.
+                    </p>
+                  </div>
+
+                  {/* Browser Tab Mockup */}
+                  <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-100">
+                    <div className="px-3 pt-2.5 flex items-end gap-2 bg-slate-200/80 border-b border-slate-200">
+                      <div className="flex items-center gap-1.5 pb-2 pr-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
+                      </div>
+                      <div className="inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-t-lg border-t border-x border-slate-200 text-[11px] font-medium text-slate-700 max-w-[260px]">
+                        <img
+                          src={brandMetaIconUrl || DEFAULT_META_ICON_URL}
+                          alt="Favicon Preview"
+                          className="w-4 h-4 object-contain shrink-0"
+                        />
+                        <span className="truncate">
+                          {brandName || 'KelasBrevet'} Coretax Simulator
+                        </span>
+                      </div>
+                    </div>
+                    <div className="px-3.5 py-2 bg-white text-[11px] text-slate-400 font-mono truncate">
+                      {session?.publicUrl || window.location.origin}
+                    </div>
+                  </div>
+
+                  {/* App Icon + Social Share Card */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-slate-200 p-3.5 bg-slate-50 flex flex-col items-center justify-center gap-2 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center p-2">
+                        <img
+                          src={brandMetaIconUrl || DEFAULT_META_ICON_URL}
+                          alt="Apple Touch Icon"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <span className="text-[10.5px] font-semibold text-slate-600">
+                        Apple Touch / App Icon
+                      </span>
+                    </div>
+
+                    <div className="sm:col-span-2 rounded-xl border border-slate-200 p-3.5 bg-white flex items-center gap-3.5">
+                      <div className="w-16 h-16 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center p-2 shrink-0">
+                        <img
+                          src={brandMetaIconUrl || DEFAULT_META_ICON_URL}
+                          alt="OpenGraph Image"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-indigo-600">
+                          Meta OpenGraph (og:image)
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 truncate mt-0.5">
+                          {brandName || 'KelasBrevet'} Coretax Simulator
+                        </div>
+                        <div className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">
+                          Simulasi interaktif Coretax untuk latihan e-Faktur, e-Bupot, dan SPT.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
-                      Header Portal Simulasi (Mode Terang)
-                    </div>
-                    <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-slate-50 border border-slate-200">
-                      <KelasBrevetLogo
-                        variant="portalbar"
-                        logoUrlOverride={brandLogoUrl}
-                        brandNameOverride={brandName}
-                      />
-                      <span className="text-[11px] text-slate-400">Cari layanan...</span>
-                    </div>
+                {/* Preview Card 2: Live Multi-Surface Logo Preview */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-slate-900">
+                      Pratinjau Langsung Logo di Aplikasi
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Perubahan logo akan langsung terlihat pada tampilan simulasi di bawah ini.
+                    </p>
                   </div>
 
-                  <div className="rounded-xl border border-slate-800 p-4 bg-[#0F172A]">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
-                      Header Gelap &amp; Konsol Admin
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-slate-200 p-4 bg-white">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+                        Header Portal Simulasi (Mode Terang)
+                      </div>
+                      <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-slate-50 border border-slate-200">
+                        <KelasBrevetLogo
+                          variant="portalbar"
+                          logoUrlOverride={brandLogoUrl}
+                          brandNameOverride={brandName}
+                        />
+                        <span className="text-[11px] text-slate-400">Cari layanan...</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-[#1E293B] border border-slate-700">
-                      <KelasBrevetLogo
-                        variant="admin"
-                        dark
-                        logoUrlOverride={brandLogoUrl}
-                        brandNameOverride={brandName}
-                      />
-                      <span className="text-[11px] text-slate-400">Administrator</span>
-                    </div>
-                  </div>
 
-                  <div className="rounded-xl border border-slate-200 p-4 bg-[#EEF2FA]">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2.5">
-                      Halaman Login &amp; Layar Loading
+                    <div className="rounded-xl border border-slate-800 p-4 bg-[#0F172A]">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+                        Header Gelap &amp; Konsol Admin
+                      </div>
+                      <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-[#1E293B] border border-slate-700">
+                        <KelasBrevetLogo
+                          variant="admin"
+                          dark
+                          logoUrlOverride={brandLogoUrl}
+                          brandNameOverride={brandName}
+                        />
+                        <span className="text-[11px] text-slate-400">Administrator</span>
+                      </div>
                     </div>
-                    <div className="bg-white rounded-xl border border-slate-200 py-5 px-6 flex flex-col items-center gap-2">
-                      <KelasBrevetLogo
-                        variant="hero"
-                        logoUrlOverride={brandLogoUrl}
-                        brandNameOverride={brandName}
-                      />
-                      <span className="text-[11px] text-slate-500">
-                        Memuat layanan {brandName || 'KelasBrevet'}...
-                      </span>
+
+                    <div className="rounded-xl border border-slate-200 p-4 bg-[#EEF2FA]">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2.5">
+                        Halaman Login &amp; Layar Loading
+                      </div>
+                      <div className="bg-white rounded-xl border border-slate-200 py-5 px-6 flex flex-col items-center gap-2">
+                        <KelasBrevetLogo
+                          variant="hero"
+                          logoUrlOverride={brandLogoUrl}
+                          brandNameOverride={brandName}
+                        />
+                        <span className="text-[11px] text-slate-500">
+                          Memuat layanan {brandName || 'KelasBrevet'}...
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

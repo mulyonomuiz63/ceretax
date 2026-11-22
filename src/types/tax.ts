@@ -452,6 +452,7 @@ export interface AdminPublicUser {
 
 export interface BrandingSettings {
   logoUrl: string;
+  metaIconUrl: string;
   brandName: string;
   updatedAt: string;
 }

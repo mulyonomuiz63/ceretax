@@ -1636,10 +1636,11 @@ export async function getBrandingSettings(): Promise<BrandingSettings> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT setting_key, setting_value, updated_at
      FROM app_settings
-     WHERE setting_key IN ('brand_logo_url', 'brand_name')`
+     WHERE setting_key IN ('brand_logo_url', 'brand_meta_icon_url', 'brand_name')`
   );
 
   let logoUrl = '';
+  let metaIconUrl = '';
   let brandName = 'KelasBrevet';
   let updatedAt = '';
 
@@ -1648,15 +1649,17 @@ export async function getBrandingSettings(): Promise<BrandingSettings> {
     const val = String(row.setting_value || '');
     const ts = String(row.updated_at || '');
     if (key === 'brand_logo_url') logoUrl = val;
+    if (key === 'brand_meta_icon_url') metaIconUrl = val;
     if (key === 'brand_name' && val.trim()) brandName = val.trim();
     if (ts && ts > updatedAt) updatedAt = ts;
   }
 
-  return { logoUrl, brandName, updatedAt };
+  return { logoUrl, metaIconUrl, brandName, updatedAt };
 }
 
 export async function saveBrandingSettings(updates: {
   logoUrl?: string;
+  metaIconUrl?: string;
   brandName?: string;
 }): Promise<BrandingSettings> {
   const pool = await ensureMysqlSchema();
@@ -1668,6 +1671,15 @@ export async function saveBrandingSettings(updates: {
        VALUES ('brand_logo_url', ?, ?)
        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = VALUES(updated_at)`,
       [updates.logoUrl, now]
+    );
+  }
+
+  if (updates.metaIconUrl !== undefined) {
+    await pool.execute(
+      `INSERT INTO app_settings (setting_key, setting_value, updated_at)
+       VALUES ('brand_meta_icon_url', ?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = VALUES(updated_at)`,
+      [updates.metaIconUrl, now]
     );
   }
 

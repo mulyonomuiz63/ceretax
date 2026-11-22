@@ -517,10 +517,11 @@ function ensureMetaLoaded(): LocalMetaStore {
       const branding: BrandingSettings = parsed.branding
         ? {
             logoUrl: String(parsed.branding.logoUrl || ''),
+            metaIconUrl: String(parsed.branding.metaIconUrl || ''),
             brandName: String(parsed.branding.brandName || 'KelasBrevet'),
             updatedAt: String(parsed.branding.updatedAt || ''),
           }
-        : { logoUrl: '', brandName: 'KelasBrevet', updatedAt: '' };
+        : { logoUrl: '', metaIconUrl: '', brandName: 'KelasBrevet', updatedAt: '' };
 
       metaStore = {
         participants: Array.isArray(parsed.participants) ? parsed.participants : [],
@@ -543,7 +544,7 @@ function ensureMetaLoaded(): LocalMetaStore {
     participants: [],
     examQuestions: createDefaultExamQuestions(),
     adminUsers: [buildDefaultAdminUser()],
-    branding: { logoUrl: '', brandName: 'KelasBrevet', updatedAt: '' },
+    branding: { logoUrl: '', metaIconUrl: '', brandName: 'KelasBrevet', updatedAt: '' },
   };
   saveMetaStore();
   return metaStore;
@@ -561,7 +562,7 @@ function saveMetaStore(): void {
           participants: [],
           examQuestions: [],
           adminUsers: [],
-          branding: { logoUrl: '', brandName: 'KelasBrevet', updatedAt: '' },
+          branding: { logoUrl: '', metaIconUrl: '', brandName: 'KelasBrevet', updatedAt: '' },
         },
         null,
         2
@@ -821,12 +822,15 @@ export async function getBrandingSettings(): Promise<BrandingSettings> {
 
 export async function saveBrandingSettings(updates: {
   logoUrl?: string;
+  metaIconUrl?: string;
   brandName?: string;
 }): Promise<BrandingSettings> {
   const meta = ensureMetaLoaded();
   const now = new Date().toISOString();
   meta.branding = {
     logoUrl: updates.logoUrl !== undefined ? updates.logoUrl : meta.branding.logoUrl,
+    metaIconUrl:
+      updates.metaIconUrl !== undefined ? updates.metaIconUrl : meta.branding.metaIconUrl,
     brandName:
       updates.brandName !== undefined
         ? updates.brandName.trim() || 'KelasBrevet'
