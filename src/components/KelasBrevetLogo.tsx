@@ -1,8 +1,9 @@
 import React from 'react';
 import { useBranding } from '../lib/brandingStore.ts';
 
-export const DEFAULT_ICON_LOGO_URL = '/assets/aistudio/image_d4c8f37b.png';
-export const DEFAULT_FULL_LOGO_URL = '/assets/aistudio/image_1f556637.png';
+export const DEFAULT_DJP_LOGO_URL = '/assets/aistudio/kemenkeu_djp_transparent.png';
+export const DEFAULT_ICON_LOGO_URL = '/assets/aistudio/kelasbrevet_icon_transparent.png';
+export const DEFAULT_FULL_LOGO_URL = '/assets/aistudio/kelasbrevet_full_transparent.png';
 
 interface KelasBrevetLogoProps {
   variant?: 'header' | 'login' | 'light' | 'topbar' | 'hero' | 'portalbar' | 'admin';
@@ -14,7 +15,7 @@ interface KelasBrevetLogoProps {
 }
 
 /**
- * Icon-only KelasBrevet brand mark (replaces DJP emblem with zero text).
+ * Transparent icon-only KelasBrevet emblem.
  */
 export const KelasBrevetEmblem: React.FC<{ size?: number; className?: string }> = ({
   size = 34,
@@ -43,66 +44,56 @@ export const KelasBrevetLogo: React.FC<KelasBrevetLogoProps> = ({
 
   const fullLogoSrc = customLogoUrl || DEFAULT_FULL_LOGO_URL;
   const isDarkSurface = dark || variant === 'light' || variant === 'admin';
+  // On light surfaces, mix-blend-multiply guarantees any residual white pixels vanish cleanly
+  const blendClass = isDarkSurface ? '' : 'mix-blend-multiply';
 
-  // TOPBAR (Landing / Login top-left): Replaces DJP logo -> Icon-only mark WITHOUT text
+  // TOPBAR (Landing / Login top-left): Preserves official [Kemenkeu | djp] logo with transparent background
   if (variant === 'topbar') {
     return (
       <div className={`inline-flex items-center select-none shrink-0 ${className}`}>
         <img
-          src={DEFAULT_ICON_LOGO_URL}
-          alt={brandName}
-          className={`h-9 sm:h-10 w-auto object-contain ${
-            isDarkSurface ? 'bg-white/95 rounded-lg p-1' : ''
-          }`}
+          src={DEFAULT_DJP_LOGO_URL}
+          alt="Kementerian Keuangan & Direktorat Jenderal Pajak"
+          className={`h-8 sm:h-9 w-auto object-contain ${blendClass}`}
         />
       </div>
     );
   }
 
-  // HERO (Landing & Login above heading): Replaces CORETAX logo -> Full KelasBrevet logo (or admin custom upload)
+  // HERO (Landing & Login above heading): Full KelasBrevet logo (transparent, NO white background)
   if (variant === 'hero') {
     return (
       <div className={`inline-flex items-center select-none shrink-0 ${className}`} aria-label={brandName}>
         <img
           src={fullLogoSrc}
           alt={brandName}
-          className={`h-10 sm:h-12 w-auto max-w-[260px] object-contain ${
-            isDarkSurface ? 'bg-white/95 rounded-xl px-3 py-1.5' : ''
-          }`}
+          className={`h-10 sm:h-12 w-auto max-w-[260px] object-contain ${blendClass}`}
         />
       </div>
     );
   }
 
-  // PORTALBAR (Coretax Shell Header top-left): [Icon-only replacing DJP] | [Full KelasBrevet replacing CORETAX]
+  // PORTALBAR (Coretax Portal Header top-left): [Kemenkeu | djp] + [KelasBrevet] matching official layout
   if (variant === 'portalbar') {
     return (
-      <div className={`inline-flex items-center gap-2.5 select-none shrink-0 ${className}`}>
+      <div className={`inline-flex items-center gap-3 select-none shrink-0 ${className}`}>
         <img
-          src={DEFAULT_ICON_LOGO_URL}
-          alt="Emblem"
-          className={`h-7 sm:h-8 w-auto object-contain ${
-            isDarkSurface ? 'bg-white/95 rounded-md p-0.5' : ''
-          }`}
-        />
-        <span
-          className={`h-6 w-px ${isDarkSurface ? 'bg-slate-600' : 'bg-slate-300'}`}
-          aria-hidden="true"
+          src={DEFAULT_DJP_LOGO_URL}
+          alt="Kementerian Keuangan & DJP"
+          className={`h-7 sm:h-8 w-auto object-contain ${blendClass}`}
         />
         <img
           src={fullLogoSrc}
           alt={brandName}
-          className={`h-7 sm:h-8 w-auto max-w-[165px] object-contain ${
-            isDarkSurface ? 'bg-white/95 rounded-md px-2 py-0.5' : ''
-          }`}
+          className={`h-6 sm:h-7 w-auto max-w-[160px] object-contain ${blendClass}`}
         />
       </div>
     );
   }
 
-  // ADMIN / LOGIN / HEADER / LIGHT
+  // ADMIN / LOGIN / HEADER / LIGHT (transparent, NO white background box)
   const heightClass: Record<string, string> = {
-    admin: 'h-8 max-w-[170px]',
+    admin: 'h-7 max-w-[170px]',
     login: 'h-10 max-w-[220px]',
     header: 'h-8 max-w-[185px]',
     light: 'h-8 max-w-[185px]',
@@ -113,9 +104,7 @@ export const KelasBrevetLogo: React.FC<KelasBrevetLogoProps> = ({
       <img
         src={fullLogoSrc}
         alt={brandName}
-        className={`${heightClass[variant] || 'h-8 max-w-[185px]'} w-auto object-contain ${
-          isDarkSurface ? 'bg-white/95 rounded-lg px-2 py-1' : ''
-        }`}
+        className={`${heightClass[variant] || 'h-8 max-w-[185px]'} w-auto object-contain ${blendClass}`}
       />
     </div>
   );
