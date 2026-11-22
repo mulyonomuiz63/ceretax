@@ -1,0 +1,297 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1 / Global Safety Net: default deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // === Global Primitives ===
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function parentUserExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // === Validation Blueprints (Pillar 2) ===
+    function isValidUserAccount(data, userId) {
+      return data.keys().hasAll(['ownerId', 'email', 'activeNik', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'email', 'activeNik', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && data.ownerId == userId && data.ownerId == request.auth.uid &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.activeNik is string && data.activeNik.size() >= 1 && data.activeNik.size() <= 32 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTaxpayer(data, userId) {
+      return data.keys().hasAll(['ownerId', 'nikNpwp', 'name', 'taxpayerType', 'isPkp', 'depositBalance', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'nikNpwp', 'name', 'taxpayerType', 'isPkp', 'ptkpStatus', 'address', 'kluCode', 'kluName', 'depositBalance', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && data.ownerId == userId && data.ownerId == request.auth.uid &&
+        data.nikNpwp is string && data.nikNpwp.size() >= 10 && data.nikNpwp.size() <= 32 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 160 &&
+        data.taxpayerType in ['INDIVIDUAL', 'CORPORATE'] &&
+        data.isPkp is bool &&
+        (!('ptkpStatus' in data) || (data.ptkpStatus is string && data.ptkpStatus.size() <= 16)) &&
+        (!('address' in data) || (data.address is string && data.address.size() <= 400)) &&
+        (!('kluCode' in data) || (data.kluCode is string && data.kluCode.size() <= 32)) &&
+        (!('kluName' in data) || (data.kluName is string && data.kluName.size() <= 200)) &&
+        data.depositBalance is number && data.depositBalance >= 0 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTaxInvoice(data, userId) {
+      return data.keys().hasAll(['ownerId', 'taxpayerId', 'direction', 'transactionCode', 'invoiceNumber', 'counterpartyNpwp', 'counterpartyName', 'invoiceDate', 'taxPeriodMonth', 'taxPeriodYear', 'dppTotal', 'ppnTotal', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'taxpayerId', 'direction', 'transactionCode', 'invoiceNumber', 'counterpartyNpwp', 'counterpartyName', 'invoiceDate', 'taxPeriodMonth', 'taxPeriodYear', 'dppTotal', 'dppOtherValue', 'ppnTotal', 'ppnbmTotal', 'status', 'isCredited', 'returnAmount', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && data.ownerId == userId && data.ownerId == request.auth.uid &&
+        isValidId(data.taxpayerId) &&
+        data.direction in ['OUTPUT', 'INPUT', 'EXPORT'] &&
+        data.transactionCode is string && data.transactionCode.size() >= 1 && data.transactionCode.size() <= 8 &&
+        data.invoiceNumber is string && data.invoiceNumber.size() >= 1 && data.invoiceNumber.size() <= 64 &&
+        data.counterpartyNpwp is string && data.counterpartyNpwp.size() >= 1 && data.counterpartyNpwp.size() <= 32 &&
+        data.counterpartyName is string && data.counterpartyName.size() >= 1 && data.counterpartyName.size() <= 160 &&
+        data.invoiceDate is string && data.invoiceDate.size() >= 4 && data.invoiceDate.size() <= 32 &&
+        data.taxPeriodMonth is number && data.taxPeriodMonth >= 1 && data.taxPeriodMonth <= 12 &&
+        data.taxPeriodYear is number && data.taxPeriodYear >= 2020 && data.taxPeriodYear <= 2035 &&
+        data.dppTotal is number && data.dppTotal >= 0 &&
+        (!('dppOtherValue' in data) || (data.dppOtherValue is number && data.dppOtherValue >= 0)) &&
+        data.ppnTotal is number && data.ppnTotal >= 0 &&
+        (!('ppnbmTotal' in data) || (data.ppnbmTotal is number && data.ppnbmTotal >= 0)) &&
+        data.status in ['DRAFT', 'APPROVED', 'WAITING_FOR_AMENDMENT', 'AMENDED', 'WAITING_FOR_CANCELLATION', 'CANCELLED'] &&
+        (!('isCredited' in data) || data.isCredited is bool) &&
+        (!('returnAmount' in data) || (data.returnAmount is number && data.returnAmount >= 0)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidWithholdingSlip(data, userId) {
+      return data.keys().hasAll(['ownerId', 'issuerId', 'recipientNikNpwp', 'recipientName', 'slipType', 'slipNumber', 'taxPeriodMonth', 'taxPeriodYear', 'objectCode', 'grossAmount', 'taxWithheld', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'issuerId', 'recipientNikNpwp', 'recipientName', 'slipType', 'slipNumber', 'taxPeriodMonth', 'taxPeriodYear', 'objectCode', 'objectName', 'grossAmount', 'ratePercent', 'taxWithheld', 'status', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && data.ownerId == userId && data.ownerId == request.auth.uid &&
+        isValidId(data.issuerId) &&
+        data.recipientNikNpwp is string && data.recipientNikNpwp.size() >= 1 && data.recipientNikNpwp.size() <= 32 &&
+        data.recipientName is string && data.recipientName.size() >= 1 && data.recipientName.size() <= 160 &&
+        data.slipType in ['BPMP', 'BP21', 'BPA1', 'BPPU_23'] &&
+        data.slipNumber is string && data.slipNumber.size() >= 1 && data.slipNumber.size() <= 64 &&
+        data.taxPeriodMonth is number && data.taxPeriodMonth >= 1 && data.taxPeriodMonth <= 12 &&
+        data.taxPeriodYear is number && data.taxPeriodYear >= 2020 && data.taxPeriodYear <= 2035 &&
+        data.objectCode is string && data.objectCode.size() >= 1 && data.objectCode.size() <= 32 &&
+        (!('objectName' in data) || (data.objectName is string && data.objectName.size() <= 200)) &&
+        data.grossAmount is number && data.grossAmount >= 0 &&
+        (!('ratePercent' in data) || (data.ratePercent is number && data.ratePercent >= 0 && data.ratePercent <= 100)) &&
+        data.taxWithheld is number && data.taxWithheld >= 0 &&
+        data.status in ['UNISSUED', 'ISSUED', 'CANCELLED'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTaxReturn(data, userId) {
+      return data.keys().hasAll(['ownerId', 'taxpayerId', 'returnType', 'taxYear', 'taxPeriodMonth', 'status', 'taxPayable', 'taxCredit', 'underOverPayment', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'taxpayerId', 'returnType', 'taxYear', 'taxPeriodMonth', 'revisionNo', 'status', 'bpeNumber', 'taxPayable', 'taxCredit', 'underOverPayment', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && data.ownerId == userId && data.ownerId == request.auth.uid &&
+        isValidId(data.taxpayerId) &&
+        data.returnType in ['SPT_MASA_PPN', 'SPT_MASA_PPH21', 'SPT_MASA_UNIFIKASI', 'SPT_TAHUNAN_OP', 'SPT_TAHUNAN_BADAN'] &&
+        data.taxYear is number && data.taxYear >= 2020 && data.taxYear <= 2035 &&
+        data.taxPeriodMonth is number && data.taxPeriodMonth >= 0 && data.taxPeriodMonth <= 12 &&
+        (!('revisionNo' in data) || (data.revisionNo is number && data.revisionNo >= 0)) &&
+        data.status in ['DRAFT', 'WAITING_PAYMENT', 'SUBMITTED', 'REJECTED'] &&
+        (!('bpeNumber' in data) || (data.bpeNumber is string && data.bpeNumber.size() <= 64)) &&
+        data.taxPayable is number &&
+        data.taxCredit is number &&
+        data.underOverPayment is number &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidBillingCode(data, userId) {
+      return data.keys().hasAll(['ownerId', 'taxpayerId', 'kapCode', 'kjsCode', 'billingCode', 'amount', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'taxpayerId', 'kapCode', 'kjsCode', 'billingCode', 'amount', 'status', 'ntpn', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && data.ownerId == userId && data.ownerId == request.auth.uid &&
+        isValidId(data.taxpayerId) &&
+        data.kapCode is string && data.kapCode.size() >= 1 && data.kapCode.size() <= 16 &&
+        data.kjsCode is string && data.kjsCode.size() >= 1 && data.kjsCode.size() <= 16 &&
+        data.billingCode is string && data.billingCode.size() >= 1 && data.billingCode.size() <= 32 &&
+        data.amount is number && data.amount >= 0 &&
+        data.status in ['UNPAID', 'PAID'] &&
+        (!('ntpn' in data) || (data.ntpn is string && data.ntpn.size() <= 32)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidExamAttempt(data, userId) {
+      return data.keys().hasAll(['ownerId', 'caseCode', 'score', 'passedCount', 'totalChecks', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'caseCode', 'score', 'passedCount', 'totalChecks', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && data.ownerId == userId && data.ownerId == request.auth.uid &&
+        data.caseCode in ['CASE_PPN', 'CASE_PPH21_KARYAWAN', 'CASE_EBUPOT_21_23', 'CASE_SPT_OP', 'CASE_SPT_BADAN'] &&
+        data.score is number && data.score >= 0 && data.score <= 100 &&
+        data.passedCount is number && data.passedCount >= 0 &&
+        data.totalChecks is number && data.totalChecks >= 1 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // === User Root Collection (PII isolated to Owner only) ===
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isVerified() && existing().ownerId == request.auth.uid;
+      allow create: if isOwner(userId) && isValidId(userId) &&
+        isValidUserAccount(incoming(), userId) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isOwner(userId) && isValidId(userId) &&
+        isValidUserAccount(incoming(), userId) &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['activeNik', 'email', 'updatedAt']);
+      allow delete: if false;
+
+      // === Subcollection: Taxpayers ===
+      match /taxpayers/{taxpayerId} {
+        allow get: if isOwner(userId) && isValidId(taxpayerId) && parentUserExists(userId);
+        allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(taxpayerId) &&
+          isValidTaxpayer(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+        allow update: if isOwner(userId) && isValidId(taxpayerId) &&
+          isValidTaxpayer(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'isPkp', 'ptkpStatus', 'address', 'kluCode', 'kluName', 'depositBalance', 'updatedAt']) &&
+          parentUserExists(userId);
+        allow delete: if isOwner(userId) && isValidId(taxpayerId) && parentUserExists(userId);
+      }
+
+      // === Subcollection: Tax Invoices (e-Faktur) ===
+      match /invoices/{invoiceId} {
+        allow get: if isOwner(userId) && isValidId(invoiceId) && parentUserExists(userId);
+        allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(invoiceId) &&
+          isValidTaxInvoice(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+        allow update: if isOwner(userId) && isValidId(invoiceId) &&
+          isValidTaxInvoice(incoming(), userId) &&
+          existing().status != 'CANCELLED' &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().taxpayerId == existing().taxpayerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'invoiceNumber', 'dppTotal', 'dppOtherValue', 'ppnTotal', 'ppnbmTotal', 'isCredited', 'returnAmount', 'updatedAt']) &&
+          parentUserExists(userId);
+        allow delete: if isOwner(userId) && isValidId(invoiceId) && existing().status == 'DRAFT' && parentUserExists(userId);
+      }
+
+      // === Subcollection: Withholding Slips (e-Bupot) ===
+      match /slips/{slipId} {
+        allow get: if isOwner(userId) && isValidId(slipId) && parentUserExists(userId);
+        allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(slipId) &&
+          isValidWithholdingSlip(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+        allow update: if isOwner(userId) && isValidId(slipId) &&
+          isValidWithholdingSlip(incoming(), userId) &&
+          existing().status != 'CANCELLED' &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().issuerId == existing().issuerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'slipNumber', 'grossAmount', 'ratePercent', 'taxWithheld', 'updatedAt']) &&
+          parentUserExists(userId);
+        allow delete: if isOwner(userId) && isValidId(slipId) && existing().status == 'UNISSUED' && parentUserExists(userId);
+      }
+
+      // === Subcollection: Tax Returns (SPT) ===
+      match /returns/{returnId} {
+        allow get: if isOwner(userId) && isValidId(returnId) && parentUserExists(userId);
+        allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(returnId) &&
+          isValidTaxReturn(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+        allow update: if isOwner(userId) && isValidId(returnId) &&
+          isValidTaxReturn(incoming(), userId) &&
+          existing().status != 'SUBMITTED' &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().taxpayerId == existing().taxpayerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'bpeNumber', 'taxPayable', 'taxCredit', 'underOverPayment', 'updatedAt']) &&
+          parentUserExists(userId);
+        allow delete: if isOwner(userId) && isValidId(returnId) && existing().status == 'DRAFT' && parentUserExists(userId);
+      }
+
+      // === Subcollection: Billing Codes ===
+      match /billings/{billingId} {
+        allow get: if isOwner(userId) && isValidId(billingId) && parentUserExists(userId);
+        allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(billingId) &&
+          isValidBillingCode(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+        allow update: if isOwner(userId) && isValidId(billingId) &&
+          isValidBillingCode(incoming(), userId) &&
+          existing().status != 'PAID' &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().taxpayerId == existing().taxpayerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'ntpn', 'updatedAt']) &&
+          parentUserExists(userId);
+        allow delete: if false;
+      }
+
+      // === Subcollection: Exam Attempts ===
+      match /examAttempts/{attemptId} {
+        allow get: if isOwner(userId) && isValidId(attemptId) && parentUserExists(userId);
+        allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isOwner(userId) && isValidId(attemptId) &&
+          isValidExamAttempt(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+        allow update: if isOwner(userId) && isValidId(attemptId) &&
+          isValidExamAttempt(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().caseCode == existing().caseCode &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['score', 'passedCount', 'totalChecks', 'updatedAt']) &&
+          parentUserExists(userId);
+        allow delete: if isOwner(userId) && isValidId(attemptId) && parentUserExists(userId);
+      }
+    }
+  }
+}

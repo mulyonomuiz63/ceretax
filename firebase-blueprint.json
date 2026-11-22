@@ -1,0 +1,181 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Authenticated Firebase user account anchoring a student's Coretax simulation workspace.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "maxLength": 200 },
+        "activeNik": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "email", "activeNik", "createdAt", "updatedAt"]
+    },
+    "Taxpayer": {
+      "title": "Taxpayer",
+      "description": "Individual or Corporate taxpayer profile in the Coretax simulator.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "nikNpwp": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 160 },
+        "taxpayerType": { "type": "string", "enum": ["INDIVIDUAL", "CORPORATE"] },
+        "isPkp": { "type": "boolean" },
+        "ptkpStatus": { "type": "string", "maxLength": 16 },
+        "address": { "type": "string", "maxLength": 400 },
+        "kluCode": { "type": "string", "maxLength": 32 },
+        "kluName": { "type": "string", "maxLength": 200 },
+        "depositBalance": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "nikNpwp", "name", "taxpayerType", "isPkp", "depositBalance", "createdAt", "updatedAt"]
+    },
+    "TaxInvoice": {
+      "title": "TaxInvoice",
+      "description": "e-Faktur tax invoice (Output, Input, Export, Amendment, Cancellation, Return).",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "taxpayerId": { "type": "string", "maxLength": 128 },
+        "direction": { "type": "string", "enum": ["OUTPUT", "INPUT", "EXPORT"] },
+        "transactionCode": { "type": "string", "maxLength": 8 },
+        "invoiceNumber": { "type": "string", "maxLength": 64 },
+        "counterpartyNpwp": { "type": "string", "maxLength": 32 },
+        "counterpartyName": { "type": "string", "maxLength": 160 },
+        "invoiceDate": { "type": "string", "maxLength": 32 },
+        "taxPeriodMonth": { "type": "number" },
+        "taxPeriodYear": { "type": "number" },
+        "dppTotal": { "type": "number" },
+        "dppOtherValue": { "type": "number" },
+        "ppnTotal": { "type": "number" },
+        "ppnbmTotal": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["DRAFT", "APPROVED", "WAITING_FOR_AMENDMENT", "AMENDED", "WAITING_FOR_CANCELLATION", "CANCELLED"]
+        },
+        "isCredited": { "type": "boolean" },
+        "returnAmount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "taxpayerId", "direction", "transactionCode", "invoiceNumber", "counterpartyNpwp", "counterpartyName", "invoiceDate", "taxPeriodMonth", "taxPeriodYear", "dppTotal", "ppnTotal", "status", "createdAt", "updatedAt"]
+    },
+    "WithholdingSlip": {
+      "title": "WithholdingSlip",
+      "description": "e-Bupot withholding slip for PPh 21 (BPMP, BP21, BPA1) and PPh 23 (BPPU_23).",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "issuerId": { "type": "string", "maxLength": 128 },
+        "recipientNikNpwp": { "type": "string", "maxLength": 32 },
+        "recipientName": { "type": "string", "maxLength": 160 },
+        "slipType": { "type": "string", "enum": ["BPMP", "BP21", "BPA1", "BPPU_23"] },
+        "slipNumber": { "type": "string", "maxLength": 64 },
+        "taxPeriodMonth": { "type": "number" },
+        "taxPeriodYear": { "type": "number" },
+        "objectCode": { "type": "string", "maxLength": 32 },
+        "objectName": { "type": "string", "maxLength": 200 },
+        "grossAmount": { "type": "number" },
+        "ratePercent": { "type": "number" },
+        "taxWithheld": { "type": "number" },
+        "status": { "type": "string", "enum": ["UNISSUED", "ISSUED", "CANCELLED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "issuerId", "recipientNikNpwp", "recipientName", "slipType", "slipNumber", "taxPeriodMonth", "taxPeriodYear", "objectCode", "grossAmount", "taxWithheld", "status", "createdAt", "updatedAt"]
+    },
+    "TaxReturn": {
+      "title": "TaxReturn",
+      "description": "SPT Masa PPN, Masa PPh 21, Masa Unifikasi, Tahunan OP, or Tahunan Badan.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "taxpayerId": { "type": "string", "maxLength": 128 },
+        "returnType": {
+          "type": "string",
+          "enum": ["SPT_MASA_PPN", "SPT_MASA_PPH21", "SPT_MASA_UNIFIKASI", "SPT_TAHUNAN_OP", "SPT_TAHUNAN_BADAN"]
+        },
+        "taxYear": { "type": "number" },
+        "taxPeriodMonth": { "type": "number" },
+        "revisionNo": { "type": "number" },
+        "status": { "type": "string", "enum": ["DRAFT", "WAITING_PAYMENT", "SUBMITTED", "REJECTED"] },
+        "bpeNumber": { "type": "string", "maxLength": 64 },
+        "taxPayable": { "type": "number" },
+        "taxCredit": { "type": "number" },
+        "underOverPayment": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "taxpayerId", "returnType", "taxYear", "taxPeriodMonth", "status", "taxPayable", "taxCredit", "underOverPayment", "createdAt", "updatedAt"]
+    },
+    "BillingCode": {
+      "title": "BillingCode",
+      "description": "Tax payment billing code and settlement status.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "taxpayerId": { "type": "string", "maxLength": 128 },
+        "kapCode": { "type": "string", "maxLength": 16 },
+        "kjsCode": { "type": "string", "maxLength": 16 },
+        "billingCode": { "type": "string", "maxLength": 32 },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["UNPAID", "PAID"] },
+        "ntpn": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "taxpayerId", "kapCode", "kjsCode", "billingCode", "amount", "status", "createdAt", "updatedAt"]
+    },
+    "ExamAttempt": {
+      "title": "ExamAttempt",
+      "description": "Guided case study auto-check evaluation attempt.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "caseCode": {
+          "type": "string",
+          "enum": ["CASE_PPN", "CASE_PPH21_KARYAWAN", "CASE_EBUPOT_21_23", "CASE_SPT_OP", "CASE_SPT_BADAN"]
+        },
+        "score": { "type": "number" },
+        "passedCount": { "type": "number" },
+        "totalChecks": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "caseCode", "score", "passedCount", "totalChecks", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Authenticated student root profile anchoring all tax simulation subcollections."
+    },
+    "/users/{userId}/taxpayers/{taxpayerId}": {
+      "schema": { "$ref": "#/entities/Taxpayer" },
+      "description": "Individual and corporate taxpayer records owned by the student."
+    },
+    "/users/{userId}/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/TaxInvoice" },
+      "description": "e-Faktur tax invoices (Output, Input, Export, Retur)."
+    },
+    "/users/{userId}/slips/{slipId}": {
+      "schema": { "$ref": "#/entities/WithholdingSlip" },
+      "description": "e-Bupot withholding slips for PPh 21 and PPh 23."
+    },
+    "/users/{userId}/returns/{returnId}": {
+      "schema": { "$ref": "#/entities/TaxReturn" },
+      "description": "Submitted and draft tax returns across all 5 modules."
+    },
+    "/users/{userId}/billings/{billingId}": {
+      "schema": { "$ref": "#/entities/BillingCode" },
+      "description": "Tax billing codes and payment settlements."
+    },
+    "/users/{userId}/examAttempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/ExamAttempt" },
+      "description": "Auto-graded case study exam attempts."
+    }
+  }
+}

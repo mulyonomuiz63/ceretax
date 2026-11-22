@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --coretax-navy: #1D2B53;
+    --coretax-navy-dark: #141F3D;
+    --coretax-navy-hover: #273A6E;
+    --coretax-gold: #F4C430;
+    --coretax-gold-dark: #E0AF1A;
+    --coretax-bg: #F4F6F9;
+    --coretax-border: #D9E0E8;
+    --coretax-info-bg: #D9F2FD;
+    --coretax-info-text: #0C5460;
+  }
+
+  body {
+    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--coretax-bg);
+    color: #1E293B;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  .font-mono-num {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom crisp scrollbar for dense Coretax tables */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EDF1F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B8C4D4;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8D9FB5;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-tax-document,
+  #printable-tax-document * {
+    visibility: visible;
+  }
+  #printable-tax-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white;
+  }
+}

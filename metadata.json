@@ -1,0 +1,6 @@
+{
+  "name": "KelasBrevet Coretax Simulator",
+  "description": "Aplikasi simulasi interaktif Coretax DJP berlisensi KelasBrevet untuk latihan e-Faktur & SPT Masa PPN, e-Bupot & SPT Masa PPh 21/23, PPh 21 Tahunan Karyawan, SPT Tahunan Orang Pribadi, dan SPT Tahunan PPh Badan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
