@@ -1216,13 +1216,13 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* FLOATING 2-COLUMN WORKSPACE (LEFT SUBMENU CARD + RIGHT CONTENT CARD)  */}
       {/* ===================================================================== */}
       <div className="relative z-20 flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full min-h-[260px]">
-        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge: Contained inside workspace so footer is always below and layer is above footer */}
+        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge: Centered Vertically on Left Screen Edge (top-1/2) with z-40 above footer */}
         {leftCollapsed && (
           <button
             type="button"
             onClick={() => setLeftCollapsed(false)}
             title={`Buka menu ${activeNavMeta.sidebarLabel}`}
-            className="hidden lg:flex sticky top-32 z-30 flex-col items-center gap-2 py-3.5 px-1.5 -ml-2.5 sm:-ml-4 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-md cursor-pointer transition self-start shrink-0"
+            className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-[0_4px_16px_rgba(30,44,94,0.14)] cursor-pointer transition"
           >
             <ModuleBadgeIcon icon={activeNavMeta.icon} />
             <span
@@ -1234,13 +1234,13 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
           </button>
         )}
 
-        {/* Mobile Left Edge Gold Tab to toggle mobile menu */}
+        {/* Mobile Left Edge Gold Tab to toggle mobile menu (Centered Vertically) */}
         {!mobileMenuOpen && (
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
             title={`Buka menu ${activeNavMeta.sidebarLabel}`}
-            className="lg:hidden fixed left-0 top-[38%] -translate-y-1/2 z-30 flex flex-col items-center gap-2 py-3 px-1 rounded-r-[9px] bg-[#FEF08A] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-sm cursor-pointer"
+            className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 py-3 px-1 rounded-r-[9px] bg-[#FEF08A] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-sm cursor-pointer"
           >
             <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
             <span
