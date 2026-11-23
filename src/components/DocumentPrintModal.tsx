@@ -19,20 +19,31 @@ export const DocumentPrintModal: React.FC<DocumentPrintModalProps> = ({ doc, onC
   if (!doc) return null;
 
   const returnTypeLabel: Record<TaxReturn['returnType'], string> = {
-    SPT_MASA_PPN: 'SPT MASA PAJAK PERTAMBAHAN NILAI (PPN)',
-    SPT_MASA_PPH21: 'SPT MASA PPh PASAL 21 / 26',
-    SPT_MASA_UNIFIKASI: 'SPT MASA PPh UNIFIKASI (PPh 23)',
-    SPT_TAHUNAN_OP: 'SPT TAHUNAN PPh ORANG PRIBADI',
-    SPT_TAHUNAN_BADAN: 'SPT TAHUNAN PPh BADAN',
+    SPT_MASA_PPN: 'SPT Masa PPN',
+    SPT_MASA_PPH21: 'SPT Masa PPh Pasal 21/26',
+    SPT_MASA_UNIFIKASI: 'SPT Masa PPh Unifikasi',
+    SPT_TAHUNAN_OP: 'SPT Tahunan PPh Wajib Pajak Orang Pribadi',
+    SPT_TAHUNAN_BADAN: 'SPT PPh Badan Rupiah',
+  };
+
+  const formatIndonesianDate = (iso?: string) => {
+    const d = iso ? new Date(iso) : new Date();
+    return d.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-md shadow-2xl border border-slate-300 w-full max-w-3xl my-8 overflow-hidden">
+      <div className="bg-white rounded-md shadow-2xl border border-slate-300 w-full max-w-2xl my-8 overflow-hidden">
         {/* Toolbar */}
         <div className="bg-[#1D2B53] text-white px-5 py-3 flex items-center justify-between border-b-2 border-[#F4C430]">
           <span className="font-display font-bold text-sm">
-            Pratinjau Dokumen Resmi Simulasi Coretax — KelasBrevet
+            {doc.type === 'BPE'
+              ? 'Bukti Penerimaan Elektronik (BPE) — Coretax DJP'
+              : 'Pratinjau Dokumen Resmi Simulasi Coretax'}
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -54,103 +65,136 @@ export const DocumentPrintModal: React.FC<DocumentPrintModalProps> = ({ doc, onC
         </div>
 
         {/* Printable Paper */}
-        <div id="printable-tax-document" className="p-8 bg-white text-slate-900 space-y-5 text-xs">
-          {/* Official Header */}
-          <div className="flex items-center justify-between border-b-2 border-[#1D2B53] pb-4">
-            <KelasBrevetLogo variant="header" />
-            <div className="text-right">
-              <div className="font-display font-extrabold text-[#1D2B53] text-sm uppercase">
-                {doc.type === 'BPE' && 'BUKTI PENERIMAAN ELEKTRONIK (BPE)'}
-                {doc.type === 'BPA1' && 'BUKTI PEMOTONGAN PPh PASAL 21 (FORM BPA1)'}
-                {doc.type === 'FAKTUR' && 'FAKTUR PAJAK ELEKTRONIK (e-FAKTUR)'}
-                {doc.type === 'BILLING' && 'CETAKAN KODE BILLING PAJAK'}
+        <div id="printable-tax-document" className="p-6 sm:p-8 bg-white text-slate-900 space-y-5 text-xs">
+          {doc.type === 'BPE' ? (
+            /* ============================================================= */
+            /* AUTHENTIC CORETAX DJP BPE CARD (100% Match to PDF 1 Page 10)  */
+            /* ============================================================= */
+            <div className="border border-[#CBD5E1] rounded-[6px] overflow-hidden shadow-sm max-w-xl mx-auto">
+              {/* Deep Navy Kemenkeu DJP Header */}
+              <div className="bg-[#1A3668] text-white px-5 py-4 flex items-center gap-4 border-b-4 border-[#F5C527]">
+                <div className="w-11 h-11 rounded-full bg-white/10 border border-[#F5C527]/70 flex items-center justify-center shrink-0 text-[#F5C527] font-display font-black text-xs">
+                  DJP
+                </div>
+                <div className="space-y-0.5 text-[11px]">
+                  <div className="font-bold tracking-wide uppercase text-white/95">
+                    KEMENTERIAN KEUANGAN REPUBLIK INDONESIA
+                  </div>
+                  <div className="font-display font-extrabold text-[14px] text-white">
+                    Direktorat Jenderal Pajak
+                  </div>
+                  <div className="text-[10.5px] text-slate-200">
+                    Layanan Informasi &amp; Pengaduan: (021) 1500200 ·{' '}
+                    <span className="text-[#93C5FD] underline">informasi@pajak.go.id</span> ·{' '}
+                    <span className="text-[#93C5FD] underline">www.pajak.go.id</span>
+                  </div>
+                </div>
               </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                Dokumen Simulasi Pembelajaran — Core Tax Administration System
+
+              {/* Sub-header Title Banner */}
+              <div className="bg-[#F1F5F9] border-b border-[#E2E8F0] py-2.5 px-5 text-center font-display font-extrabold text-[13px] text-[#1A3668] tracking-wide uppercase">
+                BUKTI PENERIMAAN ELEKTRONIK (BPE)
+              </div>
+
+              {/* Fields Table */}
+              <div className="p-5 space-y-3 text-[12px] bg-white">
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Nomor BPE</span>
+                    <span className="col-span-7 font-mono-num font-bold text-[#1E293B]">
+                      : {doc.taxReturn.bpeNumber || `BPE-${doc.taxReturn.taxYear}/01/${doc.taxReturn.id.slice(-6).toUpperCase()}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Tanggal</span>
+                    <span className="col-span-7 font-medium text-[#1E293B]">
+                      : {formatIndonesianDate(doc.taxReturn.submittedAt)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 my-2" />
+
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">NPWP</span>
+                    <span className="col-span-7 font-mono-num font-bold text-[#1E293B]">
+                      : {doc.taxpayer.nikNpwp}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Nama Wajib Pajak</span>
+                    <span className="col-span-7 font-bold text-[#1E293B]">
+                      : {doc.taxpayer.name}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Jenis SPT</span>
+                    <span className="col-span-7 font-semibold text-[#1E293B]">
+                      : {returnTypeLabel[doc.taxReturn.returnType]}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Tahun Pajak</span>
+                    <span className="col-span-7 font-mono-num text-[#1E293B]">
+                      : {doc.taxReturn.taxYear}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Masa Pajak</span>
+                    <span className="col-span-7 text-[#1E293B]">
+                      :{' '}
+                      {doc.taxReturn.taxPeriodMonth > 0
+                        ? `${MONTHS_ID[doc.taxReturn.taxPeriodMonth - 1]} ${doc.taxReturn.taxYear}`
+                        : `Januari - Desember ${doc.taxReturn.taxYear}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Status SPT</span>
+                    <span className="col-span-7 text-[#1E293B]">
+                      : {doc.taxReturn.revisionNo === 0 ? 'Normal' : `Pembetulan ke-${doc.taxReturn.revisionNo}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Saluran</span>
+                    <span className="col-span-7 text-[#1E293B]">: Portal Wajib Pajak</span>
+                  </div>
+                  <div className="grid grid-cols-12 items-center">
+                    <span className="col-span-5 text-slate-600">Tanggal Terima SPT</span>
+                    <span className="col-span-7 text-[#1E293B]">
+                      : {formatIndonesianDate(doc.taxReturn.submittedAt)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Electronic validity disclaimer box */}
+                <div className="mt-4 bg-[#F1F5F9] border border-[#E2E8F0] rounded-[4px] px-3.5 py-2.5 text-[11px] italic text-slate-600 leading-relaxed">
+                  Dokumen ini diterbitkan secara elektronik oleh Coretax DJP dan sah sebagai Bukti Penerimaan Elektronik. Tidak memerlukan tanda tangan basah.
+                </div>
+
+                {/* Light-blue thank-you footer box */}
+                <div className="bg-[#E0F2FE] border border-[#BAE6FD] rounded-[4px] px-3.5 py-2.5 text-center text-[11px] font-semibold text-[#1E3A8A]">
+                  Terima kasih telah menggunakan layanan digital DJP. SPT Anda telah tercatat dan diterima dengan baik.
+                </div>
               </div>
             </div>
-          </div>
-
-          {doc.type === 'BPE' && (
-            <div className="space-y-4">
-              <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded p-4 grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-slate-500 block">Nomor Tanda Terima Elektronik (BPE)</span>
-                  <span className="font-mono-num font-bold text-sm text-[#1D2B53]">
-                    {doc.taxReturn.bpeNumber || '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Tanggal Penyampaian</span>
-                  <span className="font-mono-num font-semibold">
-                    {doc.taxReturn.submittedAt
-                      ? new Date(doc.taxReturn.submittedAt).toLocaleString('id-ID')
-                      : '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Nama Wajib Pajak</span>
-                  <span className="font-bold text-[#1D2B53]">{doc.taxpayer.name}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">NPWP / NIK (16 Digit)</span>
-                  <span className="font-mono-num font-semibold">{doc.taxpayer.nikNpwp}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Jenis SPT</span>
-                  <span className="font-semibold">{returnTypeLabel[doc.taxReturn.returnType]}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Masa / Tahun Pajak</span>
-                  <span className="font-semibold">
-                    {doc.taxReturn.taxPeriodMonth > 0
-                      ? `${MONTHS_ID[doc.taxReturn.taxPeriodMonth - 1]} ${doc.taxReturn.taxYear}`
-                      : `Tahun Pajak ${doc.taxReturn.taxYear}`}{' '}
-                    (Pembetulan ke-{doc.taxReturn.revisionNo})
-                  </span>
+          ) : (
+            <>
+              {/* Official Header for BPA1 / Faktur / Billing */}
+              <div className="flex items-center justify-between border-b-2 border-[#1D2B53] pb-4">
+                <KelasBrevetLogo variant="header" />
+                <div className="text-right">
+                  <div className="font-display font-extrabold text-[#1D2B53] text-sm uppercase">
+                    {doc.type === 'BPA1' && 'BUKTI PEMOTONGAN PPh PASAL 21 (FORM BPA1)'}
+                    {doc.type === 'FAKTUR' && 'FAKTUR PAJAK ELEKTRONIK (e-FAKTUR)'}
+                    {doc.type === 'BILLING' && 'CETAKAN KODE BILLING PAJAK'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Dokumen Simulasi Pembelajaran — Core Tax Administration System
+                  </div>
                 </div>
               </div>
-
-              <table className="w-full border-collapse border border-slate-300">
-                <thead>
-                  <tr className="bg-[#F4C430] text-[#1D2B53]">
-                    <th className="border border-slate-300 px-3 py-2 text-left">Uraian Ringkasan SPT</th>
-                    <th className="border border-slate-300 px-3 py-2 text-right">Jumlah (IDR)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border border-slate-300 px-3 py-2">Pajak Terutang / Keluaran</td>
-                    <td className="border border-slate-300 px-3 py-2 text-right font-mono-num">
-                      {formatRp(doc.taxReturn.taxPayable)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-slate-300 px-3 py-2">Kredit Pajak / Pajak Masukan</td>
-                    <td className="border border-slate-300 px-3 py-2 text-right font-mono-num">
-                      {formatRp(doc.taxReturn.taxCredit)}
-                    </td>
-                  </tr>
-                  <tr className="bg-slate-50 font-bold">
-                    <td className="border border-slate-300 px-3 py-2">
-                      Status SPT:{' '}
-                      {doc.taxReturn.underOverPayment > 0
-                        ? 'KURANG BAYAR (LUNAS)'
-                        : doc.taxReturn.underOverPayment < 0
-                        ? 'LEBIH BAYAR'
-                        : 'NIHIL'}
-                    </td>
-                    <td className="border border-slate-300 px-3 py-2 text-right font-mono-num text-[#1D2B53]">
-                      {formatRp(doc.taxReturn.underOverPayment)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div className="border border-emerald-200 bg-emerald-50 text-emerald-900 rounded p-3 text-[11px]">
-                Dokumen ini ditandatangani secara elektronik menggunakan <strong>Kode Otorisasi DJP (Simulasi KelasBrevet)</strong> dan sah sebagai bukti latihan pelaporan SPT.
-              </div>
-            </div>
+            </>
           )}
 
           {doc.type === 'BPA1' && (

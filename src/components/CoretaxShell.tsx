@@ -132,12 +132,11 @@ const NAV_CONFIG: Array<{
       { id: 'penyetoran_sendiri', label: 'Penyetoran Sendiri' },
       { id: 'digunggung', label: 'Pemotongan Secara Digunggung' },
       { id: 'dokumen_dipersamakan', label: 'Dokumen yang Dipersamakan dengan Bukti Pemotongan' },
-      { id: 'bp21', label: 'BP 21 – Bukti Pemotongan Selain Pegawai Tetap' },
-      { id: 'bp26', label: 'BP 26 – Bukti Pemotongan Wajib Pajak Luar Negeri' },
-      { id: 'bpa1', label: 'BP A1 – Bukti Pemotongan A1 Masa Pajak Terakhir' },
-      { id: 'bpa2', label: 'BP A2 – Bukti Pemotongan A2 Masa Pajak Terakhir' },
+      { id: 'bp21', label: 'BP 21 - Bukti Pemotongan Selain Pegawai Tetap' },
+      { id: 'bp26', label: 'BP 26 - Bukti Pemotongan Wajib Pajak Luar Negeri' },
+      { id: 'bpa1', label: 'BP A1 - Bukti Pemotongan A1 Masa Pajak Terakhir' },
+      { id: 'bpa2', label: 'BP A2 - Bukti Pemotongan A2 Masa Pajak Terakhir' },
       { id: 'bpmp', label: 'Bukti Pemotongan Bulanan Pegawai Tetap' },
-      { id: 'xml', label: 'Impor Data (XML)' },
     ],
   },
   {
@@ -149,6 +148,9 @@ const NAV_CONFIG: Array<{
     icon: FileText,
     items: [
       { id: 'konsep', label: 'Surat Pemberitahuan (SPT)', breadcrumbLabel: 'Surat Pemberitahuan (SPT)' },
+      { id: 'pencatatan', label: 'Pencatatan', breadcrumbLabel: 'Pencatatan' },
+      { id: 'dasbor_kompensasi', label: 'Dasbor Kompensasi', breadcrumbLabel: 'Dasbor Kompensasi' },
+      { id: 'pengungkapan', label: 'Pengungkapan Ketidakbenaran SPT', breadcrumbLabel: 'Pengungkapan Ketidakbenaran SPT' },
     ],
   },
   {
@@ -177,6 +179,35 @@ const NAV_CONFIG: Array<{
     hasChevron: false,
     icon: BookOpen,
     items: [],
+  },
+];
+
+const EXTRA_TOP_MENUS: Array<{
+  key: 'layanan_wp' | 'manajemen_akses';
+  label: string;
+  popoverTitle: string;
+  items: Array<{ label: string; targetModule: MainNavKey; targetSubTab: string }>;
+}> = [
+  {
+    key: 'layanan_wp',
+    label: 'Layanan WP',
+    popoverTitle: 'LAYANAN WAJIB PAJAK',
+    items: [
+      { label: 'Layanan Administrasi Perpajakan', targetModule: 'portal', targetSubTab: 'kasus' },
+      { label: 'Pemberitahuan Penggunaan NPPN / Stelsel Kas', targetModule: 'portal', targetSubTab: 'kasus_berjalan' },
+      { label: 'Permohonan Surat Keterangan Fiskal (SKF)', targetModule: 'portal', targetSubTab: 'dokumen' },
+      { label: 'Layanan Edukasi & Bantuan Coretax', targetModule: 'portal', targetSubTab: 'ikhtisar' },
+    ],
+  },
+  {
+    key: 'manajemen_akses',
+    label: 'Manajemen Akses',
+    popoverTitle: 'MANAJEMEN AKSES',
+    items: [
+      { label: 'Wakil / Kuasa Saya (Impersonating)', targetModule: 'portal', targetSubTab: 'status_kuasa' },
+      { label: 'Pencabutan Wakil / Kuasa', targetModule: 'portal', targetSubTab: 'status_cabut_kuasa' },
+      { label: 'Permintaan Kode Otorisasi / Sertifikat', targetModule: 'portal', targetSubTab: 'kode_otorisasi' },
+    ],
   },
 ];
 
@@ -276,6 +307,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   });
 
   const [openDropdown, setOpenDropdown] = useState<MainNavKey | null>(null);
+  const [openExtraDropdown, setOpenExtraDropdown] = useState<'layanan_wp' | 'manajemen_akses' | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -694,6 +726,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     setNotifOpen(false);
                     setLangMenuOpen(false);
                     setOpenDropdown(null);
+                    setOpenExtraDropdown(null);
                   }}
                   className={`flex items-center gap-2 px-2 sm:px-2.5 xl:px-3 py-1.5 rounded-[10px] border transition cursor-pointer ${
                     darkHeader
@@ -710,7 +743,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       }`}
                     />
                   )}
-                  <div className="hidden md:block text-left leading-[1.15] max-w-[110px] lg:max-w-[135px] xl:max-w-[165px]">
+                  <div className="hidden md:block text-left leading-[1.15] max-w-[110px] lg:max-w-[140px] xl:max-w-[175px]">
                     <div
                       className={`text-[10px] font-mono-num truncate ${
                         darkHeader ? 'text-slate-400' : 'text-slate-500'
@@ -718,10 +751,21 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     >
                       {activeTaxpayer.nikNpwp}
                     </div>
-                    <div className="text-[11.5px] xl:text-[12px] font-bold uppercase tracking-tight truncate">
+                    <div className="text-[11px] xl:text-[11.5px] font-bold uppercase tracking-tight truncate">
                       {activeTaxpayer.name}
                     </div>
                   </div>
+                  <span
+                    className={`hidden sm:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                      accountMode === 'CORPORATE'
+                        ? 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]'
+                        : darkHeader
+                          ? 'bg-slate-700 border-slate-600 text-slate-200'
+                          : 'bg-[#F8FAFC] border-[#CBD5E1] text-[#1E2C5E]'
+                    }`}
+                  >
+                    IMPERSONATE
+                  </span>
                   <ChevronDown className="w-3.5 h-3.5 opacity-60 shrink-0" />
                 </button>
 
@@ -875,16 +919,20 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             </div>
           )}
 
-          {/* ROW 2: RESPONSIVE HORIZONTAL MODULE RIBBON (Zero Tablet Overflow + Smart Edge-Clamped Popovers) */}
+          {/* ROW 2: RESPONSIVE HORIZONTAL MODULE RIBBON (Exact 8 Official Coretax Menus) */}
           <nav
             className="px-2.5 sm:px-4 xl:px-5 py-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5"
-            onMouseLeave={() => setOpenDropdown(null)}
+            onMouseLeave={() => {
+              setOpenDropdown(null);
+              setOpenExtraDropdown(null);
+            }}
           >
-            <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 lg:gap-2.5 xl:gap-4 min-w-0">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 lg:gap-2 xl:gap-3 min-w-0">
               {NAV_CONFIG.map((item) => {
                 const isActive = activeModule === item.key;
                 const isHoveredOpen = openDropdown === item.key;
-                const isHighlighted = isHoveredOpen || (openDropdown === null && isActive);
+                const isHighlighted =
+                  isHoveredOpen || (openDropdown === null && openExtraDropdown === null && isActive);
 
                 const popoverAlignClass =
                   item.key === 'pembayaran'
@@ -905,6 +953,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     key={item.key}
                     className="relative shrink-0"
                     onMouseEnter={() => {
+                      setOpenExtraDropdown(null);
                       if (item.hasChevron) {
                         setOpenDropdown(item.key);
                       } else {
@@ -915,10 +964,14 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        onNavigate(item.key, item.items[0]?.id);
+                        if (item.key === 'ebupot') {
+                          onNavigate('ebupot', 'empty');
+                        } else {
+                          onNavigate(item.key, item.items[0]?.id);
+                        }
                         setOpenDropdown(null);
                       }}
-                      className={`inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-[10px] text-[12px] lg:text-[13px] transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                      className={`inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-[10px] text-[12px] lg:text-[12.5px] transition-all duration-150 cursor-pointer whitespace-nowrap ${
                         isHighlighted
                           ? 'bg-[#FEF08A]/85 text-[#1B2958] font-bold border border-[#F4C430]/75 border-b-[3px] border-b-[#F2B705] shadow-[0_2px_8px_rgba(242,183,5,0.20)]'
                           : darkHeader
@@ -937,27 +990,20 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       )}
                     </button>
 
-                    {/* Floating Speech-Bubble Hover Popover Card (Edge-Clamped for Tablet & Desktop) */}
+                    {/* Floating Speech-Bubble Hover Popover Card */}
                     {item.hasChevron && isHoveredOpen && (
                       <div className={`absolute top-full pt-2.5 z-50 ${popoverAlignClass}`}>
                         <div className="relative w-[min(350px,calc(100vw-2rem))] bg-white text-[#1B2958] border border-[#E5EAF2] rounded-[16px] shadow-[0_20px_50px_rgba(30,44,94,0.16)]">
-                          {/* Speech-bubble upward caret pointer */}
                           <div
                             className={`w-3.5 h-3.5 bg-white border-l border-t border-[#E5EAF2] rotate-45 absolute -top-[7px] ${caretAlignClass}`}
                             aria-hidden="true"
                           />
-
-                          {/* Muted Uppercase Popover Header */}
                           <div className="px-5 pt-4 pb-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-[#F1F5F9]">
                             {item.popoverTitle}
                           </div>
-
-                          {/* Submenu List */}
                           <div className="p-2 space-y-0.5 max-h-[65vh] overflow-y-auto">
                             {item.items.map((sub) => {
-                              const isCurrentSub =
-                                isActive &&
-                                (item.key === 'spt' ? true : activeSubTab === sub.id);
+                              const isCurrentSub = isActive && activeSubTab === sub.id;
                               return (
                                 <button
                                   key={sub.id}
@@ -983,13 +1029,81 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   </div>
                 );
               })}
+
+              {/* Official Coretax Menu 7 & 8: Layanan WP & Manajemen Akses */}
+              {EXTRA_TOP_MENUS.map((extra) => {
+                const isExtraOpen = openExtraDropdown === extra.key;
+                return (
+                  <div
+                    key={extra.key}
+                    className="relative shrink-0"
+                    onMouseEnter={() => {
+                      setOpenDropdown(null);
+                      setOpenExtraDropdown(extra.key);
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const first = extra.items[0];
+                        if (first) onNavigate(first.targetModule, first.targetSubTab);
+                        setOpenExtraDropdown(null);
+                      }}
+                      className={`inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-[10px] text-[12px] lg:text-[12.5px] transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                        isExtraOpen
+                          ? 'bg-[#FEF08A]/85 text-[#1B2958] font-bold border border-[#F4C430]/75 border-b-[3px] border-b-[#F2B705]'
+                          : darkHeader
+                            ? 'text-slate-200 hover:bg-slate-800 font-semibold border border-transparent'
+                            : 'text-[#1E293B] hover:bg-[#F4F6FA] font-semibold border border-transparent'
+                      }`}
+                    >
+                      <ModuleBadgeIcon icon={ShieldUser} />
+                      <span>{extra.label}</span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 opacity-70 transition-transform duration-150 ${
+                          isExtraOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {isExtraOpen && (
+                      <div className="absolute right-0 top-full pt-2.5 z-50">
+                        <div className="relative w-[min(330px,calc(100vw-2rem))] bg-white text-[#1B2958] border border-[#E5EAF2] rounded-[16px] shadow-[0_20px_50px_rgba(30,44,94,0.16)]">
+                          <div
+                            className="w-3.5 h-3.5 bg-white border-l border-t border-[#E5EAF2] rotate-45 absolute -top-[7px] right-10"
+                            aria-hidden="true"
+                          />
+                          <div className="px-5 pt-4 pb-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-[#F1F5F9]">
+                            {extra.popoverTitle}
+                          </div>
+                          <div className="p-2 space-y-0.5">
+                            {extra.items.map((sub) => (
+                              <button
+                                key={sub.label}
+                                type="button"
+                                onClick={() => {
+                                  onNavigate(sub.targetModule, sub.targetSubTab);
+                                  setOpenExtraDropdown(null);
+                                }}
+                                className="w-full text-left px-3.5 py-2 rounded-[10px] text-[12.5px] text-[#1B2958] hover:bg-[#F4F6FA] font-semibold transition cursor-pointer"
+                              >
+                                {sub.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Subtle Right-Aligned Read-Only Soal Latihan Button (No Scores) */}
+            {/* Subtle Right-Aligned Read-Only Soal Latihan Button */}
             <button
               type="button"
               onClick={onOpenExamDrawer}
-              className={`hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+              className={`hidden 2xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
                 darkHeader
                   ? 'bg-slate-800 text-[#F4C430] hover:bg-slate-700 border border-slate-700'
                   : 'bg-[#F4F6FA] hover:bg-[#FEF9E7] text-[#1B2958] border border-[#E5EAF2]'
@@ -1006,7 +1120,25 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* FLOATING 2-COLUMN WORKSPACE (LEFT SUBMENU CARD + RIGHT CONTENT CARD)  */}
       {/* ===================================================================== */}
       <div className="relative z-10 flex-1 flex gap-4 px-3 sm:px-4 py-4 items-start">
-        {/* LEFT FLOATING WHITE SUBMENU CARD (Completely hidden when closed via «, restored on page refresh) */}
+        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge (matches PDF 2, 3, 4) */}
+        {leftCollapsed && (
+          <button
+            type="button"
+            onClick={() => setLeftCollapsed(false)}
+            title={`Buka menu ${activeNavMeta.sidebarLabel}`}
+            className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#F5C527] hover:bg-[#E7B618] text-[#1B2958] border border-l-0 border-[#D9A70F] shadow-md cursor-pointer transition"
+          >
+            <ModuleBadgeIcon icon={activeNavMeta.icon} />
+            <span
+              className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              {activeNavMeta.sidebarLabel}
+            </span>
+          </button>
+        )}
+
+        {/* LEFT FLOATING WHITE SUBMENU CARD */}
         {!leftCollapsed &&
           (() => {
             const sidebarMeta =
@@ -1058,7 +1190,11 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   {sidebarMeta.items.map((sub) => {
                     const isSubActive =
                       activeModule === sidebarMeta.key &&
-                      (sidebarMeta.key === 'spt' ? true : activeSubTab === sub.id);
+                      (sidebarMeta.key === 'spt'
+                        ? activeSubTab === sub.id ||
+                          (['konsep', 'menunggu', 'dilaporkan', 'ditolak', 'dibatalkan'].includes(activeSubTab) &&
+                            sub.id === 'konsep')
+                        : activeSubTab === sub.id);
                     return (
                       <button
                         key={sub.id}
@@ -1085,11 +1221,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                           />
                         )}
                         <span className="truncate">{sub.label}</span>
-                        {sidebarMeta.key === 'spt' && isSubActive && (
-                          <span className="w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                            <ChevronRight className="w-3 h-3 text-[#1B2958]" />
-                          </span>
-                        )}
                         {sub.id === 'notifikasi' && unreadCount > 0 && (
                           <span className="text-[10.5px] font-mono-num font-bold text-[#DC2626]">
                             {unreadCount}
@@ -1311,6 +1442,89 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
           <div className="p-4 sm:p-5 xl:p-6 flex-1 bg-white text-[#1E293B]">{children}</div>
         </main>
       </div>
+
+      {/* ===================================================================== */}
+      {/* OFFICIAL CORETAX DJP FOOTER (Exact Match to PDF 2, 3, 4)              */}
+      {/* ===================================================================== */}
+      <footer className="relative z-10 mx-3 sm:mx-4 mb-3">
+        <div
+          className={`rounded-[16px] border px-6 py-5 shadow-[0_4px_20px_rgba(30,44,94,0.04)] ${
+            darkHeader
+              ? 'bg-slate-900/95 border-slate-700/80 text-slate-300'
+              : 'bg-[#F8FAFD] border-[#E5EAF2] text-[#334155]'
+          }`}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 text-[11.5px]">
+            {/* Col 1: DJP Logo & Address */}
+            <div className="lg:col-span-4 space-y-1.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded bg-[#1E2C5E] flex items-center justify-center text-[#F4C430] font-display font-black text-xs shrink-0">
+                  DJP
+                </div>
+                <div className="h-5 w-[1.5px] bg-slate-300" />
+                <span className="font-display font-black text-[18px] tracking-tight text-[#1E2C5E]">
+                  djp
+                </span>
+              </div>
+              <div className="font-bold text-[#1E2C5E] pt-1 leading-snug">
+                Kementerian Keuangan
+                <br />
+                Direktorat Jenderal Pajak
+              </div>
+              <div className="text-slate-500 text-[11px]">
+                Jalan Gatot Subroto, Kav. 40-42, Jakarta, 12190
+              </div>
+            </div>
+
+            {/* Col 2: Hubungi Kami */}
+            <div className="lg:col-span-3 space-y-1.5">
+              <div className="font-bold text-[#1E2C5E]">Hubungi Kami</div>
+              <div className="text-slate-600 text-[11px] space-y-1">
+                <div>✆ (021) 525 1609, (021) 525 0208, (021) 526 2880</div>
+                <div>🎧 Kring Pajak: (021) 1500200</div>
+                <div>✉ informasi@pajak.go.id</div>
+              </div>
+            </div>
+
+            {/* Col 3: Layanan Digital */}
+            <div className="lg:col-span-3 space-y-1.5">
+              <div className="font-bold text-[#1E2C5E]">Layanan Digital</div>
+              <div className="text-slate-600 text-[11px] space-y-1">
+                <div>🌐 www.kemenkeu.go.id</div>
+                <div>🌐 www.pajak.go.id</div>
+              </div>
+            </div>
+
+            {/* Col 4: Temukan Kami */}
+            <div className="lg:col-span-2 space-y-2">
+              <div className="font-bold text-[#1E2C5E]">Temukan Kami</div>
+              <div className="flex items-center gap-1.5">
+                {['f', 'X', 'ig', '▶'].map((soc) => (
+                  <span
+                    key={soc}
+                    className="w-6 h-6 rounded-full border border-slate-300 bg-white text-[#1E2C5E] text-[10px] font-bold inline-flex items-center justify-center"
+                  >
+                    {soc}
+                  </span>
+                ))}
+              </div>
+              <div className="font-bold text-[10.5px] text-[#1E2C5E]">@DITJENPAJAKRI</div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-[10.5px] text-slate-400">
+            <span>Copyright © 2024 Direktorat Jenderal Pajak. All rights reserved.</span>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              title="Kembali ke atas"
+              className="w-7 h-7 rounded-full bg-slate-200/80 hover:bg-[#1E2C5E] text-slate-600 hover:text-white inline-flex items-center justify-center transition cursor-pointer"
+            >
+              ^
+            </button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

@@ -131,10 +131,10 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
       <div className="px-5 pt-3 bg-[#F8FAFC] border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto">
         {[
           { id: 'induk' as BadanTab, label: 'Induk' },
-          { id: 'l1' as BadanTab, label: 'L1 — Laporan Keuangan & Rekonsiliasi' },
-          { id: 'l2' as BadanTab, label: 'L2 — Daftar Kepemilikan' },
-          { id: 'l3' as BadanTab, label: 'L3 — Kredit Pajak' },
-          { id: 'l11b' as BadanTab, label: 'L11-B — Biaya Pinjaman' },
+          { id: 'l1' as BadanTab, label: 'L1' },
+          { id: 'l2' as BadanTab, label: 'L2' },
+          { id: 'l3' as BadanTab, label: 'L3' },
+          { id: 'l11b' as BadanTab, label: 'L11-B' },
         ].map((t) => (
           <button
             key={t.id}
@@ -171,12 +171,20 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                   </div>
                   <div className="grid grid-cols-12 items-center gap-2">
                     <label className="col-span-5 font-semibold text-slate-700">Periode Pembukuan</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={`01 Jan ${taxReturn.taxYear} s.d. 31 Des ${taxReturn.taxYear}`}
-                      className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5"
-                    />
+                    <div className="col-span-7 grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value="1"
+                        className="border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                      />
+                      <input
+                        type="text"
+                        readOnly
+                        value="12"
+                        className="border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-12 items-center gap-2">
                     <label className="col-span-5 font-semibold text-slate-700">Status SPT</label>
@@ -188,13 +196,23 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     />
                   </div>
                   <div className="grid grid-cols-12 items-center gap-2">
-                    <label className="col-span-5 font-semibold text-slate-700">Mata Uang Pembukuan</label>
+                    <label className="col-span-5 font-semibold text-slate-700">Metode Pembukuan/Pencatatan</label>
                     <input
                       type="text"
                       readOnly
-                      value="IDR — Rupiah Indonesia"
+                      value="Stelsel Akrual"
                       className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5"
                     />
+                  </div>
+                  <div className="md:col-span-2 pt-1 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => updateField('peredaranBruto', calc.peredaranBruto)}
+                      className="px-4 py-1.5 rounded bg-[#16A34A] hover:bg-[#15803D] text-white font-semibold cursor-pointer"
+                    >
+                      Posting SPT
+                    </button>
+                    <span className="text-[11px] text-slate-500">Posting belum pernah dilakukan</span>
                   </div>
                 </div>
               )}
@@ -206,7 +224,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               {!collapsed.secA && (
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 bg-white">
                   <div className="grid grid-cols-12 items-center gap-2">
-                    <label className="col-span-5 font-semibold text-slate-700">NPWP (16 Digit)</label>
+                    <label className="col-span-5 font-semibold text-slate-700">1. NPWP</label>
                     <input
                       type="text"
                       readOnly
@@ -215,7 +233,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     />
                   </div>
                   <div className="grid grid-cols-12 items-center gap-2">
-                    <label className="col-span-5 font-semibold text-slate-700">Nama Wajib Pajak Badan</label>
+                    <label className="col-span-5 font-semibold text-slate-700">2. Nama</label>
                     <input
                       type="text"
                       readOnly
@@ -224,7 +242,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     />
                   </div>
                   <div className="grid grid-cols-12 items-center gap-2">
-                    <label className="col-span-5 font-semibold text-slate-700">Alamat Email</label>
+                    <label className="col-span-5 font-semibold text-slate-700">3. Alamat Email</label>
                     <input
                       type="text"
                       readOnly
@@ -233,12 +251,12 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     />
                   </div>
                   <div className="grid grid-cols-12 items-center gap-2">
-                    <label className="col-span-5 font-semibold text-slate-700">Status PKP</label>
+                    <label className="col-span-5 font-semibold text-slate-700">4. Nomor Telepon</label>
                     <input
                       type="text"
                       readOnly
-                      value={activeTaxpayer.isPkp ? 'Pengusaha Kena Pajak (PKP)' : 'Non-PKP'}
-                      className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5"
+                      value={activeTaxpayer.phone || '0215250208'}
+                      className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
                     />
                   </div>
                 </div>
@@ -247,38 +265,28 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
 
             {/* B. INFORMASI LAPORAN KEUANGAN */}
             <div className="border border-slate-200 rounded overflow-hidden">
-              <SectionBar id="secB" title="B. INFORMASI LAPORAN KEUANGAN & C. PENGHASILAN FINAL" />
+              <SectionBar id="secB" title="B. INFORMASI LAPORAN KEUANGAN" />
               {!collapsed.secB && (
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Sektor Usaha (Lampiran L1)</label>
+                    <label className="block font-semibold text-slate-700 mb-1">1. Sektor Usaha Laporan Keuangan</label>
                     <select
                       disabled={isReadOnly}
                       value={sektorUsaha}
                       onChange={(e) => setSektorUsaha(e.target.value)}
                       className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white"
                     >
-                      <option value="Perdagangan & Jasa Umum">Perdagangan &amp; Jasa Umum</option>
+                      <option value="Perdagangan & Jasa Umum">Dagang</option>
                       <option value="Industri Manufaktur">Industri Manufaktur</option>
-                      <option value="Konstruksi & Properti">Konstruksi &amp; Properti</option>
-                      <option value="Teknologi Informasi & Konsultasi">Teknologi Informasi &amp; Konsultasi</option>
+                      <option value="Konstruksi & Properti">Jasa / Konstruksi</option>
+                      <option value="Teknologi Informasi & Konsultasi">Umum</option>
                     </select>
                   </div>
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Laporan Keuangan Diaudit Akuntan Publik?
+                      2. Laporan Keuangan Diaudit Akuntan Publik?
                     </label>
                     <div className="flex items-center gap-5 pt-1.5">
-                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          disabled={isReadOnly}
-                          checked={diauditKap}
-                          onChange={() => setDiauditKap(true)}
-                          className="accent-[#1E2C5E]"
-                        />
-                        <span>Ya (Diaudit KAP)</span>
-                      </label>
                       <label className="inline-flex items-center gap-1.5 cursor-pointer">
                         <input
                           type="radio"
@@ -287,7 +295,17 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                           onChange={() => setDiauditKap(false)}
                           className="accent-[#1E2C5E]"
                         />
-                        <span>Tidak Diaudit</span>
+                        <span>Tidak</span>
+                      </label>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          disabled={isReadOnly}
+                          checked={diauditKap}
+                          onChange={() => setDiauditKap(true)}
+                          className="accent-[#1E2C5E]"
+                        />
+                        <span>Ya</span>
                       </label>
                     </div>
                   </div>
@@ -295,21 +313,59 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               )}
             </div>
 
-            {/* D. PENGHITUNGAN PPh BADAN */}
+            {/* C. PENGHASILAN YANG DIKENAKAN PPh BERSIFAT FINAL DAN TIDAK TERMASUK OBJEK PAJAK */}
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar
+                id="secC"
+                title="C. PENGHASILAN YANG DIKENAKAN PPh BERSIFAT FINAL DAN TIDAK TERMASUK OBJEK PAJAK"
+              />
+              {!collapsed.secC && (
+                <div className="p-4 space-y-2 bg-white">
+                  {[
+                    '1.a. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang dikenakan PPh bersifat final?',
+                    '2. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang tidak termasuk objek pajak?',
+                    '3. Apakah Wajib Pajak memiliki peredaran bruto tertentu yang dikenai PPh Final (PP 55/2022)?',
+                  ].map((q, idx) => (
+                    <div key={idx} className="flex flex-wrap items-center justify-between gap-2 py-1 border-b border-slate-100">
+                      <span className="text-slate-700">{q}</span>
+                      <div className="flex items-center gap-4">
+                        <label className="inline-flex items-center gap-1">
+                          <input type="radio" readOnly checked={false} /> <span>Ya</span>
+                        </label>
+                        <label className="inline-flex items-center gap-1">
+                          <input type="radio" readOnly checked /> <span>Tidak</span>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* D. PENGHITUNGAN PPh */}
             <div className="border border-slate-200 rounded overflow-hidden">
               <SectionBar
                 id="secD"
-                title="D. PENGHITUNGAN PPh BADAN (FASILITAS PASAL 31E & TARIF PASAL 17)"
+                title="D. PENGHITUNGAN PPh"
                 rightText={`PPh Terutang: ${formatRp(calc.totalPphTerutang)}`}
               />
               {!collapsed.secD && (
                 <div className="p-4 space-y-2.5 bg-white">
-                  <div className="bg-[#D8F1FD] border border-[#9CDDFB] text-[#0E4A6B] px-3.5 py-2 rounded text-[11px]">
-                    <strong>Fasilitas Pasal 31E:</strong> Otomatis diterapkan bila Peredaran Bruto ≤ Rp50 Miliar (proporsi Rp4,8 Miliar dikenakan tarif <strong>11%</strong>, selebihnya tarif Pasal 17 sebesar <strong>22%</strong>).
-                  </div>
-
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
-                    <label className="lg:col-span-8 text-slate-700">1. Peredaran Bruto Komersial (dari Lampiran L1)</label>
+                    <label className="lg:col-span-8 text-slate-700">
+                      4. Apakah Wajib Pajak menggunakan tarif PPh Pasal 17 ayat (1) huruf b / Pasal 31E?
+                    </label>
+                    <div className="lg:col-span-4 flex items-center justify-end gap-4">
+                      <label className="inline-flex items-center gap-1">
+                        <input type="radio" readOnly checked /> <span>Ya</span>
+                      </label>
+                      <label className="inline-flex items-center gap-1">
+                        <input type="radio" readOnly checked={false} /> <span>Tidak</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">5. Peredaran Usaha / Bruto Komersial (Lampiran L1)</label>
                     <input
                       type="text"
                       readOnly
@@ -318,17 +374,8 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     />
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
-                    <label className="lg:col-span-8 text-slate-700">2. Laba / (Rugi) Bersih Komersial</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={formatRp(calc.labaKomersial)}
-                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 font-semibold text-[#1E2C5E]">
-                      3. Penghasilan Neto Fiskal (Setelah Rekonsiliasi L1)
+                      6. Penghasilan Neto Fiskal Sebelum Fasilitas Pajak (Lampiran L1)
                     </label>
                     <input
                       type="text"
@@ -338,7 +385,25 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     />
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
-                    <label className="lg:col-span-8 text-slate-700">4. Kompensasi Kerugian Fiskal Tahun Sebelumnya</label>
+                    <label className="lg:col-span-8 text-slate-700">7. Fasilitas Pengurangan Penghasilan Neto</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(0)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">8. Penghasilan Neto Fiskal Setelah Fasilitas</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(calc.penghasilanNetoFiskal)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">9. Kompensasi Kerugian Fiskal Tahun Sebelumnya</label>
                     <input
                       type="number"
                       disabled={isReadOnly}
@@ -349,7 +414,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 font-bold text-[#1E2C5E]">
-                      5. Penghasilan Kena Pajak (PKP Dibulatkan Ribuan Penuh)
+                      10. Penghasilan Kena Pajak (8 - 9)
                     </label>
                     <input
                       type="text"
@@ -358,56 +423,91 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                       className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num font-bold text-[#1E2C5E]"
                     />
                   </div>
-
-                  {/* Pasal 31E & Pasal 17 Table */}
-                  <div className="overflow-x-auto pt-1">
-                    <table className="w-full border border-slate-300 border-collapse text-[12px]">
-                      <thead>
-                        <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
-                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">Komponen Tarif PPh Badan</th>
-                          <th className="px-3 py-2 text-right border-r border-[#E5B822]">Dasar PKP (Rp)</th>
-                          <th className="px-3 py-2 text-center border-r border-[#E5B822]">Tarif</th>
-                          <th className="px-3 py-2 text-right">PPh Terutang (Rp)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        <tr>
-                          <td className="px-3 py-2">6.a. Bagian PKP Mendapat Fasilitas Pasal 31E</td>
-                          <td className="px-3 py-2 text-right font-mono-num">{formatRp(calc.pkpFasilitas31E)}</td>
-                          <td className="px-3 py-2 text-center font-mono-num font-semibold">11%</td>
-                          <td className="px-3 py-2 text-right font-mono-num font-semibold">{formatRp(calc.pphFasilitas31E)}</td>
-                        </tr>
-                        <tr>
-                          <td className="px-3 py-2">6.b. Bagian PKP Tidak Mendapat Fasilitas (Pasal 17)</td>
-                          <td className="px-3 py-2 text-right font-mono-num">{formatRp(calc.pkpNonFasilitas)}</td>
-                          <td className="px-3 py-2 text-center font-mono-num font-semibold">22%</td>
-                          <td className="px-3 py-2 text-right font-mono-num font-semibold">{formatRp(calc.pphNonFasilitas)}</td>
-                        </tr>
-                        <tr className="bg-[#EEF3FA] font-extrabold text-[#1E2C5E]">
-                          <td colSpan={3} className="px-3 py-2 text-right">
-                            7. JUMLAH PPh BADAN TERUTANG (6.a + 6.b)
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono-num">{formatRp(calc.totalPphTerutang)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">11. Tarif Pajak (Pasal 17 / Fasilitas Pasal 31E)</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value="Fasilitas Pasal 31E (11% & 22%)"
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 font-bold text-[#1E2C5E]">12. PPh Terutang</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(calc.totalPphTerutang)}
+                      className="lg:col-span-4 text-right border border-[#F7CA36] bg-[#FEF9E7] rounded px-2.5 py-1.5 font-mono-num font-extrabold text-[#1E2C5E]"
+                    />
                   </div>
                 </div>
               )}
             </div>
 
-            {/* E. KREDIT PAJAK & F. KURANG/LEBIH BAYAR */}
+            {/* E. PENGURANG PPh TERUTANG */}
             <div className="border border-slate-200 rounded overflow-hidden">
               <SectionBar
-                id="secEF"
-                title="E. PENGURANG PPh TERUTANG & F. PPh KURANG / (LEBIH) BAYAR"
-                rightText={`${statusSptLabel}: ${formatRp(calc.pphKurangLebihBayar)}`}
+                id="secE"
+                title="E. PENGURANG PPh TERUTANG"
+                rightText={`Kredit Pajak: ${formatRp(calc.totalKreditPajak)}`}
               />
-              {!collapsed.secEF && (
+              {!collapsed.secE && (
                 <div className="p-4 space-y-2.5 bg-white">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 text-slate-700">
-                      8. Jumlah Kredit Pajak (PPh 22 + PPh 23 + PPh 24 + Angsuran PPh 25 — Lampiran L3)
+                      13.a. Kredit Pajak Dalam Negeri (PPh Pasal 22 &amp; Pasal 23 — Lampiran L3)
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(calc.kreditPph22 + calc.kreditPph23)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">
+                      13.b. Kredit Pajak Luar Negeri (PPh Pasal 24)
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(calc.kreditPph24)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">
+                      14.a. Angsuran PPh Pasal 25 yang Telah Dibayar Sendiri
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(calc.angsuranPph25)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">14.b. STP PPh Pasal 25 (Hanya Pokok Pajak)</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(0)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">15.a. Fasilitas Pengurangan / Pembebasan PPh</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(0)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 font-bold text-emerald-800">
+                      16. Jumlah Pengurang PPh Terutang (13.a + 13.b + 14.a + 14.b + 15.a)
                     </label>
                     <input
                       type="text"
@@ -416,15 +516,46 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                       className="lg:col-span-4 text-right border border-emerald-200 bg-emerald-50 rounded px-2.5 py-1.5 font-mono-num font-bold text-emerald-800"
                     />
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* F. PPh KURANG/LEBIH BAYAR */}
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar
+                id="secF"
+                title="F. PPh KURANG/LEBIH BAYAR"
+                rightText={`${statusSptLabel}: ${formatRp(calc.pphKurangLebihBayar)}`}
+              />
+              {!collapsed.secF && (
+                <div className="p-4 space-y-2.5 bg-white">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 font-extrabold text-[#1E2C5E]">
-                      9. {statusSptLabel} (Angka 7 dikurangi Angka 8)
+                      17.a. PPh yang Kurang / (Lebih) Dibayar (12 - 16)
                     </label>
                     <input
                       type="text"
                       readOnly
                       value={formatRp(calc.pphKurangLebihBayar)}
                       className="lg:col-span-4 text-right border border-[#F7CA36] bg-[#FEF9E7] rounded px-2.5 py-1.5 font-mono-num font-extrabold text-[#1E2C5E]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">18. PPh Kurang / (Lebih) Bayar pada SPT yang Dibetulkan</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(0)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">19.a. PPh Kurang / (Lebih) Bayar karena Pembetulan (17.a - 18)</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatRp(calc.pphKurangLebihBayar)}
+                      className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num"
                     />
                   </div>
                   {calc.pphKurangLebihBayar > 0 && !isReadOnly && (
@@ -454,14 +585,27 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               )}
             </div>
 
-            {/* G. ANGSURAN PPh 25 & J. PERNYATAAN */}
+            {/* G. PERHITUNGAN ANGSURAN PPh PASAL 25 TAHUN BERJALAN */}
             <div className="border border-slate-200 rounded overflow-hidden">
-              <SectionBar id="secGJ" title="G. ANGSURAN PPh PASAL 25 & J. PERNYATAAN" />
-              {!collapsed.secGJ && (
-                <div className="p-4 space-y-3 bg-white">
+              <SectionBar id="secG" title="G. PERHITUNGAN ANGSURAN PPh PASAL 25 TAHUN BERJALAN" />
+              {!collapsed.secG && (
+                <div className="p-4 space-y-2.5 bg-white">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 text-slate-700">
-                      Estimasi Angsuran PPh Pasal 25 Tahun Pajak Berikutnya (1/12 × Dasar Penghitungan)
+                      20.a. Apakah Wajib Pajak merupakan Wajib Pajak tertentu yang harus menghitung angsuran PPh Pasal 25 secara berkala?
+                    </label>
+                    <div className="lg:col-span-4 flex items-center justify-end gap-4">
+                      <label className="inline-flex items-center gap-1">
+                        <input type="radio" readOnly checked={false} /> <span>Ya</span>
+                      </label>
+                      <label className="inline-flex items-center gap-1">
+                        <input type="radio" readOnly checked /> <span>Tidak</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+                    <label className="lg:col-span-8 text-slate-700">
+                      20.b. Angsuran PPh Pasal 25 Tahun Pajak Berjalan (1/12 × Dasar Penghitungan)
                     </label>
                     <input
                       type="text"
@@ -470,6 +614,77 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                       className="lg:col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num font-semibold"
                     />
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* H. PERNYATAAN TRANSAKSI */}
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="secH" title="H. PERNYATAAN TRANSAKSI" />
+              {!collapsed.secH && (
+                <div className="p-4 space-y-2 bg-white">
+                  {[
+                    ['21.a. Apakah terdapat transaksi dengan pihak yang memiliki hubungan istimewa?', false],
+                    ['21.b. Apakah Wajib Pajak melakukan penyertaan modal pada perusahaan afiliasi (Lampiran L2)?', true],
+                    ['21.c. Apakah Wajib Pajak memiliki utang dari pemilik modal atau perusahaan afiliasi?', false],
+                    ['21.d. Apakah Wajib Pajak membebankan biaya pinjaman (Lampiran L11-B)?', true],
+                    ['21.e. Apakah Wajib Pajak melakukan transaksi penanaman modal atau fasilitas perpajakan?', false],
+                    ['21.f. Apakah Wajib Pajak memiliki sisa lebih yang digunakan untuk pembangunan sarana/prasarana?', false],
+                    ['21.g. Apakah Wajib Pajak membebankan biaya penyusutan dan/atau amortisasi fiskal?', true],
+                    ['21.h. Apakah Wajib Pajak membebankan biaya entertainment, promosi, atau penggantian natura?', true],
+                    ['21.i. Apakah Wajib Pajak menerima penghasilan dari luar negeri?', false],
+                    ['21.j. Apakah terdapat kelebihan PPh Pasal 21/26 yang diperhitungkan?', false],
+                  ].map(([q, yes], idx) => (
+                    <div key={idx} className="flex flex-wrap items-center justify-between gap-2 py-1 border-b border-slate-100">
+                      <span className="text-slate-700">{q as string}</span>
+                      <div className="flex items-center gap-4">
+                        <label className="inline-flex items-center gap-1">
+                          <input type="radio" readOnly checked={Boolean(yes)} /> <span>Ya</span>
+                        </label>
+                        <label className="inline-flex items-center gap-1">
+                          <input type="radio" readOnly checked={!yes} /> <span>Tidak</span>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* I. LAMPIRAN LAINNYA */}
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="secI" title="I. LAMPIRAN LAINNYA" />
+              {!collapsed.secI && (
+                <div className="p-4 space-y-2.5 bg-white">
+                  {[
+                    'a.1. Laporan Keuangan / Laporan Keuangan yang Telah Diaudit oleh Akuntan Publik*',
+                    'a.2. Laporan Keuangan Konsolidasian (untuk Wajib Pajak Grup)',
+                    'j. Dokumen Lainnya',
+                  ].map((doc, idx) => (
+                    <div key={idx} className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100">
+                      <span className="text-slate-700">{doc}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button type="button" className="px-2.5 py-1 rounded bg-[#1E2C5E] text-white text-[11px] font-semibold">
+                          + Pilih
+                        </button>
+                        <button type="button" className="px-2.5 py-1 rounded bg-slate-200 text-slate-600 text-[11px] font-semibold">
+                          Unggah
+                        </button>
+                        <button type="button" className="px-2.5 py-1 rounded bg-slate-100 text-slate-500 text-[11px] font-semibold">
+                          × Batal
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* J. PERNYATAAN */}
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="secJ" title="J. PERNYATAAN" />
+              {!collapsed.secJ && (
+                <div className="p-4 space-y-3 bg-white">
                   <label className="flex items-start gap-2.5 cursor-pointer pt-1">
                     <input
                       type="checkbox"
@@ -479,12 +694,29 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                       className="mt-0.5 accent-[#1E2C5E]"
                     />
                     <span className="text-slate-700 leading-relaxed">
-                      Dengan menyadari segala akibat hukum, pengurus menyatakan bahwa data dalam SPT Tahunan PPh Badan beserta seluruh lampirannya telah diisi secara benar, lengkap, dan jelas.
+                      Dengan menyadari sepenuhnya akan segala akibatnya termasuk sanksi-sanksi sesuai dengan ketentuan peraturan perundang-undangan yang berlaku, saya menyatakan bahwa apa yang telah saya beritahukan di atas beserta lampiran-lampirannya adalah benar, lengkap, dan jelas.
                     </span>
                   </label>
-                  <div className="bg-[#D8F1FD] border border-[#9CDDFB] text-[#0E4A6B] px-4 py-2.5 rounded flex items-center justify-between font-bold">
-                    <span>Status SPT Badan : {statusSptLabel}</span>
-                    <span className="font-mono-num">{formatRp(calc.pphKurangLebihBayar)}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 max-w-2xl">
+                    <div className="grid grid-cols-12 items-center gap-2">
+                      <span className="col-span-5 text-slate-600">Penandatangan*</span>
+                      <select className="col-span-7 border border-slate-300 rounded px-2.5 py-1 bg-white">
+                        <option>Wajib Pajak / Pengurus</option>
+                        <option>Kuasa</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-12 items-center gap-2">
+                      <span className="col-span-5 text-slate-600">NPWP*</span>
+                      <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
+                    </div>
+                    <div className="grid grid-cols-12 items-center gap-2">
+                      <span className="col-span-5 text-slate-600">Nama*</span>
+                      <input readOnly value={activeTaxpayer.name} className="col-span-7 border border-slate-200 bg-slate-100 rounded px-2.5 py-1" />
+                    </div>
+                    <div className="grid grid-cols-12 items-center gap-2">
+                      <span className="col-span-5 text-slate-600">Jabatan*</span>
+                      <input readOnly value="DIREKTUR UTAMA" className="col-span-7 border border-slate-200 bg-slate-100 rounded px-2.5 py-1" />
+                    </div>
                   </div>
                 </div>
               )}
@@ -604,8 +836,29 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
         {/* ==================== TAB: L2 DAFTAR KEPEMILIKAN ==================== */}
         {tab === 'l2' && (
           <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">DAFTAR KEPEMILIKAN</h3>
             <div className="border border-slate-200 rounded overflow-hidden">
-              <SectionBar id="l2A" title="L2-A. DAFTAR PEMEGANG SAHAM / PEMILIK MODAL & PENGURUS" />
+              <SectionBar id="l2H" title="HEADER" />
+              {!collapsed.l2H && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l2A" title="A. DAFTAR PEMEGANG SAHAM/PEMILIK MODAL DAN JUMLAH DIVIDEN YANG DIBAGIKAN SERTA DAFTAR SUSUNAN PENGURUS DAN KOMISARIS" />
               {!collapsed.l2A && (
                 <div className="p-4 space-y-3 bg-white">
                   {!isReadOnly && (
@@ -663,13 +916,17 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                   )}
 
                   <div className="overflow-x-auto">
-                    <table className="w-full border border-slate-300 border-collapse text-[12px]">
+                    <table className="w-full border border-slate-300 border-collapse text-[11px]">
                       <thead>
                         <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
-                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">Nama Pemegang Saham / Pengurus</th>
-                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">NIK / NPWP</th>
-                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">Jabatan</th>
-                          <th className="px-3 py-2 text-right">Penyertaan Saham (%)</th>
+                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">NAMA</th>
+                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">ALAMAT</th>
+                          <th className="px-3 py-2 text-center border-r border-[#E5B822]">KODE NEGARA</th>
+                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">NPWP/NIK/TAX ID</th>
+                          <th className="px-3 py-2 text-left border-r border-[#E5B822]">JABATAN</th>
+                          <th className="px-3 py-2 text-right border-r border-[#E5B822]">MODAL DISETOR (Rp)</th>
+                          <th className="px-3 py-2 text-right border-r border-[#E5B822]">MODAL DISETOR (%)</th>
+                          <th className="px-3 py-2 text-right">DIVIDEN (Rp)</th>
                           {!isReadOnly && <th className="px-2 py-2 w-10" />}
                         </tr>
                       </thead>
@@ -677,9 +934,15 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                         {calc.pengurus.map((p, idx) => (
                           <tr key={idx}>
                             <td className="px-3 py-2 font-semibold">{p.nama}</td>
+                            <td className="px-3 py-2 text-slate-600">JAKARTA SELATAN</td>
+                            <td className="px-3 py-2 text-center font-mono-num">IDN</td>
                             <td className="px-3 py-2 font-mono-num">{p.npwp}</td>
                             <td className="px-3 py-2">{p.jabatan}</td>
+                            <td className="px-3 py-2 text-right font-mono-num">
+                              {Math.round((calc.totalEkuitas * p.sahamPersen) / 100).toLocaleString('id-ID')}
+                            </td>
                             <td className="px-3 py-2 text-right font-mono-num font-bold">{p.sahamPersen}%</td>
+                            <td className="px-3 py-2 text-right font-mono-num">0</td>
                             {!isReadOnly && (
                               <td className="px-2 py-2 text-center">
                                 <button
@@ -706,21 +969,26 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
             </div>
 
             <div className="border border-slate-200 rounded overflow-hidden">
-              <SectionBar id="l2B" title="L2-B. DAFTAR PENYERTAAN MODAL PADA PERUSAHAAN AFILIASI" />
+              <SectionBar id="l2B" title="B. DAFTAR PENYERTAAN MODAL, UTANG, DAN/ATAU PIUTANG PADA PERUSAHAAN AFILIASI" />
               {!collapsed.l2B && (
-                <div className="p-4 bg-white">
-                  <table className="w-full border border-slate-300 border-collapse text-[12px]">
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
                     <thead>
                       <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
-                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NPWP Perusahaan Afiliasi</th>
-                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">Nama Perusahaan</th>
-                        <th className="px-3 py-2 text-right">Nilai Penyertaan Modal (Rp)</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NAMA</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">ALAMAT</th>
+                        <th className="px-3 py-2 text-center border-r border-[#E5B822]">KODE NEGARA</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NPWP/TAX ID</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">MODAL DISETOR (Rp)</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">MODAL DISETOR (%)</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">UTANG/PIUTANG (Rp)</th>
+                        <th className="px-3 py-2 text-center">TAHUN</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
-                        <td colSpan={3} className="px-3 py-4 text-center text-slate-400">
-                          Tidak ada penyertaan modal pada perusahaan afiliasi.
+                        <td colSpan={8} className="px-3 py-4 text-center text-slate-400">
+                          Tidak ada data yang ditemukan.
                         </td>
                       </tr>
                     </tbody>
@@ -766,80 +1034,92 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
         {/* ==================== TAB: L11-B BIAYA PINJAMAN (EBITDA & DER) ==================== */}
         {tab === 'l11b' && (
           <div className="space-y-4">
-            <div className="bg-[#D8F1FD] border border-[#9CDDFB] text-[#0E4A6B] px-4 py-2.5 rounded">
-              <strong>LAMPIRAN L11-B — PENGHITUNGAN BIAYA PINJAMAN:</strong> Analisis batas pembebanan biaya pinjaman berdasarkan perbandingan Utang terhadap Modal (DER maksimal 4:1) serta simulasi rasio EBITDA fiskal.
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              PERHITUNGAN BIAYA PINJAMAN YANG DAPAT DIBEBANKAN UNTUK KEPERLUAN PENGHITUNGAN PAJAK PENGHASILAN
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l11H" title="HEADER" />
+              {!collapsed.l11H && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="border border-slate-200 rounded overflow-hidden">
-                <SectionBar id="l11Ebitda" title="I. PERHITUNGAN EBITDA FISKAL" />
-                {!collapsed.l11Ebitda && (
-                  <div className="p-4 space-y-2.5 bg-white">
-                    <div className="flex justify-between">
-                      <span>Penghasilan Neto Fiskal (L1)</span>
-                      <span className="font-mono-num font-semibold">{formatRp(calc.penghasilanNetoFiskal)}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <label>Biaya Bunga Pinjaman Komersial</label>
-                      <input
-                        type="number"
-                        disabled={isReadOnly}
-                        value={biayaBungaPinjaman}
-                        onChange={(e) => setBiayaBungaPinjaman(Number(e.target.value) || 0)}
-                        className="w-44 text-right border border-slate-300 rounded px-2.5 py-1 font-mono-num"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <label>Beban Penyusutan &amp; Amortisasi</label>
-                      <input
-                        type="number"
-                        disabled={isReadOnly}
-                        value={bebanPenyusutanAmortisasi}
-                        onChange={(e) => setBebanPenyusutanAmortisasi(Number(e.target.value) || 0)}
-                        className="w-44 text-right border border-slate-300 rounded px-2.5 py-1 font-mono-num"
-                      />
-                    </div>
-                    <div className="flex justify-between pt-2 border-t border-slate-200 font-bold text-[#1E2C5E]">
-                      <span>EBITDA Fiskal</span>
-                      <span className="font-mono-num">{formatRp(ebitdaFiskal)}</span>
-                    </div>
-                    <div className="flex justify-between text-emerald-700 font-semibold">
-                      <span>Batas Biaya Pinjaman (25% × EBITDA)</span>
-                      <span className="font-mono-num">{formatRp(batasBiayaPinjaman25)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <div className="border border-slate-200 rounded overflow-hidden">
-                <SectionBar id="l11Der" title="II. PERBANDINGAN UTANG DAN MODAL (DER)" />
-                {!collapsed.l11Der && (
-                  <div className="p-4 space-y-2.5 bg-white">
-                    <div className="flex justify-between">
-                      <span>Saldo Rata-Rata Utang (Neraca L1)</span>
-                      <span className="font-mono-num font-semibold">{formatRp(calc.totalKewajiban)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Saldo Rata-Rata Modal / Ekuitas (Neraca L1)</span>
-                      <span className="font-mono-num font-semibold">{formatRp(calc.totalEkuitas)}</span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t border-slate-200 font-extrabold text-[#1E2C5E]">
-                      <span>Rasio DER (Utang : Modal)</span>
-                      <span className="font-mono-num">{derRatio.toFixed(2)} : 1</span>
-                    </div>
-                    <div
-                      className={`px-3 py-2 rounded font-semibold text-[11px] ${
-                        derRatio <= 4
-                          ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                          : 'bg-amber-50 border border-amber-200 text-amber-800'
-                      }`}
-                    >
-                      {derRatio <= 4
-                        ? 'Memenuhi rasio DER maksimal 4:1 — seluruh biaya pinjaman dapat dibebankan secara fiskal.'
-                        : 'Melebihi rasio DER 4:1 — sebagian biaya pinjaman harus dikoreksi fiskal positif.'}
-                    </div>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l11Ebitda" title="I. PERHITUNGAN EBITDA" />
+              {!collapsed.l11Ebitda && (
+                <div className="p-4 space-y-2.5 bg-white">
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">1. Penghasilan Neto Komersial (Lampiran L1)</span>
+                    <input readOnly value={formatRp(calc.labaKomersial)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
                   </div>
-                )}
-              </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">2. Beban Penyusutan dan Amortisasi Komersial</span>
+                    <input
+                      type="number"
+                      disabled={isReadOnly}
+                      value={bebanPenyusutanAmortisasi}
+                      onChange={(e) => setBebanPenyusutanAmortisasi(Number(e.target.value) || 0)}
+                      className="col-span-4 text-right border border-slate-300 rounded px-2.5 py-1 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">3. Beban Pajak Penghasilan</span>
+                    <input readOnly value={formatRp(calc.totalPphTerutang)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">4. Biaya Pinjaman Komersial</span>
+                    <input
+                      type="number"
+                      disabled={isReadOnly}
+                      value={biayaBungaPinjaman}
+                      onChange={(e) => setBiayaBungaPinjaman(Number(e.target.value) || 0)}
+                      className="col-span-4 text-right border border-slate-300 rounded px-2.5 py-1 font-mono-num"
+                    />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 font-semibold text-[#1E2C5E]">5. EBITDA Komersial (1 + 2 + 3 + 4)</span>
+                    <input readOnly value={formatRp(calc.labaKomersial + bebanPenyusutanAmortisasi + calc.totalPphTerutang + biayaBungaPinjaman)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num font-bold" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 font-bold text-[#1E2C5E]">6. Jumlah EBITDA Fiskal (Batas 25%: {formatRp(batasBiayaPinjaman25)})</span>
+                    <input readOnly value={formatRp(ebitdaFiskal)} className="col-span-4 text-right border border-[#F7CA36] bg-[#FEF9E7] rounded px-2.5 py-1 font-mono-num font-bold text-[#1E2C5E]" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l11Der" title="II. PERBANDINGAN ANTARA UTANG DAN MODAL (DEBT TO EQUITY RATIO)" />
+              {!collapsed.l11Der && (
+                <div className="p-4 space-y-3 bg-white">
+                  <div className="font-bold text-[#1E2C5E]">A. PENGHITUNGAN RATA-RATA SALDO UTANG</div>
+                  <div className="flex justify-between">
+                    <span>Saldo Rata-Rata Utang (Neraca L1)</span>
+                    <span className="font-mono-num font-semibold">{formatRp(calc.totalKewajiban)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Saldo Rata-Rata Modal / Ekuitas (Neraca L1)</span>
+                    <span className="font-mono-num font-semibold">{formatRp(calc.totalEkuitas)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-slate-200 font-extrabold text-[#1E2C5E]">
+                    <span>Rasio DER (Utang : Modal)</span>
+                    <span className="font-mono-num">{derRatio.toFixed(2)} : 1</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -457,7 +457,17 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                       </tr>
                       <tr>
                         <td className="px-4 py-1.5 text-slate-700">
-                          5. Penyerahan yang PPN atau PPN dan PPnBM-nya harus dipungut sendiri dengan Faktur Pajak yang dilaporkan secara digunggung
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span>5. Penyerahan yang PPN atau PPN dan PPnBM-nya harus dipungut sendiri dengan Faktur Pajak yang dilaporkan secara digunggung</span>
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1E2C5E] text-white text-[10.5px] font-semibold cursor-pointer"
+                            >
+                              <Upload className="w-3 h-3" />
+                              <span>Unggah XML</span>
+                              <ChevronDown className="w-3 h-3 opacity-80" />
+                            </button>
+                          </div>
                         </td>
                         <td className="px-2 py-1">{renderAmountCell(0)}</td>
                         <td className="px-2 py-1">{renderAmountCell(0)}</td>
@@ -492,12 +502,40 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                         <td className="px-2 py-1">{renderAmountCell(0)}</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-1.5 text-red-700 font-medium">
-                          9. Pengurangan Pajak Keluaran karena Nota Retur (Lampiran C)
+                        <td className="px-4 py-1.5 text-slate-700">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span>9. Penyerahan yang mendapat fasilitas PPN atau PPN dan PPnBM dengan Faktur Pajak yang dilaporkan secara digunggung (Nota Retur: {formatRp(payload.returKeluaranPpn)})</span>
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1E2C5E] text-white text-[10.5px] font-semibold cursor-pointer"
+                            >
+                              <Upload className="w-3 h-3" />
+                              <span>Unggah XML</span>
+                              <ChevronDown className="w-3 h-3 opacity-80" />
+                            </button>
+                          </div>
                         </td>
                         <td className="px-2 py-1">{renderAmountCell(0)}</td>
                         <td className="px-2 py-1">{renderAmountCell(0)}</td>
                         <td className="px-2 py-1">{renderAmountCell(payload.returKeluaranPpn)}</td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                      </tr>
+                      <tr className="bg-[#FAFBFD] font-bold">
+                        <td className="px-4 py-1.5 text-[#1E2C5E]">
+                          B. Penyerahan BKP/JKP yang tidak terutang PPN
+                        </td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                        <td className="px-2 py-1" />
+                        <td className="px-2 py-1" />
+                        <td className="px-2 py-1" />
+                      </tr>
+                      <tr className="bg-[#FEF9E7] font-bold">
+                        <td className="px-4 py-1.5 text-[#1E2C5E]">
+                          C. Jumlah Seluruh Penyerahan (I.A + I.B)
+                        </td>
+                        <td className="px-2 py-1">{renderAmountCell(payload.eksporDpp + payload.penyerahanPpnDipungutSendiriDpp + payload.penyerahanDipungutPemungutDpp + payload.penyerahanDibebaskanDpp, true)}</td>
+                        <td className="px-2 py-1" />
+                        <td className="px-2 py-1">{renderAmountCell(ppnKeluaranNeto, true)}</td>
                         <td className="px-2 py-1">{renderAmountCell(0)}</td>
                       </tr>
                     </tbody>
@@ -616,6 +654,24 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                         <td className="px-2 py-1">{renderAmountCell(uncreditedInputs.reduce((s, i) => s + i.dppTotal, 0))}</td>
                         <td className="px-2 py-1">{renderAmountCell(uncreditedInputs.reduce((s, i) => s + i.dppOtherValue, 0))}</td>
                         <td className="px-2 py-1">{renderAmountCell(payload.pajakMasukanTidakDikreditkan)}</td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-1.5 text-slate-700">
+                          I. Impor dan/atau perolehan BKP/JKP yang tidak terutang PPN dan/atau yang dibebaskan dari pengenaan PPN
+                        </td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                        <td className="px-2 py-1" />
+                        <td className="px-2 py-1" />
+                        <td className="px-2 py-1" />
+                      </tr>
+                      <tr className="bg-[#FEF9E7] font-bold">
+                        <td className="px-4 py-1.5 text-[#1E2C5E]">
+                          J. Jumlah Seluruh Perolehan (II.A + II.B + II.C + II.H + II.I)
+                        </td>
+                        <td className="px-2 py-1">{renderAmountCell(creditedInputs.reduce((s, i) => s + i.dppTotal, 0) + uncreditedInputs.reduce((s, i) => s + i.dppTotal, 0), true)}</td>
+                        <td className="px-2 py-1" />
+                        <td className="px-2 py-1">{renderAmountCell(payload.pajakMasukanDikreditkan + payload.pajakMasukanTidakDikreditkan, true)}</td>
                         <td className="px-2 py-1">{renderAmountCell(0)}</td>
                       </tr>
                     </tbody>
@@ -885,6 +941,12 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                       onChange={(e) => setSignerJob(e.target.value)}
                       className="md:col-span-8 bg-white border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 text-slate-700"
                     />
+                    <span className="md:col-span-4 text-slate-600">Batas Waktu Penyampaian SPT</span>
+                    <input
+                      readOnly
+                      value={`Akhir Bulan Berikutnya (${taxReturn.taxYear}-${String(Math.min(12, taxReturn.taxPeriodMonth + 1)).padStart(2, '0')}-30)`}
+                      className="md:col-span-8 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1.5 font-mono-num text-slate-700"
+                    />
                   </div>
                 </div>
               )}
@@ -939,6 +1001,30 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                 </div>
               </div>
             </div>
+
+            {tab === 'c' && !isReadOnly && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="px-3.5 py-1.5 rounded bg-[#1E2C5E] text-white text-[11px] font-semibold cursor-pointer"
+                >
+                  + Tambah
+                </button>
+                <button
+                  type="button"
+                  className="px-3.5 py-1.5 rounded bg-[#DC2626] text-white text-[11px] font-semibold cursor-pointer"
+                >
+                  Hapus
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded bg-[#1E2C5E] text-white text-[11px] font-semibold cursor-pointer"
+                >
+                  <span>Impor data</span>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                </button>
+              </div>
+            )}
 
             {/* Toolbar + Golden-Yellow Coretax Lampiran Table */}
             <CoretaxIconToolbar

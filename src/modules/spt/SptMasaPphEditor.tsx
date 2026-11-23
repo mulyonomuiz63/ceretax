@@ -258,8 +258,8 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
           ? (
               [
                 { id: 'induk', label: 'Induk' },
-                { id: 'l1a', label: 'L-1A' },
-                { id: 'l1b', label: 'L-1B' },
+                { id: 'l1a', label: 'L-IA' },
+                { id: 'l1b', label: 'L-IB' },
                 { id: 'l2', label: 'L-II' },
                 { id: 'l3', label: 'L-III' },
               ] as Array<{ id: Pph21Tab; label: string }>
@@ -508,18 +508,77 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                 <span>C. PAJAK PENGHASILAN PASAL 26</span>
               </button>
               {!collapsed.c26 && (
-                <div className="p-4">
-                  <div className="overflow-x-auto border border-[#DCE2EC] rounded-[4px]">
-                    <table className="w-full text-[11px] border-collapse">
-                      <tbody>
-                        <tr>
-                          <td className="px-3 py-1.5 w-12 text-center">1.</td>
-                          <td className="px-3 py-1.5">PAJAK PENGHASILAN PASAL 26 YANG DIPOTONG</td>
-                          <td className="px-3 py-1.5 w-32 text-center font-mono-num">411127-100</td>
-                          <td className="px-2 py-1 w-48">{renderNumBox(0)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                <div className="p-4 space-y-4">
+                  <div>
+                    <div className="font-semibold text-[#1E293B] mb-2">I. PAJAK PENGHASILAN PASAL 26 YANG DIPOTONG</div>
+                    <div className="overflow-x-auto border border-[#DCE2EC] rounded-[4px]">
+                      <table className="w-full text-[11px] border-collapse">
+                        <thead>
+                          <tr className="bg-[#F8FAFC] border-b border-[#DCE2EC] text-slate-700 font-bold">
+                            <th className="px-3 py-2 w-12 text-center">NO.</th>
+                            <th className="px-3 py-2 text-left">URAIAN</th>
+                            <th className="px-3 py-2 w-32 text-center">KAP-KJS</th>
+                            <th className="px-3 py-2 w-48 text-right">JUMLAH (Rp)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#EEF2F6]">
+                          <tr>
+                            <td className="px-3 py-1.5 text-center">1.</td>
+                            <td className="px-3 py-1.5">PPh PASAL 26 YANG DIPOTONG</td>
+                            <td className="px-3 py-1.5 text-center font-mono-num">411127-100</td>
+                            <td className="px-2 py-1">{renderNumBox(0)}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-1.5 text-center">2.</td>
+                            <td className="px-3 py-1.5">KELEBIHAN PENYETORAN PPh PASAL 26 DARI MASA PAJAK SEBELUMNYA</td>
+                            <td className="px-3 py-1.5 text-center">-</td>
+                            <td className="px-2 py-1">{renderNumBox(0)}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-1.5 text-center">3.</td>
+                            <td className="px-3 py-1.5">PEMBAYARAN PPh PASAL 26 DENGAN SP2D (INSTANSI PEMERINTAH)</td>
+                            <td className="px-3 py-1.5 text-center">-</td>
+                            <td className="px-2 py-1">{renderNumBox(0)}</td>
+                          </tr>
+                          <tr className="bg-[#FEF9E7]">
+                            <td className="px-3 py-1.5 text-center font-bold">4.</td>
+                            <td className="px-3 py-1.5 font-bold text-[#1E2C5E]">
+                              PPh PASAL 26 YANG KURANG / (LEBIH) DISETOR (1 - 2 - 3)
+                            </td>
+                            <td className="px-3 py-1.5 text-center font-mono-num">411127-100</td>
+                            <td className="px-2 py-1">{renderNumBox(0, true)}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-1.5 text-center">5.</td>
+                            <td className="px-3 py-1.5">PPh PASAL 26 YANG KURANG / (LEBIH) DISETOR PADA SPT YANG DIBETULKAN</td>
+                            <td className="px-3 py-1.5 text-center">-</td>
+                            <td className="px-2 py-1">{renderNumBox(0)}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-1.5 text-center">6.</td>
+                            <td className="px-3 py-1.5">PPh PASAL 26 YANG KURANG / (LEBIH) DISETOR KARENA PEMBETULAN (4 - 5)</td>
+                            <td className="px-3 py-1.5 text-center">-</td>
+                            <td className="px-2 py-1">{renderNumBox(0)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="font-semibold text-[#1E293B] mb-2">II. PAJAK PENGHASILAN PASAL 26 YANG DITANGGUNG OLEH PEMERINTAH</div>
+                    <div className="overflow-x-auto border border-[#DCE2EC] rounded-[4px]">
+                      <table className="w-full text-[11px] border-collapse">
+                        <tbody>
+                          <tr>
+                            <td className="px-3 py-1.5 w-12 text-center">1.</td>
+                            <td className="px-3 py-1.5">PAJAK PENGHASILAN PASAL 26 DITANGGUNG PEMERINTAH</td>
+                            <td className="px-3 py-1.5 w-32 text-center font-mono-num">411127-100</td>
+                            <td className="px-2 py-1 w-48">{renderNumBox(0)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
@@ -532,7 +591,52 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
               DAFTAR PEMOTONGAN BULANAN PPh PASAL 21 BAGI PEGAWAI TETAP DAN PENSIUNAN (BPMP)
             </h2>
-            {renderSlipTable(bpmpSlips, `SPT_PPh21_L1A_${periodCode}`)}
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>HEADER</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+              </div>
+            </div>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>LIST-IA</span>
+              </div>
+              <div className="p-4 space-y-3">
+                {renderSlipTable(bpmpSlips, `SPT_PPh21_L1A_${periodCode}`)}
+                <div className="grid grid-cols-12 items-center gap-2 pt-2 border-t border-[#E2E8F0]">
+                  <span className="col-span-6 text-slate-700 font-semibold">
+                    1. Jumlah Penghasilan Bruto dan PPh yang Dipotong (selain DTP)
+                  </span>
+                  <div className="col-span-3">{renderNumBox(bpmpSlips.reduce((s, r) => s + r.grossAmount, 0), true)}</div>
+                  <div className="col-span-3">{renderNumBox(bpmpSlips.reduce((s, r) => s + r.taxWithheld, 0), true)}</div>
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-6 text-slate-700 font-semibold">
+                    2. Jumlah Penghasilan Bruto dan PPh yang Ditanggung Pemerintah (DTP)
+                  </span>
+                  <div className="col-span-3">{renderNumBox(0)}</div>
+                  <div className="col-span-3">{renderNumBox(0)}</div>
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-6 text-slate-700 font-semibold">
+                    3. Jumlah Penghasilan Bruto Pegawai Tetap di bawah PTKP yang Tidak Dibuatkan Bukti Pemotongan
+                  </span>
+                  <div className="col-span-3">{renderNumBox(0)}</div>
+                  <div className="col-span-3">{renderNumBox(0)}</div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -541,7 +645,34 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
               DAFTAR PEMOTONGAN PPh PASAL 21 MASA PAJAK TERAKHIR (BPA1 / BPA2)
             </h2>
-            {renderSlipTable(bpa1Slips, `SPT_PPh21_L1B_${periodCode}`)}
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>HEADER</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+              </div>
+            </div>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>LIST-IB</span>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="font-semibold text-[#1E293B]">I. DAFTAR BUKTI PEMOTONGAN BPA1</div>
+                {renderSlipTable(bpa1Slips, `SPT_PPh21_L1B_BPA1_${periodCode}`)}
+                <div className="font-semibold text-[#1E293B] pt-2">II. DAFTAR BUKTI PEMOTONGAN BPA2</div>
+                {renderSlipTable([], `SPT_PPh21_L1B_BPA2_${periodCode}`)}
+              </div>
+            </div>
           </div>
         )}
 
@@ -550,7 +681,34 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
               DAFTAR PEMOTONGAN SATU TAHUN PAJAK ATAU BAGIAN TAHUN PAJAK (BPA1 / BPA2)
             </h2>
-            {renderSlipTable(bpa1Slips, `SPT_PPh21_LII_${periodCode}`, true)}
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>HEADER</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+              </div>
+            </div>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>LIST-II</span>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="font-semibold text-[#1E293B]">I. DAFTAR BUKTI PEMOTONGAN BPA1</div>
+                {renderSlipTable(bpa1Slips, `SPT_PPh21_LII_BPA1_${periodCode}`, true)}
+                <div className="font-semibold text-[#1E293B] pt-2">II. DAFTAR BUKTI PEMOTONGAN BPA2</div>
+                {renderSlipTable([], `SPT_PPh21_LII_BPA2_${periodCode}`, true)}
+              </div>
+            </div>
           </div>
         )}
 
@@ -559,7 +717,34 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
               DAFTAR PEMOTONGAN PPh PASAL 21/26 SELAIN PEGAWAI TETAP (BP21 / BP26)
             </h2>
-            {renderSlipTable(bp21Slips, `SPT_PPh21_LIII_${periodCode}`)}
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>HEADER</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+              </div>
+            </div>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>LIST-III</span>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="font-semibold text-[#1E293B]">I. DAFTAR PEMOTONGAN PPh PASAL 21 (BP21)</div>
+                {renderSlipTable(bp21Slips, `SPT_PPh21_LIII_BP21_${periodCode}`)}
+                <div className="font-semibold text-[#1E293B] pt-2">II. DAFTAR PEMOTONGAN PPh PASAL 26 (BP26)</div>
+                {renderSlipTable([], `SPT_PPh21_LIII_BP26_${periodCode}`)}
+              </div>
+            </div>
           </div>
         )}
 
@@ -681,7 +866,7 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                       ))}
                       <tr className="bg-[#FEF9E7] font-extrabold border-t-2 border-[#F6C324]">
                         <td />
-                        <td className="px-3 py-2 text-[#1E2C5E]">TOTAL PAJAK PENGHASILAN</td>
+                        <td className="px-3 py-2 text-[#1E2C5E]">TOTAL OF INCOME TAX</td>
                         <td className="px-3 py-2 text-right font-mono-num">0</td>
                         <td className="px-3 py-2 text-right font-mono-num text-[#1E2C5E]">
                           {payload.totalTaxWithheld.toLocaleString('id-ID')}
@@ -706,8 +891,34 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
               DAFTAR BUKTI PEMOTONGAN DAN/ATAU PEMUNGUTAN PPh UNIFIKASI BERFORMAT STANDAR
             </h2>
-            <div className="font-semibold text-slate-700">TABEL I. BPPU (PPh Pasal 23 / 4(2) / 15 / 22)</div>
-            {renderSlipTable(matchingSlips, `SPT_Unifikasi_Daftar1_BPPU_${periodCode}`)}
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>HEADER</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">NPWP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">Masa Pajak</span>
+                  <input readOnly value={`${monthLabel} ${taxReturn.taxYear}`} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1" />
+                </div>
+              </div>
+            </div>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>DAFTAR-I</span>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="font-semibold text-slate-700">TABEL I. BPPU (PPh Pasal 23 / 4(2) / 15 / 22)</div>
+                {renderSlipTable(matchingSlips, `SPT_Unifikasi_Daftar1_BPPU_${periodCode}`)}
+                <div className="font-semibold text-slate-700 pt-2">TABEL II. BPNR (PPh Pasal 26 / 4(2))</div>
+                {renderSlipTable([], `SPT_Unifikasi_Daftar1_BPNR_${periodCode}`)}
+              </div>
+            </div>
           </div>
         )}
 
@@ -716,7 +927,34 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
               DAFTAR PPh YANG DIBAYAR SENDIRI DAN/ATAU DISETOR SECARA DIGUNGGUNG
             </h2>
-            {renderSlipTable([], `SPT_Unifikasi_Daftar2_${periodCode}`)}
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>HEADER</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">NPWP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">Masa Pajak</span>
+                  <input readOnly value={`${monthLabel} ${taxReturn.taxYear}`} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1" />
+                </div>
+              </div>
+            </div>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>DAFTAR-II</span>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="font-semibold text-slate-700">TABEL I. PPh YANG DISETOR SENDIRI</div>
+                {renderSlipTable([], `SPT_Unifikasi_Daftar2_T1_${periodCode}`)}
+                <div className="font-semibold text-slate-700 pt-2">TABEL II. PPh YANG DIPOTONG/DIPUNGUT SECARA DIGUNGGUNG</div>
+                {renderSlipTable([], `SPT_Unifikasi_Daftar2_T2_${periodCode}`)}
+              </div>
+            </div>
           </div>
         )}
 
@@ -725,7 +963,34 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
               DAFTAR DOKUMEN YANG DIPERSAMAKAN DENGAN BUKTI PEMOTONGAN/PEMUNGUTAN PPh UNIFIKASI
             </h2>
-            {renderSlipTable([], `SPT_Unifikasi_Lampiran1_${periodCode}`)}
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>HEADER</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">NPWP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-5 text-slate-600">Masa Pajak</span>
+                  <input readOnly value={`${monthLabel} ${taxReturn.taxYear}`} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1" />
+                </div>
+              </div>
+            </div>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>LAMPIRAN-I</span>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="font-semibold text-slate-700">
+                  TABEL I. A1 - PENGHASILAN DARI BUNGA DEPOSITO/TABUNGAN, DISKONTO SBI, DAN JASA GIRO
+                </div>
+                {renderSlipTable([], `SPT_Unifikasi_Lampiran1_${periodCode}`)}
+              </div>
+            </div>
           </div>
         )}
 
@@ -774,19 +1039,32 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                   Saya menyatakan bahwa data pemotongan dan pelaporan SPT Masa yang disampaikan adalah benar, lengkap, dan jelas.
                 </span>
               </label>
-              <div className="flex flex-wrap items-center gap-5 pt-1 text-[11px]">
-                <span className="text-slate-600">Penandatangan:</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer">
-                  <input type="radio" checked={signerType === 'WP'} onChange={() => setSignerType('WP')} />
-                  <span>Wajib Pajak</span>
-                </label>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer">
-                  <input type="radio" checked={signerType === 'KUASA'} onChange={() => setSignerType('KUASA')} />
-                  <span>Kuasa Wajib Pajak</span>
-                </label>
-                <span className="text-slate-500">
-                  Nama: <strong className="text-[#1E293B]">{activeTaxpayer.name}</strong>
-                </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 max-w-2xl text-[11px]">
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-4 text-slate-600">Penandatangan</span>
+                  <div className="col-span-8 flex items-center gap-4">
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                      <input type="radio" checked={signerType === 'WP'} onChange={() => setSignerType('WP')} />
+                      <span>Wajib Pajak</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                      <input type="radio" checked={signerType === 'KUASA'} onChange={() => setSignerType('KUASA')} />
+                      <span>Kuasa Wajib Pajak</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-4 text-slate-600">NPWP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-8 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-4 text-slate-600">{isPph21 ? 'Nama' : 'Nama Tanda Tangan'}</span>
+                  <input readOnly value={activeTaxpayer.name} className="col-span-8 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1" />
+                </div>
+                <div className="grid grid-cols-12 items-center gap-2">
+                  <span className="col-span-4 text-slate-600">{isPph21 ? 'KODE QR' : 'Tanda Tangan'}</span>
+                  <input readOnly value={taxReturn.status === 'SUBMITTED' ? 'TERSERTIFIKASI ELEKTRONIK DJP' : '-'} className="col-span-8 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                </div>
               </div>
             </div>
           </>

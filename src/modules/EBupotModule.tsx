@@ -118,32 +118,32 @@ const SUBTAB_CONFIG: Record<
   },
   bp21: {
     shortTitle: 'BP 21',
-    headingPrefix: 'EBUPOT BP 21',
-    createBtnLabel: 'Create eBupot BP 21',
+    headingPrefix: 'EBUPOT BP21',
+    createBtnLabel: 'Create eBupot BP21',
     slipType: 'BP21',
   },
   bp26: {
     shortTitle: 'BP 26',
-    headingPrefix: 'EBUPOT BP 26',
-    createBtnLabel: 'Create eBupot BP 26',
+    headingPrefix: 'EBUPOT BP26',
+    createBtnLabel: 'Create eBupot BP26',
     slipType: 'BP21',
   },
   bpa1: {
     shortTitle: 'BP A1',
-    headingPrefix: 'EBUPOT BP A1',
-    createBtnLabel: 'Create eBupot BP A1',
+    headingPrefix: 'EBUPOT BPA1',
+    createBtnLabel: 'Create eBupot BPA1',
     slipType: 'BPA1',
   },
   bpa2: {
     shortTitle: 'BP A2',
-    headingPrefix: 'EBUPOT BP A2',
-    createBtnLabel: 'Create eBupot BP A2',
+    headingPrefix: 'EBUPOT BPA2',
+    createBtnLabel: 'Create eBupot BPA2',
     slipType: 'BPA1',
   },
   bpmp: {
-    shortTitle: 'BPMP',
-    headingPrefix: 'EBUPOT BPMP',
-    createBtnLabel: 'Create eBupot BPMP',
+    shortTitle: 'Bukti Pemotongan Bulanan Pegawai Tetap',
+    headingPrefix: 'EBUPOT MP',
+    createBtnLabel: 'Create eBupot MP',
     slipType: 'BPMP',
   },
 };
@@ -434,9 +434,28 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
       )}
 
       {/* =================================================================== */}
-      {/* VIEW A: BUKTI POTONG SAYA (EXACT MATCH TO image_1c836f06.png)       */}
+      {/* VIEW 0: EMPTY SUBMENU LANDING (Exact Match to PDF 2 Page 1 Top)     */}
       {/* =================================================================== */}
-      {subTab === 'bukti_potong_saya' ? (
+      {subTab === 'empty' ? (
+        <div className="min-h-[420px] flex flex-col items-center justify-center text-center p-8">
+          <svg width="160" height="130" viewBox="0 0 160 130" fill="none" aria-hidden="true">
+            <circle cx="80" cy="65" r="52" fill="#F1F5F9" />
+            <rect x="44" y="34" width="72" height="54" rx="6" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="2" />
+            <rect x="52" y="44" width="28" height="5" rx="2" fill="#1E2C5E" />
+            <rect x="52" y="55" width="52" height="4" rx="2" fill="#CBD5E1" />
+            <rect x="52" y="64" width="44" height="4" rx="2" fill="#CBD5E1" />
+            <circle cx="106" cy="78" r="14" fill="#FEF9C3" stroke="#EAB308" strokeWidth="2" />
+            <path d="M101 78L105 82L112 74" stroke="#A16207" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <h2 className="font-display font-bold text-[15px] text-[#1E293B] mt-3">
+            Pilih sub menu untuk melanjutkan
+          </h2>
+          <p className="text-[12px] text-slate-500 mt-1 max-w-xs leading-relaxed">
+            <strong>11 sub menu</strong> tersedia di <strong>eBupot</strong>.<br />
+            Klik salah satu di sebelah kiri untuk membukanya.
+          </p>
+        </div>
+      ) : subTab === 'bukti_potong_saya' ? (
         <div className="space-y-4">
           <h1 className="font-display font-bold text-[20px] text-[#1E2C5E] text-center">
             Bukti Potong Saya
@@ -849,368 +868,750 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
           {/* RIGHT MAIN WORKSPACE CARD */}
           {createOpen ? (
             /* =============================================================== */
-            /* INLINE FULL-PAGE CORETAX e-BUPOT FORM (pph 21 dan unifikasi.pdf)*/
+            /* INLINE FULL-PAGE CORETAX e-BUPOT FORM (100% Match to PDF 2)     */
             /* =============================================================== */
             <form
               onSubmit={handleCreate}
               className="flex-1 min-w-0 w-full bg-white border border-[#E2E8F0] rounded-[8px] overflow-hidden shadow-xs"
             >
-              <div className="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCreateOpen(false)}
-                    className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
-                  <div>
-                    <h1 className="font-display font-extrabold text-[15px] text-[#1E2C5E] uppercase tracking-tight">
-                      {activeConfig.headingPrefix} — FORMULIR PEMBUATAN BUKTI POTONG
-                    </h1>
-                    <p className="text-[11px] text-slate-500">
-                      {currentSlipType === 'BPMP'
-                        ? 'Bukti Pemotongan Bulanan Pegawai Tetap (TER Kategori A/B/C PP 58/2023)'
-                        : currentSlipType === 'BPPU_23'
-                          ? 'Bukti Pemotongan/Pemungutan Unifikasi (PPh Pasal 23 / 4(2) / 15 / 22)'
-                          : currentSlipType === 'BPA1'
-                            ? 'Bukti Pemotongan A1 / A2 Masa Pajak Terakhir (Tahunan)'
-                            : 'Bukti Pemotongan Selain Pegawai Tetap (BP 21 / BP 26)'}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[11px] font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                  Status: NORMAL · DRAFT
-                </span>
+              <div className="px-5 pt-4 pb-2 flex items-center justify-between gap-3">
+                <h1 className="font-display font-bold text-[15px] text-[#1E293B] uppercase">
+                  {activeConfig.headingPrefix}
+                </h1>
               </div>
 
-              <div className="p-5 space-y-4 text-[12px]">
+              <div className="p-5 space-y-4 text-[11.5px]">
                 {/* Section 1: Informasi Umum */}
-                <div className="border border-slate-200 rounded overflow-hidden">
+                <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setFormCollapsed((p) => ({ ...p, umum: !p.umum }))}
-                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
+                    className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
                   >
-                    {formCollapsed.umum ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     <span>Informasi Umum</span>
+                    {formCollapsed.umum ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </button>
                   {!formCollapsed.umum && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 bg-white">
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-5 font-semibold text-slate-700">
-                          Masa Pajak <span className="text-rose-600">*</span>
-                        </label>
-                        <div className="col-span-7 grid grid-cols-2 gap-2">
+                    <div className="p-4 space-y-2.5 bg-white">
+                      {currentSlipType === 'BPA1' ? (
+                        <>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Bekerja di Lebih dari Satu Pemberi Kerja*</label>
+                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              <option value="NO">Tidak</option>
+                              <option value="YES">Ya</option>
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Masa Pajak Awal*</label>
+                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              {MONTHS_ID.map((m, i) => (
+                                <option key={m} value={i + 1}>{m} {year}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Masa Pajak Akhir*</label>
+                            <select defaultValue={12} className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              {MONTHS_ID.map((m, i) => (
+                                <option key={m} value={i + 1}>{m} {year}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">Masa Pajak*</label>
                           <select
                             value={month}
                             onChange={(e) => setMonth(Number(e.target.value))}
-                            disabled={currentSlipType === 'BPA1'}
-                            className="border border-slate-300 rounded px-2.5 py-1.5 bg-white disabled:bg-slate-100"
+                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
                           >
                             {MONTHS_ID.map((m, i) => (
                               <option key={m} value={i + 1}>
-                                {m}
+                                {m} {year}
                               </option>
                             ))}
                           </select>
-                          <input
-                            type="number"
-                            value={year}
-                            onChange={(e) => setYear(Number(e.target.value) || 2025)}
-                            className="border border-slate-300 rounded px-2.5 py-1.5 font-mono-num"
-                          />
                         </div>
-                      </div>
+                      )}
+
                       <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-5 font-semibold text-slate-700">Status Bukti Potong</label>
+                        <label className="col-span-5 text-slate-700">Status*</label>
                         <input
                           type="text"
                           readOnly
-                          value="Normal"
-                          className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5"
+                          value="NORMAL"
+                          className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 text-slate-700"
                         />
                       </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-5 font-semibold text-slate-700">
-                          NIK / NPWP Penerima <span className="text-rose-600">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={recipientNik}
-                          onChange={(e) => setRecipientNik(e.target.value)}
-                          className="col-span-7 border border-slate-300 rounded px-3 py-1.5 font-mono-num"
-                          required
-                        />
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-5 font-semibold text-slate-700">
-                          Nama Penerima <span className="text-rose-600">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={recipientName}
-                          onChange={(e) => setRecipientName(e.target.value)}
-                          className="col-span-7 border border-slate-300 rounded px-3 py-1.5 font-semibold"
-                          required
-                        />
-                      </div>
-                      {currentSlipType !== 'BPPU_23' && (
+
+                      {(subTab === 'bpmp' || subTab === 'bpa1') && (
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">Pegawai Asing*</label>
+                          <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                            <option value="NO">Tidak</option>
+                            <option value="YES">Ya</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {subTab !== 'bp26' && (
                         <>
                           <div className="grid grid-cols-12 items-center gap-2">
-                            <label className="col-span-5 font-semibold text-slate-700">
-                              Status PTKP <span className="text-rose-600">*</span>
-                            </label>
+                            <label className="col-span-5 text-slate-700">Nomor Identitas WP*</label>
+                            <input
+                              type="text"
+                              value={recipientNik}
+                              onChange={(e) => setRecipientNik(e.target.value)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                              required
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Nama*</label>
+                            <input
+                              type="text"
+                              value={recipientName}
+                              onChange={(e) => setRecipientName(e.target.value)}
+                              className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] focus:bg-white rounded-[3px] px-2.5 py-1.5 font-semibold"
+                              required
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {subTab === 'bpa2' && (
+                        <>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">NIP/NRP*</label>
+                            <input
+                              type="text"
+                              defaultValue="198804122015031002"
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Pangkat/Golongan*</label>
+                            <input
+                              type="text"
+                              defaultValue="Penata Muda / III-a"
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5"
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {(subTab === 'bpmp' || subTab === 'bpa1' || subTab === 'bpa2') && (
+                        <>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Status PTKP*</label>
                             <select
                               value={ptkp}
                               onChange={(e) => setPtkp(e.target.value as PtkpStatus)}
-                              className="col-span-7 border border-slate-300 rounded px-2.5 py-1.5 bg-white font-semibold"
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
                             >
                               {(['TK/0', 'TK/1', 'TK/2', 'TK/3', 'K/0', 'K/1', 'K/2', 'K/3'] as PtkpStatus[]).map(
                                 (p) => (
                                   <option key={p} value={p}>
-                                    {p} — PTKP {formatRp(PTKP_VALUES[p])}
+                                    {p}
                                   </option>
                                 )
                               )}
                             </select>
                           </div>
                           <div className="grid grid-cols-12 items-center gap-2">
-                            <label className="col-span-5 font-semibold text-slate-700">Posisi / Jabatan</label>
+                            <label className="col-span-5 text-slate-700">
+                              {subTab === 'bpa2' ? 'Posisi*' : 'Jabatan*'}
+                            </label>
                             <input
                               type="text"
                               value={recipientPosition}
                               onChange={(e) => setRecipientPosition(e.target.value)}
-                              className="col-span-7 border border-slate-300 rounded px-3 py-1.5"
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5"
                             />
                           </div>
                         </>
                       )}
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-5 font-semibold text-slate-700">NITKU Pemotong</label>
-                        <input
-                          type="text"
-                          readOnly
-                          value={`${workspace.corporateTaxpayer.nikNpwp}000000`}
-                          className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
-                        />
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-5 font-semibold text-slate-700">Fasilitas Perpajakan</label>
-                        <select
-                          value={taxFacility}
-                          onChange={(e) => setTaxFacility(e.target.value as 'NONE' | 'SKB' | 'DTP')}
-                          className="col-span-7 border border-slate-300 rounded px-2.5 py-1.5 bg-white"
-                        >
-                          <option value="NONE">Tanpa Fasilitas</option>
-                          <option value="SKB">Surat Keterangan Bebas (SKB)</option>
-                          <option value="DTP">PPh Ditanggung Pemerintah (DTP)</option>
-                        </select>
-                      </div>
+
+                      {(subTab === 'bpa1' || subTab === 'bpa2') && (
+                        <>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Nama Objek Pajak*</label>
+                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              <option value="21-100-01">Pegawai Tetap</option>
+                              <option value="21-100-02">Penerima Pensiun Berkala</option>
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Jenis Pajak*</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value="Pasal 21"
+                              className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Kode Objek Pajak*</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={subTab === 'bpa2' ? '21-100-02' : '21-100-01'}
+                              className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Jenis Pemotongan*</label>
+                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              <option value="SETAHUN">Setahun Penuh</option>
+                              <option value="DISETAHUNKAN">Disetahunkan</option>
+                              <option value="BAGIAN">Kurang dari Setahun</option>
+                            </select>
+                          </div>
+                        </>
+                      )}
+
+                      {(subTab === 'bp21' || currentSlipType === 'BPPU_23') && (
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">
+                            NITKU /Nomor Identitas Subunit Organisasi Penerima Penghasilan*
+                          </label>
+                          <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                            <option value="000000">{recipientNik}000000 — Pusat</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
 
-                {/* Section 2: Pajak Penghasilan & Kalkulasi Otomatis */}
-                <div className="border border-slate-200 rounded overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setFormCollapsed((p) => ({ ...p, tax: !p.tax }))}
-                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
-                  >
-                    {formCollapsed.tax ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>
-                      {currentSlipType === 'BPMP'
-                        ? 'Penghitungan PPh Pasal 21 (TER PP 58/2023)'
-                        : currentSlipType === 'BPA1'
-                          ? 'Penghasilan Bruto, Pengurang & Penghitungan PPh Pasal 21 Tahunan'
-                          : 'Pajak Penghasilan (Rp)'}
-                    </span>
-                  </button>
-                  {!formCollapsed.tax && (
-                    <div className="p-4 space-y-3 bg-white">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
-                        {currentSlipType === 'BPPU_23' ? (
-                          <div className="md:col-span-2 grid grid-cols-12 items-center gap-2">
-                            <label className="col-span-3 font-semibold text-slate-700">
-                              Kode Objek Pajak <span className="text-rose-600">*</span>
+                {/* Section 2 for BPA1 / BPA2: Penghasilan Bruto + Pengurang + Penghitungan PPh Pasal 21 (PDF 2 Pages 5-7) */}
+                {currentSlipType === 'BPA1' ? (
+                  <>
+                    <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setFormCollapsed((p) => ({ ...p, bruto: !p.bruto }))}
+                        className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
+                      >
+                        <span>Penghasilan Bruto</span>
+                        {formCollapsed.bruto ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+                      {!formCollapsed.bruto && (
+                        <div className="p-4 space-y-2 bg-white">
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">
+                              {subTab === 'bpa2' ? 'Gaji Pokok/Pensiun*' : 'Gaji/Pensiun atau THT/JHT*'}
                             </label>
-                            <select
-                              value={pph23Code}
-                              onChange={(e) => setPph23Code(e.target.value)}
-                              className="col-span-9 border border-slate-300 rounded px-3 py-1.5 bg-white"
-                            >
-                              {PPH23_OBJECT_CODES.map((c) => (
-                                <option key={c.code} value={c.code}>
-                                  {c.code} — {c.name} ({c.rate}%)
-                                </option>
-                              ))}
-                            </select>
+                            <input
+                              type="number"
+                              value={grossAmount}
+                              onChange={(e) => setGrossAmount(Number(e.target.value) || 0)}
+                              className="col-span-7 text-right border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
                           </div>
-                        ) : (
-                          <div className="md:col-span-2 grid grid-cols-12 items-center gap-2">
-                            <label className="col-span-3 font-semibold text-slate-700">Nama Objek Pajak</label>
+                          {subTab === 'bpa1' && (
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <label className="col-span-5 text-slate-700">Penghitungan Gross Up</label>
+                              <div className="col-span-7">
+                                <input type="checkbox" className="accent-[#1E2C5E]" />
+                              </div>
+                            </div>
+                          )}
+                          {(subTab === 'bpa2'
+                            ? [
+                                'Tunjangan Istri',
+                                'Tunjangan Anak',
+                                'Tunjangan Perbaikan Penghasilan',
+                                'Tunjangan Struktural/Fungsional',
+                                'Tunjangan Beras',
+                                'Tunjangan Lain-lain',
+                                'Penghasilan Tetap dan Teratur Lainnya yang Pembayarannya Terpisah dari Pembayaran Gaji',
+                              ]
+                            : [
+                                'Tunjangan PPh*',
+                                'Tunjangan Lainnya, Uang Lembur dan Sebagainya',
+                                'Honorarium dan Imbalan Lain Sejenisnya',
+                                'Premi Asuransi yang Dibayar Pemberi Kerja',
+                                'Penerimaan Dalam Bentuk Natura dan Kenikmatan Lainnya yang Dikenakan Pemotongan PPh Pasal 21',
+                                'Tantiem, Bonus, Gratifikasi, Jasa Produksi dan THR',
+                              ]
+                          ).map((lbl) => (
+                            <div key={lbl} className="grid grid-cols-12 items-center gap-2">
+                              <label className="col-span-5 text-slate-700">{lbl}</label>
+                              <input
+                                type="number"
+                                defaultValue={0}
+                                className="col-span-7 text-right border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                              />
+                            </div>
+                          ))}
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 font-semibold text-slate-800">Jumlah Penghasilan Bruto</label>
                             <input
                               type="text"
                               readOnly
-                              value={`${calc.objectCode} — ${calc.objectName}`}
-                              className="col-span-9 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-semibold text-[#1E2C5E]"
+                              value={grossAmount.toLocaleString('id-ID')}
+                              className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num font-bold"
                             />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setFormCollapsed((p) => ({ ...p, pengurang: !p.pengurang }))}
+                        className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
+                      >
+                        <span>Pengurang</span>
+                        {formCollapsed.pengurang ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+                      {!formCollapsed.pengurang && (
+                        <div className="p-4 space-y-2 bg-white">
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Biaya Jabatan / Biaya Pensiun*</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={(calc.positionAllowance || 0).toLocaleString('id-ID')}
+                              className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Iuran terkait Pensiun atau Hari Tua*</label>
+                            <input
+                              type="number"
+                              defaultValue={0}
+                              className="col-span-7 text-right border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">
+                              Zakat atau Sumbangan Keagamaan yang Bersifat Wajib yang Dibayarkan melalui Pemberi Kerja*
+                            </label>
+                            <input
+                              type="number"
+                              defaultValue={0}
+                              className="col-span-7 text-right border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 font-semibold text-slate-800">Jumlah Pengurangan</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={(calc.positionAllowance || 0).toLocaleString('id-ID')}
+                              className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num font-bold"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setFormCollapsed((p) => ({ ...p, tax: !p.tax }))}
+                        className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
+                      >
+                        <span>Penghitungan PPh Pasal 21</span>
+                        {formCollapsed.tax ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+                      {!formCollapsed.tax && (
+                        <div className="p-4 space-y-2 bg-white">
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Jumlah Penghasilan Neto*</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={calc.netAmount.toLocaleString('id-ID')}
+                              className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">
+                              Nomor Bukti Pemotongan {subTab === 'bpa2' ? 'BPA2' : 'BPA1'} dari Pemberi Kerja Sebelumnya (Apabila ada)
+                            </label>
+                            <div className="col-span-7 flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="-"
+                                className="flex-1 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                              />
+                              <button
+                                type="button"
+                                className="px-3 py-1.5 rounded-[4px] bg-[#1E2C5E] text-white font-semibold text-xs"
+                              >
+                                Get Data
+                              </button>
+                            </div>
+                          </div>
+                          {[
+                            ['Penghasilan Neto dari Pemotongan Sebelumnya', 0],
+                            ['Jumlah Penghasilan Neto untuk Perhitungan PPh Pasal 21 (Setahun/Disetahunkan)*', calc.netAmount],
+                            ['Penghasilan Tidak Kena Pajak*', calc.ptkpAmount || 0],
+                            ['Penghasilan Kena Pajak Setahun / Disetahunkan', calc.pkpAmount || 0],
+                            ['PPh Pasal 21 atas Penghasilan Kena Pajak Setahun/Disetahunkan*', calc.taxWithheld],
+                            ['PPh Pasal 21 Terutang', calc.taxWithheld],
+                            ['PPh Pasal 21 Dipotong dari Bukti Pemotongan Sebelumnya*', 0],
+                            ['PPh Pasal 21 Terutang pada Bukti Pemotongan Ini (Dapat Dikreditkan Pada SPT Tahunan)*', calc.taxWithheld],
+                            ['PPh Pasal 21 yang Dipotong/Ditanggung Pemerintah*', 0],
+                            ['PPh Pasal 21 Kurang (Lebih) Dipotong pada Masa Pajak Desember / Masa Pajak Terakhir*', calc.taxWithheld],
+                          ].map(([lbl, val]) => (
+                            <div key={String(lbl)} className="grid grid-cols-12 items-center gap-2">
+                              <label className="col-span-5 text-slate-700">{lbl}</label>
+                              <input
+                                type="text"
+                                readOnly
+                                value={Number(val).toLocaleString('id-ID')}
+                                className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                              />
+                            </div>
+                          ))}
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">
+                              Jenis Fasilitas pada Masa Pajak Desember/Masa Pajak Terakhir*
+                            </label>
+                            <select
+                              value={taxFacility}
+                              onChange={(e) => setTaxFacility(e.target.value as 'NONE' | 'SKB' | 'DTP')}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            >
+                              <option value="NONE">Tanpa Fasilitas</option>
+                              <option value="DTP">PPh Ditanggung Pemerintah</option>
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">KAP-KJS*</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value="411121-100"
+                              className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">
+                              NITKU/Nomor Identitas Sub Unit Organisasi*
+                            </label>
+                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              <option value="000000">{workspace.corporateTaxpayer.nikNpwp}000000 — Pusat</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  /* Section 2 for BPMP / BP21 / BP26 / BPU (PDF 2 Pages 2, 3, 4, 16) */
+                  <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFormCollapsed((p) => ({ ...p, tax: !p.tax }))}
+                      className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
+                    >
+                      <span>
+                        {subTab === 'bpmp'
+                          ? 'Fasilitas Perpajakan'
+                          : subTab === 'bp26'
+                            ? 'Penghitungan Pajak Penghasilan'
+                            : 'Pajak Penghasilan (Rp)'}
+                      </span>
+                      {formCollapsed.tax ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </button>
+                    {!formCollapsed.tax && (
+                      <div className="p-4 space-y-2.5 bg-white">
+                        {subTab === 'bp21' && (
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Status PTKP*</label>
+                            <select
+                              value={ptkp}
+                              onChange={(e) => setPtkp(e.target.value as PtkpStatus)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            >
+                              {(['TK/0', 'TK/1', 'TK/2', 'TK/3', 'K/0', 'K/1', 'K/2', 'K/3'] as PtkpStatus[]).map(
+                                (p) => (
+                                  <option key={p} value={p}>
+                                    {p}
+                                  </option>
+                                )
+                              )}
+                            </select>
                           </div>
                         )}
 
                         <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-5 font-semibold text-slate-700">
-                            Penghasilan Bruto (Rp) <span className="text-rose-600">*</span>
+                          <label className="col-span-5 text-slate-700">
+                            {subTab === 'bp26'
+                              ? 'Nama Fasilitas*'
+                              : 'Fasilitas Pajak yang Dimiliki oleh Penerima Penghasilan*'}
                           </label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={grossAmount}
-                            onChange={(e) => setGrossAmount(Number(e.target.value) || 0)}
-                            className="col-span-7 text-right border border-slate-300 rounded px-3 py-1.5 font-mono-num font-semibold"
-                            required
-                          />
+                          <select
+                            value={taxFacility}
+                            onChange={(e) => setTaxFacility(e.target.value as 'NONE' | 'SKB' | 'DTP')}
+                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                          >
+                            <option value="NONE">Tanpa Fasilitas</option>
+                            <option value="SKB">Surat Keterangan Bebas (SKB) / SKD WPLN</option>
+                            <option value="DTP">PPh Ditanggung Pemerintah</option>
+                          </select>
                         </div>
 
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-5 font-semibold text-slate-700">
-                            {currentSlipType === 'BPA1' ? 'Penghasilan Neto (Rp)' : 'Dasar Pengenaan Pajak (Rp)'}
-                          </label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={formatRp(calc.netAmount)}
-                            className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
-                          />
-                        </div>
-
-                        {currentSlipType === 'BPA1' && (
+                        {subTab === 'bp26' && (
                           <>
                             <div className="grid grid-cols-12 items-center gap-2">
-                              <label className="col-span-5 font-semibold text-slate-700">Biaya Jabatan (5%)</label>
+                              <label className="col-span-5 text-slate-700">Nomor Identitas WP*</label>
                               <input
                                 type="text"
-                                readOnly
-                                value={formatRp(calc.positionAllowance || 0)}
-                                className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                                value={recipientNik}
+                                onChange={(e) => setRecipientNik(e.target.value)}
+                                className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
                               />
                             </div>
                             <div className="grid grid-cols-12 items-center gap-2">
-                              <label className="col-span-5 font-semibold text-slate-700">PKP Setahun</label>
+                              <label className="col-span-5 text-slate-700">Nama*</label>
                               <input
                                 type="text"
-                                readOnly
-                                value={formatRp(calc.pkpAmount || 0)}
-                                className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                                value={recipientName}
+                                onChange={(e) => setRecipientName(e.target.value)}
+                                className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5"
                               />
                             </div>
                           </>
                         )}
 
                         <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-5 font-semibold text-slate-700">Tarif Pajak (%)</label>
+                          <label className="col-span-5 text-slate-700">Nama Objek Pajak*</label>
+                          {currentSlipType === 'BPPU_23' ? (
+                            <select
+                              value={pph23Code}
+                              onChange={(e) => setPph23Code(e.target.value)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            >
+                              {PPH23_OBJECT_CODES.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                  {c.name} ({c.code})
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              <option value={calc.objectCode}>{calc.objectName}</option>
+                            </select>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">Jenis Pajak*</label>
                           <input
                             type="text"
                             readOnly
-                            value={`${calc.ratePercent}%`}
-                            className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num font-bold text-[#1E2C5E]"
+                            value={currentSlipType === 'BPPU_23' ? 'Pasal 23' : subTab === 'bp26' ? 'Pasal 26' : 'Pasal 21'}
+                            className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5"
                           />
                         </div>
 
                         <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-5 font-semibold text-slate-700">KAP - KJS</label>
+                          <label className="col-span-5 text-slate-700">Kode Objek Pajak*</label>
                           <input
                             type="text"
                             readOnly
-                            value={currentSlipType === 'BPPU_23' ? '411124-104 (PPh Pasal 23)' : '411121-100 (PPh Pasal 21)'}
-                            className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                            value={calc.objectCode}
+                            className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
                           />
                         </div>
-                      </div>
 
-                      <div className="bg-[#FEF9E7] border border-[#F7CA36] rounded px-4 py-2.5 flex items-center justify-between">
-                        <span className="font-bold text-[#1E2C5E]">Pajak Penghasilan (PPh) Dipotong / Terutang</span>
-                        <span className="font-mono-num text-[15px] font-extrabold text-[#1E2C5E]">
-                          {formatRp(calc.taxWithheld)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                        {subTab !== 'bpmp' && (
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Sifat Pajak Penghasilan*</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value="Tidak Final"
+                              className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5"
+                            />
+                          </div>
+                        )}
 
-                {/* Section 3: Dokumen Referensi */}
-                <div className="border border-slate-200 rounded overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setFormCollapsed((p) => ({ ...p, ref: !p.ref }))}
-                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
-                  >
-                    {formCollapsed.ref ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>Dokumen Referensi</span>
-                  </button>
-                  {!formCollapsed.ref && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3 bg-white">
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Jenis Dokumen</label>
-                        <select
-                          value={refDocType}
-                          onChange={(e) => setRefDocType(e.target.value)}
-                          className="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white"
-                        >
-                          <option value="Invoice / Daftar Gaji">Invoice / Daftar Gaji</option>
-                          <option value="Faktur Pajak">Faktur Pajak</option>
-                          <option value="Kontrak / Perjanjian">Kontrak / Perjanjian</option>
-                          <option value="Bukti Pembayaran">Bukti Pembayaran</option>
-                        </select>
+                        {subTab === 'bp21' && (
+                          <div className="space-y-1.5">
+                            <div className="text-[11px] text-slate-600">
+                              Pendapatan Bruto yang Telah Dibayar Sebelumnya (Khusus untuk Kode Objek Pajak 21-401-01 dan 21-401-02) jika terdapat pembayaran lebih dari sekali dalam periode 2 tahun
+                            </div>
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <label className="col-span-5 text-slate-700">Jumlah</label>
+                              <input
+                                type="text"
+                                readOnly
+                                value="0"
+                                className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">
+                            {currentSlipType === 'BPPU_23' ? 'Dasar Pengenaan Pajak (Rp)*' : 'Penghasilan Bruto (Rp)*'}
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={grossAmount}
+                            onChange={(e) => setGrossAmount(Number(e.target.value) || 0)}
+                            className="col-span-7 text-right border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            required
+                          />
+                        </div>
+
+                        {(subTab === 'bp21' || subTab === 'bp26') && (
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">DPP (%)*</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={subTab === 'bp21' ? '50,00' : '100,00'}
+                              className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                            />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">Tarif (%)*</label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={calc.ratePercent.toFixed(2).replace('.', ',')}
+                            className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">
+                            {subTab === 'bpmp' ? 'Pajak Penghasilan yang Dipotong (Rp)*' : 'Pajak Penghasilan (Rp)*'}
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={calc.taxWithheld.toLocaleString('id-ID')}
+                            className="col-span-7 text-right border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num font-bold text-[#1E2C5E]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">
+                            {currentSlipType === 'BPPU_23' || subTab === 'bp26' ? 'KAP*' : 'KAP-KJS*'}
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={currentSlipType === 'BPPU_23' ? '411124-100' : '411121-100'}
+                            className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                          />
+                        </div>
+
+                        {subTab === 'bpmp' && (
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">
+                              NITKU/Nomor Identitas Sub Unit Organisasi*
+                            </label>
+                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                              <option value="000000">{workspace.corporateTaxpayer.nikNpwp}000000 — Pusat</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Nomor Dokumen</label>
-                        <input
-                          type="text"
-                          value={refDocNumber}
-                          onChange={(e) => setRefDocNumber(e.target.value)}
-                          className="w-full border border-slate-300 rounded px-3 py-1.5 font-mono-num"
-                        />
+                    )}
+                  </div>
+                )}
+
+                {/* Section 3: Dokumen Referensi (for BP21, BP26, BPPU — PDF 2 Pages 3, 4, 16) */}
+                {subTab !== 'bpmp' && currentSlipType !== 'BPA1' && (
+                  <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFormCollapsed((p) => ({ ...p, ref: !p.ref }))}
+                      className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
+                    >
+                      <span>Dokumen Referensi</span>
+                      {formCollapsed.ref ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </button>
+                    {!formCollapsed.ref && (
+                      <div className="p-4 space-y-2.5 bg-white">
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">Jenis Dokumen*</label>
+                          <select
+                            value={refDocType}
+                            onChange={(e) => setRefDocType(e.target.value)}
+                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                          >
+                            <option value="Invoice / Daftar Gaji">Invoice</option>
+                            <option value="Faktur Pajak">Faktur Pajak</option>
+                            <option value="Kontrak / Perjanjian">Kontrak / Perjanjian</option>
+                            <option value="Bukti Pembayaran">Bukti Pembayaran</option>
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">Nomor Dokumen*</label>
+                          <input
+                            type="text"
+                            value={refDocNumber}
+                            onChange={(e) => setRefDocNumber(e.target.value)}
+                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                          />
+                        </div>
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">Tanggal Dokumen*</label>
+                          <input
+                            type="date"
+                            value={refDocDate}
+                            onChange={(e) => setRefDocDate(e.target.value)}
+                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 font-mono-num"
+                          />
+                        </div>
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 text-slate-700">
+                            NITKU/Nomor Identitas Sub Unit Organisasi*
+                          </label>
+                          <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
+                            <option value="000000">{workspace.corporateTaxpayer.nikNpwp}000000 — Pusat</option>
+                          </select>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Tanggal Dokumen</label>
-                        <input
-                          type="date"
-                          value={refDocDate}
-                          onChange={(e) => setRefDocDate(e.target.value)}
-                          className="w-full border border-slate-300 rounded px-3 py-1.5 font-mono-num"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Bottom Action Bar matching Coretax PDF (Go to search · Simpan Konsep · Submit) */}
-              <div className="px-5 py-3.5 bg-[#F8FAFC] border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              {/* Bottom-Left Action Bar matching Coretax PDF 2 Pages 2-7 & 16 (Submit · Simpan Konsep · Go to search) */}
+              <div className="px-5 py-4 bg-white border-t border-slate-100 flex items-center gap-2.5">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-[5px] bg-[#64748B] hover:bg-[#475569] text-white font-semibold text-xs cursor-pointer"
+                >
+                  Submit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveSlipRecord(false)}
+                  className="px-4 py-2 rounded-[5px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-semibold text-xs leading-tight cursor-pointer text-center"
+                >
+                  Simpan
+                  <br />
+                  Konsep
+                </button>
                 <button
                   type="button"
                   onClick={() => setCreateOpen(false)}
-                  className="px-4 py-2 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs cursor-pointer"
+                  className="px-3 py-2 text-slate-600 hover:text-[#1E2C5E] font-medium text-xs leading-tight cursor-pointer text-left"
                 >
-                  Go to search
+                  Go to
+                  <br />
+                  search
                 </button>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => saveSlipRecord(false)}
-                    className="px-4 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs cursor-pointer"
-                  >
-                    Simpan Konsep
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-[6px] bg-[#F7CA36] hover:bg-[#E5B822] text-[#1E2C5E] font-extrabold text-xs cursor-pointer"
-                  >
-                    Submit
-                  </button>
-                </div>
               </div>
             </form>
           ) : (

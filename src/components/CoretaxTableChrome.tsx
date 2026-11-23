@@ -2,6 +2,8 @@ import React from 'react';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   FileSpreadsheet,
   FileText,
   Filter,
@@ -44,53 +46,45 @@ export const CoretaxIconToolbar: React.FC<CoretaxIconToolbarProps> = ({
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
 
-        {onExportCsv && (
-          <button
-            type="button"
-            onClick={onExportCsv}
-            title="Ekspor CSV"
-            className="w-7 h-7 rounded-[6px] bg-[#5B6472] hover:bg-[#47505E] text-white inline-flex items-center justify-center transition cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onExportCsv}
+          title="Ekspor CSV"
+          className="w-7 h-7 rounded-[6px] bg-[#5B6472] hover:bg-[#47505E] text-white inline-flex items-center justify-center transition cursor-pointer"
+        >
+          <FileText className="w-3.5 h-3.5" />
+        </button>
 
-        {onExportExcel && (
-          <button
-            type="button"
-            onClick={onExportExcel}
-            title="Ekspor Excel (.csv)"
-            className="w-7 h-7 rounded-[6px] bg-[#2F7D4A] hover:bg-[#25663C] text-white inline-flex items-center justify-center transition cursor-pointer"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onExportExcel || onExportCsv}
+          title="Ekspor Excel (.csv)"
+          className="w-7 h-7 rounded-[6px] bg-[#2F7D4A] hover:bg-[#25663C] text-white inline-flex items-center justify-center transition cursor-pointer"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5" />
+        </button>
 
-        {onPrintPdf && (
-          <button
-            type="button"
-            onClick={onPrintPdf}
-            title="Cetak / Simpan PDF"
-            className="w-7 h-7 rounded-[6px] bg-[#C83737] hover:bg-[#AA2B2B] text-white inline-flex items-center justify-center transition cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onPrintPdf || (() => window.print())}
+          title="Cetak / Simpan PDF"
+          className="w-7 h-7 rounded-[6px] bg-[#C83737] hover:bg-[#AA2B2B] text-white inline-flex items-center justify-center transition cursor-pointer"
+        >
+          <Printer className="w-3.5 h-3.5" />
+        </button>
 
-        {onToggleFilter && (
-          <button
-            type="button"
-            onClick={onToggleFilter}
-            title="Tampilkan / Sembunyikan Filter Kolom"
-            className={`w-7 h-7 rounded-[6px] border inline-flex items-center justify-center transition cursor-pointer ${
-              filterActive
-                ? 'bg-[#1E2C5E] border-[#1E2C5E] text-white'
-                : 'bg-[#E6F2FA] border-[#BBD9EE] text-[#1E2C5E] hover:bg-[#D5E9F8]'
-            }`}
-          >
-            <Filter className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onToggleFilter}
+          title="Tampilkan / Sembunyikan Filter Kolom"
+          className={`w-7 h-7 rounded-[6px] border inline-flex items-center justify-center transition cursor-pointer ${
+            filterActive
+              ? 'bg-[#E6F2FA] border-[#9EC5E6] text-[#1E2C5E]'
+              : 'bg-[#E6F2FA] border-[#BBD9EE] text-[#1E2C5E] hover:bg-[#D5E9F8]'
+          }`}
+        >
+          <Filter className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {rightContent && <div className="flex items-center gap-2">{rightContent}</div>}
@@ -105,10 +99,12 @@ interface CoretaxPaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   pageSizeOptions?: number[];
+  showEntriesText?: boolean;
 }
 
 /**
- * Authentic Coretax DJP centered pagination bar (< 1 > [10 v])
+ * Authentic Coretax DJP centered pagination bar:
+ * Menampilkan X sampai Y dari Z entri  [<<] [<] [1] [>] [>>] [10 v]
  */
 export const CoretaxPagination: React.FC<CoretaxPaginationProps> = ({
   totalItems,
@@ -117,39 +113,66 @@ export const CoretaxPagination: React.FC<CoretaxPaginationProps> = ({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50],
+  showEntriesText = true,
 }) => {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, totalPages);
+  const startEntry = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const endEntry = Math.min(totalItems, safePage * pageSize);
 
   return (
-    <div className="px-4 py-3 border-t border-[#E5EAF2] bg-white flex flex-wrap items-center justify-center gap-3 text-xs text-slate-600">
-      <div className="flex items-center gap-1.5">
+    <div className="px-4 py-2.5 border-t border-[#E5EAF2] bg-white flex flex-wrap items-center justify-center gap-3 text-[11.5px] text-slate-600">
+      {showEntriesText && (
+        <span className="text-slate-500">
+          Menampilkan {startEntry} sampai {endEntry} dari {totalItems} entri
+        </span>
+      )}
+
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          disabled={safePage <= 1}
+          onClick={() => onPageChange(1)}
+          className="w-7 h-7 rounded-[4px] border border-[#E2E8F0] bg-[#F8FAFC] inline-flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+          aria-label="Halaman pertama"
+        >
+          <ChevronsLeft className="w-3.5 h-3.5" />
+        </button>
+
         <button
           type="button"
           disabled={safePage <= 1}
           onClick={() => onPageChange(Math.max(1, safePage - 1))}
-          className="w-7 h-7 rounded-[6px] inline-flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-35 cursor-pointer"
+          className="w-7 h-7 rounded-[4px] border border-[#E2E8F0] bg-[#F8FAFC] inline-flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
           aria-label="Halaman sebelumnya"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3.5 h-3.5" />
         </button>
 
-        <span className="min-w-[28px] h-7 px-2 rounded-[6px] bg-[#1E2C5E] text-white font-bold font-mono-num inline-flex items-center justify-center">
-          {safePage}
-        </span>
-
-        {totalPages > 1 && (
-          <span className="text-[11px] text-slate-500 font-mono-num">/ {totalPages}</span>
+        {totalItems > 0 && (
+          <span className="min-w-[28px] h-7 px-2 rounded-[4px] border border-[#CBD5E1] bg-white text-[#1E2C5E] font-bold font-mono-num inline-flex items-center justify-center">
+            {safePage}
+          </span>
         )}
 
         <button
           type="button"
           disabled={safePage >= totalPages}
           onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
-          className="w-7 h-7 rounded-[6px] inline-flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-35 cursor-pointer"
+          className="w-7 h-7 rounded-[4px] border border-[#E2E8F0] bg-[#F8FAFC] inline-flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
           aria-label="Halaman berikutnya"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+
+        <button
+          type="button"
+          disabled={safePage >= totalPages}
+          onClick={() => onPageChange(totalPages)}
+          className="w-7 h-7 rounded-[4px] border border-[#E2E8F0] bg-[#F8FAFC] inline-flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+          aria-label="Halaman terakhir"
+        >
+          <ChevronsRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
@@ -159,7 +182,7 @@ export const CoretaxPagination: React.FC<CoretaxPaginationProps> = ({
           onPageSizeChange(Number(e.target.value));
           onPageChange(1);
         }}
-        className="h-7 px-2 border border-[#CBD5E1] rounded-[6px] bg-white text-xs font-mono-num text-slate-700 focus:outline-none focus:border-[#1E2C5E]"
+        className="h-7 px-2 border border-[#CBD5E1] rounded-[4px] bg-white text-[11.5px] font-mono-num text-slate-700 focus:outline-none focus:border-[#1E2C5E]"
         aria-label="Jumlah baris per halaman"
       >
         {pageSizeOptions.map((opt) => (
@@ -190,3 +213,4 @@ export function downloadCsvFile(filename: string, headers: string[], rows: Array
   a.click();
   URL.revokeObjectURL(url);
 }
+

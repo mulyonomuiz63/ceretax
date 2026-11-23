@@ -317,86 +317,125 @@ export const PortalSayaModule: React.FC<PortalSayaModuleProps> = ({
       {/* ================================================================= */}
       {subTab === 'ikhtisar' && (
         <div className="space-y-6">
-          {/* Official Coretax Home-Portal Security Awareness Banner */}
-          <div className="rounded-[14px] overflow-hidden border border-[#E5EAF2] shadow-[0_8px_28px_rgba(27,41,88,0.10)] grid grid-cols-1 lg:grid-cols-12">
-            <div className="lg:col-span-4 bg-[linear-gradient(155deg,#E11D2E_0%,#B91C1C_100%)] text-white p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="font-display font-black text-[28px] sm:text-[32px] leading-[1.05] tracking-tight uppercase">
-                  Waspada
-                </div>
-                <div className="flex items-end gap-2 mt-1">
-                  <span className="font-display font-black text-[76px] sm:text-[86px] leading-[0.82] tracking-tighter text-white drop-shadow-sm">
-                    2
-                  </span>
-                  <span className="font-display font-black text-[34px] sm:text-[38px] leading-none uppercase pb-1">
-                    Hal
-                  </span>
-                </div>
-                <p className="text-xs sm:text-[13px] font-semibold text-white/90 mt-4">
-                  Terkait dengan layanan simulasi &amp; portal
-                </p>
-                <div className="font-display font-black text-xl tracking-tight mt-0.5">
-                  KELAS<span className="text-[#F4C430]">BREVET</span>
-                </div>
-              </div>
+          {/* Official Coretax Home-Portal Security Awareness Banner (Exact match to PDF 1 Page 1) */}
+          <div className="rounded-[14px] overflow-hidden border border-[#DCE2EC] bg-[linear-gradient(180deg,#F5F7FB_0%,#E6EBF5_100%)] shadow-[0_8px_28px_rgba(27,41,88,0.08)] relative">
+            {/* Top Indonesian Red-White Ribbon Accent */}
+            <div className="h-3 bg-[linear-gradient(90deg,#D91C24_0%,#B91C1C_65%,#FFFFFF_100%)]" />
 
-              <div className="relative z-10 mt-5 pt-3 border-t border-white/20 flex items-center gap-2 text-[11.5px] text-white/90">
-                <ShieldAlert className="w-4 h-4 text-[#F4C430] shrink-0" />
-                <span>Simulasi resmi edukasi prosedur Coretax DJP</span>
-              </div>
-            </div>
-
-            <div className="lg:col-span-8 bg-[#1A265A] text-white p-6 sm:p-7 flex flex-col justify-between space-y-5">
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="w-7 h-7 rounded-full border-2 border-[#EF4444] text-white font-display font-extrabold text-sm inline-flex items-center justify-center shrink-0">
-                    1
-                  </span>
-                  <span className="bg-[#DC2626] text-white font-display font-extrabold text-base px-3 py-0.5 rounded-[4px]">
-                    Penipu
-                  </span>
-                  <span className="font-semibold text-sm text-white/95">
-                    yang mengatasnamakan DJP
-                  </span>
-                </div>
-                <div className="mt-3 pl-1 sm:pl-9 space-y-1.5 text-[12px] text-slate-200">
-                  <div className="font-bold text-[#F4C430]">Ciri-ciri yang harus diwaspadai:</div>
-                  <ul className="space-y-1 leading-snug">
-                    <li>▸ Menghubungi lewat <strong>WhatsApp, SMS, atau telepon</strong> mengaku dari DJP</li>
-                    <li>▸ Mengirim <strong>link mencurigakan (phishing)</strong> untuk login atau update data</li>
-                    <li>▸ Meminta <strong>data sensitif</strong> (nomor rekening, OTP) dan <strong>pembayaran tertentu</strong></li>
-                    <li>▸ Mengancam dengan denda/pemblokiran akun jika tidak segera mengikuti instruksi</li>
-                  </ul>
-                  <div className="text-[#F4C430] font-bold pt-1">
-                    Abaikan jika menemui ciri-ciri tersebut.
+            <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+              {/* Left Column: Bold Outline Title + Hacker/Laptop Shield Illustration */}
+              <div className="lg:col-span-5 flex flex-col items-center text-center space-y-4">
+                <div className="space-y-1">
+                  <div className="inline-block bg-[#1B2958] text-white font-display font-black text-xl sm:text-2xl px-3.5 py-1 rounded-[6px] tracking-tight uppercase shadow-sm">
+                    JAGA DATA PRIBADI,
+                  </div>
+                  <div className="inline-block bg-[#1B2958] text-white font-display font-black text-xl sm:text-2xl px-3.5 py-1 rounded-[6px] tracking-tight uppercase shadow-sm">
+                    PERKUAT KEAMANAN
+                  </div>
+                  <div className="inline-block bg-[#1B2958] text-[#F4C430] font-display font-black text-xl sm:text-2xl px-4 py-1 rounded-[6px] tracking-tight uppercase shadow-sm">
+                    AKUN ANDA
                   </div>
                 </div>
+
+                {/* Laptop + Lock Security SVG Illustration matching PDF 1 Page 1 */}
+                <svg
+                  width="230"
+                  height="165"
+                  viewBox="0 0 230 165"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="mx-auto"
+                  aria-hidden="true"
+                >
+                  {/* Thief silhouette behind laptop */}
+                  <circle cx="88" cy="48" r="14" fill="#1E293B" />
+                  <path d="M64 98C64 78 74 66 88 66C102 66 112 78 112 98H64Z" fill="#334155" />
+                  <rect x="74" y="43" width="28" height="7" rx="3.5" fill="#0F172A" />
+                  <circle cx="82" cy="46.5" r="2" fill="#FFFFFF" />
+                  <circle cx="94" cy="46.5" r="2" fill="#FFFFFF" />
+                  {/* Laptop screen */}
+                  <rect x="64" y="72" width="104" height="68" rx="6" fill="#CBD5E1" stroke="#64748B" strokeWidth="3" />
+                  <rect x="71" y="79" width="90" height="54" rx="3" fill="#94A3B8" />
+                  {/* Padlock on screen */}
+                  <rect x="101" y="96" width="30" height="24" rx="4" fill="#FFFFFF" />
+                  <path d="M108 96V89C108 84.5 111.5 81 116 81C120.5 81 124 84.5 124 89V96" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" />
+                  <circle cx="116" cy="106" r="2.5" fill="#1E2C5E" />
+                  <path d="M116 108V114" stroke="#1E2C5E" strokeWidth="2.5" strokeLinecap="round" />
+                  {/* Password stars box */}
+                  <rect x="86" y="123" width="60" height="10" rx="2" fill="#DC2626" />
+                  <text x="116" y="131" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontWeight="bold">
+                    * * * * * * * *
+                  </text>
+                  {/* Laptop base */}
+                  <path d="M48 140H184L174 150H58L48 140Z" fill="#64748B" />
+                </svg>
               </div>
 
-              <div className="h-[1.5px] bg-[#DC2626]/70" />
-
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="w-7 h-7 rounded-full border-2 border-[#EF4444] text-white font-display font-extrabold text-sm inline-flex items-center justify-center shrink-0">
-                    2
-                  </span>
-                  <span className="bg-[#DC2626] text-white font-display font-extrabold text-base px-3 py-0.5 rounded-[4px]">
-                    Calo
-                  </span>
-                  <span className="font-semibold text-sm text-white/95">
-                    yang menawarkan jasa Coretax
-                  </span>
+              {/* Right Column: 4 Numbered Blue Cards matching PDF 1 Page 1 */}
+              <div className="lg:col-span-7 space-y-3">
+                <div className="bg-[#1E40AF] text-white font-semibold text-xs sm:text-[13px] px-4 py-2 rounded-[8px] shadow-xs inline-block">
+                  Lindungi diri Anda dari penyalahgunaan data dengan langkah sederhana berikut:
                 </div>
-                <div className="mt-3 pl-1 sm:pl-9 grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px] text-slate-200">
-                  <p className="leading-relaxed">
-                    Banyak beredar pihak tidak resmi yang menawarkan jasa pengisian SPT melalui Coretax dengan imbalan murah. Pelajari alurnya secara mandiri melalui simulasi ini.
-                  </p>
-                  <div className="space-y-1">
-                    <div className="font-bold text-[#F4C430]">Risiko yang bisa terjadi:</div>
-                    <div>▸ <strong>Kebocoran data</strong> pribadi dan perpajakan</div>
-                    <div>▸ <strong>Akun diambil alih</strong> di luar kendali Anda</div>
-                    <div>▸ <strong>Masalah hukum</strong> karena aktivitas ilegal</div>
-                  </div>
+
+                <div className="space-y-2.5">
+                  {[
+                    {
+                      num: '1',
+                      badge: 'OTP ****',
+                      text: (
+                        <>
+                          Lindungi informasi pribadi seperti <strong>kata sandi dan kode OTP</strong>. Jangan pernah membagikannya kepada pihak tidak berhak.
+                        </>
+                      ),
+                    },
+                    {
+                      num: '2',
+                      badge: '**** 🔑',
+                      text: (
+                        <>
+                          Gunakan <strong>kata sandi yang kuat</strong> dan hindari menyimpannya di peramban atau browser atau perangkat publik.
+                        </>
+                      ),
+                    },
+                    {
+                      num: '3',
+                      badge: '⚠️ !',
+                      text: (
+                        <>
+                          <strong>Waspadai upaya phishing</strong>, abaikan tautan atau pesan mencurigakan untuk menjaga keamanan informasi Anda.
+                        </>
+                      ),
+                    },
+                    {
+                      num: '4',
+                      badge: '✓ 2FA',
+                      text: (
+                        <>
+                          <strong>Aktifkan verifikasi dua langkah</strong> untuk lapisan keamanan tambahan di laman Coretax DJP dengan cara klik menu{' '}
+                          <span className="text-[#F4C430] font-bold">"Portal Saya"</span> lalu klik{' '}
+                          <span className="text-[#F4C430] font-bold">"Profil Saya"</span>, selanjutnya pilih{' '}
+                          <span className="text-[#F4C430] font-bold">"Verifikasi Dua Langkah"</span>.
+                        </>
+                      ),
+                    },
+                  ].map((step) => (
+                    <div
+                      key={step.num}
+                      className="flex items-stretch gap-3 bg-white/80 border border-[#CBD5E1] rounded-[12px] p-2.5 shadow-xs"
+                    >
+                      <div className="w-16 sm:w-20 shrink-0 rounded-[8px] bg-[#EFF6FF] border border-[#BFDBFE] flex flex-col items-center justify-center p-2 text-center">
+                        <span className="w-5 h-5 rounded-full bg-[#F59E0B] text-white font-bold text-[11px] inline-flex items-center justify-center mb-1">
+                          {step.num}
+                        </span>
+                        <span className="text-[10px] font-extrabold text-[#1E3A8A] font-mono-num">
+                          {step.badge}
+                        </span>
+                      </div>
+                      <div className="flex-1 bg-[#2563EB] text-white rounded-[8px] px-4 py-2.5 text-xs leading-relaxed flex items-center">
+                        <div>{step.text}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

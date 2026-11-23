@@ -129,6 +129,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [pageSize, setPageSize] = useState(50);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [fakturSuccessToast, setFakturSuccessToast] = useState<string | null>(null);
   const [addTxModalOpen, setAddTxModalOpen] = useState(false);
   const [uploadAfterCreateOpen, setUploadAfterCreateOpen] = useState(false);
   const [bulkSignTargets, setBulkSignTargets] = useState<TaxInvoice[]>([]);
@@ -324,6 +325,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     ]);
     setSelectedDraftItemIds([]);
     setCreateModalOpen(true);
+    setFakturSuccessToast('Berhasil membuat Faktur Pajak Keluaran baru!');
   };
 
   const handleAddTransactionLine = (e: React.FormEvent) => {
@@ -432,6 +434,23 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
   return (
     <div className="space-y-4">
+      {fakturSuccessToast && (
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#DCFCE7] border border-[#22C55E] text-[#15803D] rounded-[5px] px-4 py-2.5 shadow-lg flex items-center gap-3 min-w-[340px]">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" />
+          <div className="flex-1 text-[12px]">
+            <div className="font-bold">Success</div>
+            <div>{fakturSuccessToast}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFakturSuccessToast(null)}
+            className="text-[#15803D] hover:text-[#14532D] font-bold cursor-pointer"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {accountMode !== 'CORPORATE' && (
         <div className="bg-amber-50 border border-amber-300 text-amber-900 rounded-lg px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -1162,22 +1181,31 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
               <div className="px-5 pt-3.5 pb-1 flex flex-wrap items-center justify-between gap-2 relative">
                 <div className="flex flex-wrap items-center gap-2">
                 {!isReturTab && (
-                  <button
-                    type="button"
-                    onClick={handleOpenInvoiceEditor}
-                    className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-[#F4C430]" />
-                    <span>
-                      {normalizedTab === 'output'
-                        ? 'Buat Faktur'
-                        : normalizedTab === 'input'
-                          ? 'Tambah Simulasi Faktur Masukan'
-                          : normalizedTab === 'dok_lain_keluaran'
-                            ? 'Catat Dokumen Lain Keluaran (PEB)'
-                            : 'Catat Dokumen Lain Masukan'}
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleOpenInvoiceEditor}
+                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-[#F4C430]" />
+                      <span>
+                        {normalizedTab === 'output'
+                          ? 'Buat Faktur'
+                          : normalizedTab === 'input'
+                            ? 'Tambah Simulasi Faktur Masukan'
+                            : normalizedTab === 'dok_lain_keluaran'
+                              ? 'Catat Dokumen Lain Keluaran (PEB)'
+                              : 'Catat Dokumen Lain Masukan'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
+                    >
+                      <span>Impor Data</span>
+                      <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                    </button>
+                  </>
                 )}
 
                 {/* Monitoring Dropdown */}
@@ -1819,7 +1847,22 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                     </div>
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Kode</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-semibold text-slate-700">Kode</label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          downloadCsvFile(
+                            'Daftar_Kode_Barang_Jasa_Coretax.csv',
+                            ['Kode', 'Tipe', 'Nama Barang/Jasa'],
+                            ITEM_CODES_CATALOG.map((it) => [it.code, it.type, it.name])
+                          )
+                        }
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-[#1E2C5E] text-white text-[10.5px] font-semibold cursor-pointer"
+                      >
+                        <span>Unduh Kode</span>
+                      </button>
+                    </div>
                     <select
                       value={itemCode}
                       onChange={(e) => {
