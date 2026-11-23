@@ -273,20 +273,27 @@ const FlagMini: React.FC<{ lang: 'id-ID' | 'en-US' }> = ({ lang }) => {
   );
 };
 
-/** Clean Navy badge icon matching the official Coretax horizontal nav bar (no yellow dot) */
-const ModuleBadgeIcon: React.FC<{ icon: React.FC<{ className?: string }> }> = ({ icon: Icon }) => (
+/** Clean Navy badge icon matching the official Coretax horizontal nav bar with two-tone gold branding */
+const ModuleBadgeIcon: React.FC<{ moduleKey?: string; icon?: React.FC<{ className?: string }> }> = ({
+  moduleKey,
+  icon: Icon,
+}) => (
   <span className="relative inline-flex items-center justify-center w-5 h-5 shrink-0">
-    <Icon className="w-[17px] h-[17px] text-[#1E2C5E]" />
+    {moduleKey ? (
+      <MobileDuotoneModuleIcon moduleKey={moduleKey} active={true} />
+    ) : Icon ? (
+      <Icon className="w-[17px] h-[17px] text-[#1E2C5E]" />
+    ) : null}
   </span>
 );
 
-/** Official Coretax Mobile Duotone Navy/Slate + Gold (Kuning) Module Icon */
+/** Official Coretax Mobile & Desktop Duotone Navy + Gold (Kuning) Module Icon */
 const MobileDuotoneModuleIcon: React.FC<{
   moduleKey: string;
   active?: boolean;
 }> = ({ moduleKey, active = false }) => {
-  const baseColor = active ? '#1B2958' : '#8C9BB5';
-  const goldColor = '#F4B81B';
+  const baseColor = active ? '#163A6B' : '#8C9BB5';
+  const goldColor = '#F59E0B';
 
   switch (moduleKey) {
     case 'portal':
@@ -308,34 +315,29 @@ const MobileDuotoneModuleIcon: React.FC<{
     case 'efaktur':
       return (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <circle cx="12" cy="12" r="8.5" fill={goldColor} />
           <path
-            d="M11 3L4 7V15L11 19L18 15V7L11 3Z"
+            d="M6 5h6.5a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
             fill={baseColor}
-            fillOpacity={active ? '0.92' : '0.78'}
           />
-          <rect x="10" y="7" width="9.5" height="12" rx="2" fill={goldColor} />
-          <path
-            d="M12.5 10.5H17M12.5 13H17M12.5 15.5H15.5"
-            stroke="#FFFFFF"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-          />
+          <path d="M7 8.5h4M7 12h4M7 15h2.5" stroke={goldColor} strokeWidth="1.4" strokeLinecap="round" />
+          <circle cx="15.5" cy="14" r="3.5" fill="#FACC15" stroke={baseColor} strokeWidth="1" />
+          <text x="15.5" y="15.8" textAnchor="middle" fontSize="4.8" fontWeight="bold" fill={baseColor}>Rp</text>
         </svg>
       );
     case 'ebupot':
       return (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
           <path
-            d="M11.5 2.5L4.5 5.6V11.2C4.5 15.9 7.5 20.1 11.5 21.5C15.5 20.1 18.5 15.9 18.5 11.2V5.6L11.5 2.5Z"
+            d="M5 4a2 2 0 0 1 2-2h7l6 6v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4z"
             fill={baseColor}
           />
-          <rect x="11" y="10" width="9" height="8" rx="1.8" fill={goldColor} />
-          <path
-            d="M13 13H18M13 15.5H16.5"
-            stroke="#FFFFFF"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
+          <path d="M14 2v4a2 2 0 0 0 2 2h4" fill={goldColor} />
+          <rect x="8" y="10" width="5" height="1.8" rx="0.5" fill={goldColor} />
+          <rect x="8" y="13.5" width="7" height="1.8" rx="0.5" fill={goldColor} />
+          <rect x="8" y="17" width="4" height="1.8" rx="0.5" fill={goldColor} />
+          <circle cx="16" cy="15.5" r="3.2" fill={goldColor} />
+          <path d="M14.8 15.5l1 1 1.8-1.8" stroke={baseColor} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case 'spt':
@@ -356,6 +358,7 @@ const MobileDuotoneModuleIcon: React.FC<{
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
           <rect x="2.5" y="5" width="19" height="14" rx="2.5" fill={baseColor} />
           <rect x="2.5" y="8" width="19" height="2.6" fill={goldColor} />
+          <rect x="5.5" y="13" width="4.5" height="3.5" rx="0.8" fill={goldColor} />
           <circle cx="16.5" cy="14.8" r="2" fill={goldColor} />
         </svg>
       );
@@ -363,13 +366,35 @@ const MobileDuotoneModuleIcon: React.FC<{
       return (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
           <path
-            d="M3.5 5.5C3.5 4.4 4.4 3.5 5.5 3.5H11.5V19.5H5.5C4.4 19.5 3.5 20.4 3.5 21.5V5.5Z"
+            d="M5 4a2 2 0 0 1 2-2h12v17a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4z"
             fill={baseColor}
           />
           <path
-            d="M20.5 5.5C20.5 4.4 19.6 3.5 18.5 3.5H12.5V19.5H18.5C19.6 19.5 20.5 20.4 20.5 21.5V5.5Z"
-            fill={goldColor}
+            d="M5 4a2 2 0 0 1 2-2v19a2 2 0 0 1-2-2V4z"
+            fill="#0F172A"
           />
+          <path d="M12 2v7.5l2-1.8 2 1.8V2h-4z" fill={goldColor} />
+          <line x1="8.5" y1="13.5" x2="15.5" y2="13.5" stroke={goldColor} strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="8.5" y1="16.5" x2="13.5" y2="16.5" stroke={goldColor} strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      );
+    case 'layanan_wp':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <rect x="4" y="4" width="7" height="7" rx="1.5" fill={baseColor} />
+          <rect x="13" y="4" width="7" height="7" rx="1.5" fill={goldColor} />
+          <rect x="4" y="13" width="7" height="7" rx="1.5" fill={goldColor} />
+          <rect x="13" y="13" width="7" height="7" rx="1.5" fill={baseColor} />
+        </svg>
+      );
+    case 'manajemen_akses':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <rect x="3" y="4" width="18" height="16" rx="3" fill={baseColor} />
+          <circle cx="10" cy="10" r="2.8" fill={goldColor} />
+          <path d="M6 16.5c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke={goldColor} strokeWidth="1.4" strokeLinecap="round" />
+          <circle cx="16.5" cy="11" r="1.5" fill={goldColor} />
+          <path d="M16.5 12.5v3.5m0-1.5h1.2" stroke={goldColor} strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       );
     default:
@@ -1088,7 +1113,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                             : 'text-[#1E293B] hover:bg-[#F4F6FA] font-semibold border border-transparent'
                       }`}
                     >
-                      <ModuleBadgeIcon icon={item.icon} />
+                      <ModuleBadgeIcon moduleKey={item.key} icon={item.icon} />
                       <span>{item.label}</span>
                       {item.hasChevron && (
                         <ChevronDown
@@ -1167,7 +1192,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                             : 'text-[#1E293B] hover:bg-[#F4F6FA] font-semibold border border-transparent'
                       }`}
                     >
-                      <ModuleBadgeIcon icon={ShieldUser} />
+                      <ModuleBadgeIcon moduleKey={extra.key} icon={ShieldUser} />
                       <span>{extra.label}</span>
                       <ChevronDown
                         className={`w-3.5 h-3.5 opacity-70 transition-transform duration-150 ${
@@ -1238,7 +1263,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             title={`Buka menu ${activeNavMeta.sidebarLabel}`}
             className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-[0_4px_16px_rgba(30,44,94,0.14)] cursor-pointer transition"
           >
-            <ModuleBadgeIcon icon={activeNavMeta.icon} />
+            <ModuleBadgeIcon moduleKey={activeNavMeta.key} icon={activeNavMeta.icon} />
             <span
               className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
               style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
@@ -1287,7 +1312,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <ModuleBadgeIcon icon={SidebarModuleIcon} />
+                    <ModuleBadgeIcon moduleKey={sidebarMeta.key} icon={SidebarModuleIcon} />
                     <span
                       title={sidebarMeta.sidebarLabel}
                       className={`font-display font-bold text-[13.5px] truncate ${

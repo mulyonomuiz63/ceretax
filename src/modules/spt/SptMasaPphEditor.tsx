@@ -1063,16 +1063,19 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                     </thead>
                     <tbody className="divide-y divide-[#EEF2F6]">
                       {[
-                        { no: '1', label: 'Pasal 4 Ayat 2', codes: ['KJS 411128-100', 'KJS 411128-402', 'KJS 411128-403'], amount: 0 },
-                        { no: '2', label: 'Pasal 15', codes: ['KJS 411128-400', 'KJS 411129-400'], amount: 0 },
-                        { no: '3', label: 'Pasal 22', codes: ['KJS 411122-100', 'KJS 411122-900'], amount: 0 },
-                        { no: '4', label: 'Pasal 23', codes: ['KJS 411124-100 / 104'], amount: payload.totalTaxWithheld },
-                        { no: '5', label: 'Pasal 26', codes: ['KJS 411127-100'], amount: 0 },
+                        { no: '1', label: 'Pasal 4 Ayat 2', codes: ['KJS 411128-100', 'KJS 411128-402', 'KJS 411128-403'], amount: 0, activeCode: '' },
+                        { no: '2', label: 'Pasal 15', codes: ['KJS 411128-600', 'KJS 411129-600'], amount: 0, activeCode: '' },
+                        { no: '3', label: 'Pasal 22', codes: ['KJS 411122-100', 'KJS 411122-900', 'KJS 411122-910'], amount: 0, activeCode: '' },
+                        { no: '4', label: 'Pasal 23', codes: ['KJS 411124-100'], amount: payload.totalTaxWithheld, activeCode: 'KJS 411124-100' },
+                        { no: '5', label: 'Pasal 26', codes: ['KJS 411127-110'], amount: 0, activeCode: '' },
                       ].map((group) => (
                         <React.Fragment key={group.no}>
                           <tr className={group.amount > 0 ? 'bg-[#FEF9E7]/60 font-semibold' : 'bg-[#FAFBFD] font-semibold'}>
                             <td className="px-3 py-1.5 text-center">{group.no}</td>
-                            <td className="px-3 py-1.5 text-[#1E2C5E]">{group.label}</td>
+                            <td className="px-3 py-1.5 text-[#1E2C5E] flex items-center gap-1.5">
+                              <span className="text-[10px] text-slate-500">v</span>
+                              <span>{group.label}</span>
+                            </td>
                             <td className="px-3 py-1.5 text-right font-mono-num">0</td>
                             <td className="px-3 py-1.5 text-right font-mono-num font-bold text-[#1E2C5E]">
                               {group.amount.toLocaleString('id-ID')}
@@ -1084,22 +1087,25 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                             <td className="px-3 py-1.5 text-right font-mono-num">0</td>
                             <td className="px-3 py-1.5 text-right font-mono-num">0</td>
                           </tr>
-                          {group.codes.map((code) => (
-                            <tr key={code} className="text-slate-600">
-                              <td />
-                              <td className="px-6 py-1 font-mono-num text-[10.5px]">{code}</td>
-                              <td className="px-3 py-1 text-right font-mono-num">0</td>
-                              <td className="px-3 py-1 text-right font-mono-num">
-                                {group.amount.toLocaleString('id-ID')}
-                              </td>
-                              <td className="px-3 py-1 text-right font-mono-num">0</td>
-                              <td className="px-3 py-1 text-right font-mono-num">
-                                {group.amount.toLocaleString('id-ID')}
-                              </td>
-                              <td className="px-3 py-1 text-right font-mono-num">0</td>
-                              <td className="px-3 py-1 text-right font-mono-num">0</td>
-                            </tr>
-                          ))}
+                          {group.codes.map((code) => {
+                            const codeAmt = group.activeCode === code ? group.amount : 0;
+                            return (
+                              <tr key={code} className="text-slate-600">
+                                <td />
+                                <td className="px-8 py-1 font-mono-num text-[10.5px]">{code}</td>
+                                <td className="px-3 py-1 text-right font-mono-num">0</td>
+                                <td className="px-3 py-1 text-right font-mono-num">
+                                  {codeAmt.toLocaleString('id-ID')}
+                                </td>
+                                <td className="px-3 py-1 text-right font-mono-num">0</td>
+                                <td className="px-3 py-1 text-right font-mono-num">
+                                  {codeAmt.toLocaleString('id-ID')}
+                                </td>
+                                <td className="px-3 py-1 text-right font-mono-num">0</td>
+                                <td className="px-3 py-1 text-right font-mono-num">0</td>
+                              </tr>
+                            );
+                          })}
                         </React.Fragment>
                       ))}
                       <tr className="bg-[#FEF9E7] font-extrabold border-t-2 border-[#F6C324]">
@@ -1155,6 +1161,36 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                 {renderSlipTable(matchingSlips, `SPT_Unifikasi_Daftar1_BPPU_${periodCode}`)}
                 <div className="font-semibold text-slate-700 pt-2">TABEL II. BPNR (PPh Pasal 26 / 4(2))</div>
                 {renderSlipTable([], `SPT_Unifikasi_Daftar1_BPNR_${periodCode}`)}
+
+                {/* Keterangan Jumlah di Daftar 1 (Sesuai Gambar 2 Coretax) */}
+                <div className="bg-[#FAFBFD] border border-[#E2E8F0] rounded-[4px] p-4 space-y-2 text-[11px] mt-4">
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-semibold text-slate-600">
+                      JUMLAH PAJAK PENGHASILAN DITANGGUNG PEMERINTAH DENGAN MENGGUNAKAN METODE PEMBAYARAN LANGSUNG
+                    </span>
+                    <span className="font-mono-num font-bold">0</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-semibold text-slate-600">
+                      JUMLAH PAJAK PENGHASILAN DITANGGUNG PEMERINTAH
+                    </span>
+                    <span className="font-mono-num font-bold">0</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-semibold text-slate-600">
+                      JUMLAH PAJAK PENGHASILAN DIBAYAR DENGAN MENGGUNAKAN METODE PEMBAYARAN LANGSUNG
+                    </span>
+                    <span className="font-mono-num font-bold">0</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[#1E2C5E] border-b-2 border-[#F6C324] pb-1.5 pt-1">
+                    <span className="font-bold">
+                      JUMLAH PAJAK PENGHASILAN YANG HARUS DIBAYAR
+                    </span>
+                    <span className="font-mono-num font-bold text-[12px]">
+                      {payload.totalTaxWithheld.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1187,10 +1223,31 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                 <span>DAFTAR-II</span>
               </div>
               <div className="p-4 space-y-4">
-                <div className="font-semibold text-slate-700">TABEL I. PPh YANG DISETOR SENDIRI</div>
+                <div className="font-semibold text-slate-700">TABEL I. DAFTAR PPh YANG DIBAYAR SENDIRI DAN/ATAU DISETOR SENDIRI</div>
                 {renderSlipTable([], `SPT_Unifikasi_Daftar2_T1_${periodCode}`)}
-                <div className="font-semibold text-slate-700 pt-2">TABEL II. PPh YANG DIPOTONG/DIPUNGUT SECARA DIGUNGGUNG</div>
+
+                {/* Keterangan Jumlah di Daftar 2 - Tabel 1 (Sesuai Gambar 3 Coretax) */}
+                <div className="bg-[#FAFBFD] border border-[#E2E8F0] rounded-[4px] p-4 space-y-2 text-[11px] mt-2">
+                  <div className="flex justify-between items-center text-slate-700">
+                    <span className="font-semibold text-slate-600">JUMLAH PPh YANG DITANGGUNG PEMERINTAH</span>
+                    <span className="font-mono-num font-bold">0</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[#1E2C5E] border-b border-[#E2E8F0] pb-1">
+                    <span className="font-bold">JUMLAH PPh YANG HARUS DIBAYAR</span>
+                    <span className="font-mono-num font-bold">0</span>
+                  </div>
+                </div>
+
+                <div className="font-semibold text-slate-700 pt-4">TABEL II. DAFTAR PAJAK PENGHASILAN - PEMBAYARAN KUMULATIF</div>
                 {renderSlipTable([], `SPT_Unifikasi_Daftar2_T2_${periodCode}`)}
+
+                {/* Keterangan Jumlah di Daftar 2 - Tabel 2 (Sesuai Gambar 3 Coretax) */}
+                <div className="bg-[#FAFBFD] border border-[#E2E8F0] rounded-[4px] p-4 space-y-2 text-[11px] mt-2">
+                  <div className="flex justify-between items-center text-[#1E2C5E] border-b border-[#E2E8F0] pb-1">
+                    <span className="font-bold">JUMLAH PPh YANG HARUS DIBAYAR</span>
+                    <span className="font-mono-num font-bold">0</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1199,7 +1256,7 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
         {!isPph21 && uniTab === 'lampiran1' && (
           <div className="space-y-4">
             <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
-              DAFTAR DOKUMEN YANG DIPERSAMAKAN DENGAN BUKTI PEMOTONGAN/PEMUNGUTAN PPh UNIFIKASI
+              DAFTAR DOKUMEN YANG DIPERSAMAKAN DENGAN BUKTI PEMOTONGAN DAN/ATAU PEMUNGUTAN PPh UNIFIKASI BERFORMAT STANDAR
             </h2>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
@@ -1224,9 +1281,17 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
               </div>
               <div className="p-4 space-y-4">
                 <div className="font-semibold text-slate-700">
-                  TABEL I. A1 - PENGHASILAN DARI BUNGA DEPOSITO/TABUNGAN, DISKONTO SBI, DAN JASA GIRO
+                  TABEL I. ATC
                 </div>
                 {renderSlipTable([], `SPT_Unifikasi_Lampiran1_${periodCode}`)}
+
+                {/* Keterangan Total di Lampiran I (Sesuai Gambar 4 Coretax) */}
+                <div className="bg-[#FAFBFD] border border-[#E2E8F0] rounded-[4px] p-4 space-y-2 text-[11px] mt-2">
+                  <div className="flex justify-between items-center text-[#1E2C5E] border-b-2 border-[#F6C324] pb-1.5">
+                    <span className="font-bold">TOTAL INCOME TAX TO BE PAID</span>
+                    <span className="font-mono-num font-bold text-[12px]">0</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

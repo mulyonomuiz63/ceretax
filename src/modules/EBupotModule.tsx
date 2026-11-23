@@ -126,6 +126,138 @@ const SAMPLE_XML_TEMPLATE = `<?xml version="1.0" encoding="UTF-8"?>
   </Bupot>
 </CoretaxEBupotImport>`;
 
+// Comprehensive PPh Unifikasi Object Codes for BPPU (Sesuai Coretax Asli)
+export const UNIFIKASI_BPPU_OBJECT_CODES = [
+  {
+    code: '24-101-01',
+    name: 'Dividen',
+    taxType: 'Pasal 23',
+    nature: 'Tidak Final',
+    rate: 15,
+    kap: '411124-100',
+  },
+  {
+    code: '24-104-18',
+    name: 'Jasa Aktuaris',
+    taxType: 'Pasal 23',
+    nature: 'Tidak Final',
+    rate: 2,
+    kap: '411124-100',
+  },
+  {
+    code: '28-403-05',
+    name: 'Pekerjaan Konstruksi Terintegrasi yang Dilakukan oleh Penyedia Jasa yang Memiliki Sertifikat Badan Usaha',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 2.65,
+    kap: '411128-409',
+  },
+  {
+    code: '28-403-06',
+    name: 'Pekerjaan Konstruksi Terintegrasi yang Dilakukan oleh Penyedia Jasa yang Tidak Memiliki Sertifikat Badan Usaha',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 4,
+    kap: '411128-409',
+  },
+  {
+    code: '28-403-03',
+    name: 'Jasa Konsultansi Konstruksi yang Dilakukan oleh Penyedia Jasa yang Memiliki Sertifikat Badan Usaha atau Sertifikat Kompetensi Kerja',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 3.5,
+    kap: '411128-409',
+  },
+  {
+    code: '28-403-04',
+    name: 'Jasa Konsultansi Konstruksi yang Dilakukan oleh Penyedia Jasa yang Tidak Memiliki Sertifikat Badan Usaha atau Sertifikat Kompetensi Kerja',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 6,
+    kap: '411128-409',
+  },
+  {
+    code: '28-403-01',
+    name: 'Pekerjaan Konstruksi yang Dilakukan oleh Penyedia Jasa yang Memiliki Sertifikat Badan Usaha Kualifikasi Kecil',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 1.75,
+    kap: '411128-409',
+  },
+  {
+    code: '28-403-02',
+    name: 'Pekerjaan Konstruksi yang Dilakukan oleh Penyedia Jasa yang Tidak Memiliki Sertifikat Badan Usaha',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 4,
+    kap: '411128-409',
+  },
+  {
+    code: '24-102-01',
+    name: 'Bunga Selain yang Dikenakan PPh Pasal 4 ayat (2)',
+    taxType: 'Pasal 23',
+    nature: 'Tidak Final',
+    rate: 15,
+    kap: '411124-100',
+  },
+  {
+    code: '24-103-01',
+    name: 'Royalti',
+    taxType: 'Pasal 23',
+    nature: 'Tidak Final',
+    rate: 15,
+    kap: '411124-100',
+  },
+  {
+    code: '24-100-01',
+    name: 'Hadiah, Penghargaan, Bonus, dan sejenisnya',
+    taxType: 'Pasal 23',
+    nature: 'Tidak Final',
+    rate: 15,
+    kap: '411124-100',
+  },
+  {
+    code: '24-100-02',
+    name: 'Sewa dan Penghasilan Lain Sehubungan Penggunaan Harta selain Tanah dan Bangunan',
+    taxType: 'Pasal 23',
+    nature: 'Tidak Final',
+    rate: 2,
+    kap: '411124-100',
+  },
+  {
+    code: '24-104-29',
+    name: 'Jasa Teknik, Jasa Manajemen, Jasa Konsultan, dan Jasa Lain',
+    taxType: 'Pasal 23',
+    nature: 'Tidak Final',
+    rate: 2,
+    kap: '411124-100',
+  },
+  {
+    code: '28-403-00',
+    name: 'Sewa Tanah dan/atau Bangunan',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 10,
+    kap: '411128-403',
+  },
+  {
+    code: '28-402-01',
+    name: 'Pengalihan Hak atas Tanah dan/atau Bangunan',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 2.5,
+    kap: '411128-402',
+  },
+  {
+    code: '28-401-01',
+    name: 'Bunga Deposito / Tabungan dan Diskonto SBI',
+    taxType: 'Pasal 4(2)',
+    nature: 'Final',
+    rate: 20,
+    kap: '411128-401',
+  },
+];
+
 const SUBTAB_CONFIG: Record<
   string,
   {
@@ -406,10 +538,29 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
         taxWithheld: tax,
       };
     }
+    if (currentSlipType === 'BPPU_23') {
+      const foundUni =
+        UNIFIKASI_BPPU_OBJECT_CODES.find((c) => c.code === pph23Code) ||
+        UNIFIKASI_BPPU_OBJECT_CODES[0];
+      const tax = taxFacility === 'DTP' ? 0 : Math.round((grossAmount * foundUni.rate) / 100);
+      return {
+        objectCode: foundUni.code,
+        objectName: foundUni.name,
+        taxType: foundUni.taxType,
+        nature: foundUni.nature,
+        kap: foundUni.kap,
+        netAmount: grossAmount,
+        ratePercent: foundUni.rate,
+        taxWithheld: tax,
+      };
+    }
     const found23 = PPH23_OBJECT_CODES.find((c) => c.code === pph23Code) || PPH23_OBJECT_CODES[0];
     return {
       objectCode: found23.code,
       objectName: found23.name,
+      taxType: 'Pasal 23',
+      nature: 'Tidak Final',
+      kap: '411124-100',
       netAmount: grossAmount,
       ratePercent: found23.rate,
       taxWithheld: Math.round((grossAmount * found23.rate) / 100),
@@ -443,7 +594,11 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
       }
     } else if (slip.slipType === 'BPPU_23') {
       setPph23Code(
-        PPH23_OBJECT_CODES.some((o) => o.code === slip.objectCode) ? slip.objectCode : '24-104-29'
+        UNIFIKASI_BPPU_OBJECT_CODES.some((o) => o.code === slip.objectCode)
+          ? slip.objectCode
+          : PPH23_OBJECT_CODES.some((o) => o.code === slip.objectCode)
+            ? slip.objectCode
+            : '24-101-01'
       );
     }
     setCreateOpen(true);
@@ -1691,12 +1846,12 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           </label>
                           <select
                             value={taxFacility}
-                            onChange={(e) => setTaxFacility(e.target.value as 'NONE' | 'SKB' | 'DTP')}
+                            onChange={(e) => setTaxFacility(e.target.value as 'NONE' | 'DTP' | 'OTHER')}
                             className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
                           >
                             <option value="NONE">Tanpa Fasilitas</option>
-                            <option value="SKB">Surat Keterangan Bebas (SKB) / SKD WPLN</option>
-                            <option value="DTP">PPh Ditanggung Pemerintah</option>
+                            <option value="DTP">PPh Ditanggung Pemerintah (DTP)</option>
+                            <option value="OTHER">Fasilitas Lainnya</option>
                           </select>
                         </div>
 
@@ -1729,11 +1884,11 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             <select
                               value={pph23Code}
                               onChange={(e) => setPph23Code(e.target.value)}
-                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white text-xs"
                             >
-                              {PPH23_OBJECT_CODES.map((c) => (
+                              {UNIFIKASI_BPPU_OBJECT_CODES.map((c) => (
                                 <option key={c.code} value={c.code}>
-                                  {c.name} ({c.code})
+                                  {c.name} ({c.code} — {c.taxType})
                                 </option>
                               ))}
                             </select>
@@ -1781,7 +1936,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           <input
                             type="text"
                             readOnly
-                            value={currentSlipType === 'BPPU_23' ? 'Pasal 23' : subTab === 'bp26' ? 'Pasal 26' : 'Pasal 21'}
+                            value={(calc as any).taxType || (currentSlipType === 'BPPU_23' ? 'Pasal 23' : subTab === 'bp26' ? 'Pasal 26' : 'Pasal 21')}
                             className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5"
                           />
                         </div>
@@ -1802,7 +1957,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             <input
                               type="text"
                               readOnly
-                              value="Tidak Final"
+                              value={(calc as any).nature || 'Tidak Final'}
                               className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5"
                             />
                           </div>
@@ -1880,7 +2035,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           <input
                             type="text"
                             readOnly
-                            value={currentSlipType === 'BPPU_23' ? '411124-100' : '411121-100'}
+                            value={(calc as any).kap || (currentSlipType === 'BPPU_23' ? '411124-100' : '411121-100')}
                             className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
                           />
                         </div>
@@ -1920,10 +2075,11 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             onChange={(e) => setRefDocType(e.target.value)}
                             className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
                           >
-                            <option value="Invoice / Daftar Gaji">Invoice</option>
-                            <option value="Faktur Pajak">Faktur Pajak</option>
-                            <option value="Kontrak / Perjanjian">Kontrak / Perjanjian</option>
+                            <option value="Akta Perjanjian">Akta Perjanjian</option>
+                            <option value="Akta Rapat Umum Pemegang Saham">Akta Rapat Umum Pemegang Saham</option>
                             <option value="Bukti Pembayaran">Bukti Pembayaran</option>
+                            <option value="Dokumen Ketentuan Peraturan Perpajakan">Dokumen Ketentuan Peraturan Perpajakan</option>
+                            <option value="Dokumen Lainnya">Dokumen Lainnya</option>
                           </select>
                         </div>
                         <div className="grid grid-cols-12 items-center gap-2">
@@ -1958,31 +2114,27 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                 )}
               </div>
 
-              {/* Bottom-Left Action Bar matching Coretax PDF 2 Pages 2-7 & 16 (Submit · Simpan Konsep · Go to search) */}
+              {/* Bottom-Left Action Bar matching Coretax Asli (Submit · Simpan Konsep · Go to search) */}
               <div className="px-5 py-4 bg-white border-t border-slate-100 flex items-center gap-2.5">
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-[5px] bg-[#64748B] hover:bg-[#475569] text-white font-semibold text-xs cursor-pointer"
+                  className="px-5 py-2.5 rounded-[5px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-semibold text-xs cursor-pointer shadow-xs transition"
                 >
                   Submit
                 </button>
                 <button
                   type="button"
                   onClick={() => saveSlipRecord(false)}
-                  className="px-4 py-2 rounded-[5px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-semibold text-xs leading-tight cursor-pointer text-center"
+                  className="px-4 py-2.5 rounded-[5px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-semibold text-xs leading-tight cursor-pointer text-center shadow-xs transition"
                 >
-                  Simpan
-                  <br />
-                  Konsep
+                  Simpan Konsep
                 </button>
                 <button
                   type="button"
                   onClick={() => setCreateOpen(false)}
-                  className="px-3 py-2 text-slate-600 hover:text-[#1E2C5E] font-medium text-xs leading-tight cursor-pointer text-left"
+                  className="px-3 py-2 text-slate-600 hover:text-[#1E2C5E] font-medium text-xs leading-tight cursor-pointer text-left transition"
                 >
-                  Go to
-                  <br />
-                  search
+                  Go to search
                 </button>
               </div>
             </form>
@@ -2026,14 +2178,13 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                       className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>{activeConfig.createBtnLabel}</span>
+                      <span>+ {activeConfig.createBtnLabel}</span>
                     </button>
 
                     <button
                       type="button"
-                      disabled={selectedIds.length === 0}
                       onClick={handleBulkDelete}
-                      className="inline-flex items-center gap-1.5 bg-[#94A3B8] enabled:bg-rose-600 enabled:hover:bg-rose-700 disabled:opacity-55 text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-[#D9534F] hover:bg-[#C9302C] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer shadow-xs"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Hapus</span>
@@ -2041,12 +2192,17 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
 
                     <button
                       type="button"
-                      disabled={selectedIds.length === 0}
-                      onClick={() => setSignOpen(true)}
-                      className="inline-flex items-center gap-1.5 bg-[#94A3B8] enabled:bg-emerald-700 enabled:hover:bg-emerald-800 disabled:opacity-55 text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                      onClick={() => {
+                        if (selectedIds.length === 0) {
+                          alert('Pilih bukti potong terlebih dahulu untuk diterbitkan.');
+                          return;
+                        }
+                        setSignOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-[#2F7D4A] hover:bg-[#25633A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer shadow-xs"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>Terbitkan{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
+                      <span>Terbitkan</span>
                     </button>
                   </>
                 )}
@@ -2400,42 +2556,45 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               )}
                             </td>
                             <td className="px-3 py-2.5 whitespace-nowrap">
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => setDetailSlip(slip)}
-                                  className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
-                                  title="Lihat Detail Bukti Potong"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
-                                {slip.status !== 'CANCELLED' && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      slip.status === 'ISSUED'
-                                        ? setDetailSlip(slip)
-                                        : openEditForm(slip)
-                                    }
-                                    className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
-                                    title={
-                                      slip.status === 'ISSUED'
-                                        ? 'Edit / Pembetulan (Amend)'
-                                        : 'Edit Konsep Bukti Potong'
-                                    }
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                {slip.status === 'UNISSUED' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onDeleteSlip(slip.id)}
-                                    className="p-1.5 rounded border border-red-200 hover:bg-red-50 text-red-600 cursor-pointer"
-                                    title="Hapus Draft"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                              <div className="flex items-center gap-1.5">
+                                {slip.status === 'UNISSUED' ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditForm(slip)}
+                                      className="w-6 h-6 rounded-full border border-sky-400 bg-sky-50 hover:bg-sky-100 text-sky-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                      title="Edit Konsep Bukti Potong"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onDeleteSlip(slip.id)}
+                                      className="w-6 h-6 rounded-full border border-red-300 bg-red-50 hover:bg-red-100 text-red-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                      title="Hapus Draft"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDetailSlip(slip)}
+                                      className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
+                                      title="Lihat Detail Bukti Potong"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDetailSlip(slip)}
+                                      className="w-6 h-6 rounded-full border border-sky-400 bg-sky-50 hover:bg-sky-100 text-sky-600 inline-flex items-center justify-center cursor-pointer transition"
+                                      title="Edit / Pembetulan"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </td>

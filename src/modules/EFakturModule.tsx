@@ -3,12 +3,14 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowUpDown,
+  Ban,
   Calendar,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   Edit3,
   Eye,
+  FileText,
   Filter,
   Info,
   Layers,
@@ -31,6 +33,7 @@ import {
 } from '../utils/taxCalc.ts';
 import { SignModal } from '../components/SignModal.tsx';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
+import { downloadFakturPajakPdf } from '../utils/fakturPajakPdfGenerator.ts';
 import {
   CoretaxIconToolbar,
   CoretaxPagination,
@@ -1602,70 +1605,78 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 />
                               </td>
                               <td className="px-3 py-2.5 whitespace-nowrap">
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onPrintDocument({
-                                        type: 'FAKTUR',
-                                        invoice: inv,
-                                        seller: workspace.corporateTaxpayer,
-                                      })
-                                    }
-                                    className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1D2B53] cursor-pointer"
-                                    title="Pratinjau / Cetak Faktur"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                  </button>
+                                <div className="flex items-center gap-1.5">
+                                  {normalizedTab === 'output' ? (
+                                    <>
+                                      {/* 1. Tombol Edit (Icon Pensil - Coretax Asli) */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (inv.status === 'DRAFT') {
+                                            setSignTarget(inv);
+                                          } else {
+                                            setAmendTarget(inv);
+                                            setAmendDpp(inv.dppTotal);
+                                          }
+                                        }}
+                                        className="w-6 h-6 rounded-full border border-sky-400 bg-sky-50 hover:bg-sky-100 text-sky-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                        title={inv.status === 'DRAFT' ? 'Edit & Upload Faktur' : 'Ubah / Buat Faktur Pengganti'}
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
 
-                                  {normalizedTab === 'output' && inv.status === 'DRAFT' && (
+                                      {/* 2. Tombol Batalin (Icon Kuning untuk Batalin - Coretax Asli) */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (inv.status === 'DRAFT') {
+                                            onInvoiceAction(inv.id, 'DELETE');
+                                          } else {
+                                            onInvoiceAction(inv.id, 'REQUEST_CANCEL');
+                                          }
+                                        }}
+                                        className="w-6 h-6 rounded-full border border-amber-400 bg-amber-50 hover:bg-amber-100 text-amber-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                        title={inv.status === 'DRAFT' ? 'Hapus Draft Faktur' : 'Batalkan Faktur Pajak'}
+                                      >
+                                        <Ban className="w-3.5 h-3.5" />
+                                      </button>
+
+                                      {/* 3. Tombol PDF Langsung Download PDF Format Coretax 100% */}
+                                      <button
+                                        type="button"
+                                        onClick={() => downloadFakturPajakPdf(inv, workspace.corporateTaxpayer)}
+                                        className="w-6 h-6 rounded-[4px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                        title="Download Faktur Pajak (PDF Resmi DJP)"
+                                      >
+                                        <FileText className="w-3.5 h-3.5" />
+                                      </button>
+                                    </>
+                                  ) : (
                                     <>
                                       <button
                                         type="button"
-                                        onClick={() => setSignTarget(inv)}
-                                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold cursor-pointer"
-                                        title="Tanda Tangani & Setujui Faktur"
+                                        onClick={() =>
+                                          onPrintDocument({
+                                            type: 'FAKTUR',
+                                            invoice: inv,
+                                            seller: workspace.corporateTaxpayer,
+                                          })
+                                        }
+                                        className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1D2B53] cursor-pointer"
+                                        title="Pratinjau / Cetak Faktur"
                                       >
-                                        <ShieldCheck className="w-3 h-3" />
-                                        <span>Upload / Sign</span>
+                                        <Eye className="w-3.5 h-3.5" />
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => onInvoiceAction(inv.id, 'DELETE')}
-                                        className="p-1.5 rounded border border-red-200 hover:bg-red-50 text-red-600 cursor-pointer"
-                                        title="Hapus Draft"
+                                        onClick={() => downloadFakturPajakPdf(inv, workspace.corporateTaxpayer)}
+                                        className="w-6 h-6 rounded-[4px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition"
+                                        title="Download Faktur Pajak (PDF)"
                                       >
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <FileText className="w-3.5 h-3.5" />
                                       </button>
                                     </>
                                   )}
-
-                                  {normalizedTab === 'output' &&
-                                    (inv.status === 'APPROVED' || inv.status === 'AMENDED') && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setAmendTarget(inv);
-                                            setAmendDpp(inv.dppTotal);
-                                          }}
-                                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-50 border border-blue-300 text-blue-800 hover:bg-blue-100 text-[11px] font-bold cursor-pointer"
-                                          title="Buat Faktur Pengganti (Amend)"
-                                        >
-                                          <Edit3 className="w-3 h-3" />
-                                          <span>Pengganti</span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => onInvoiceAction(inv.id, 'REQUEST_CANCEL')}
-                                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 text-[11px] font-bold cursor-pointer"
-                                          title="Batalkan Faktur"
-                                        >
-                                          <XCircle className="w-3 h-3" />
-                                          <span>Batal</span>
-                                        </button>
-                                      </>
-                                    )}
 
                                   {inv.status === 'WAITING_FOR_AMENDMENT' && (
                                     <button
