@@ -423,6 +423,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const shellRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const compactSearchInputRef = useRef<HTMLInputElement>(null);
+  const lastScrollYRef = useRef(0);
 
   // Restore sidebar automatically whenever user navigates to another main module (or refreshes page)
   useEffect(() => {
@@ -460,14 +461,26 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Auto-hide LEFT SIDEBAR when scrolling down (if toggle is active) & toggle floating Scroll-to-Top button
+  // Direction-aware scroll handling: Auto-hide sidebar when scrolling down, restore when scrolling up
   useEffect(() => {
     const handleScroll = () => {
-      if (autoHideOnScroll && window.scrollY > 40) {
-        setLeftCollapsed(true);
+      const currentY = window.scrollY;
+      const diff = currentY - lastScrollYRef.current;
+
+      if (autoHideOnScroll) {
+        if (currentY > 60 && diff > 10) {
+          // Scrolling down (content goes up): hide sidebar
+          setLeftCollapsed(true);
+        } else if (diff < -10 || currentY <= 40) {
+          // Scrolling up (back towards top): restore sidebar (tidak hilang)
+          setLeftCollapsed(false);
+        }
       }
-      setShowScrollTop(window.scrollY > 180);
+
+      setShowScrollTop(currentY > 180);
+      lastScrollYRef.current = currentY;
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [autoHideOnScroll]);
@@ -1436,118 +1449,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             );
           })()}
 
-        {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Matches Image 3: starts near top, ends above bottom dock, higher layer than header) */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden">
-            {/* Dark Backdrop dimming entire screen including header and navbar (z-[60] covers header z-30) */}
-            <div
-              className="fixed inset-0 bg-slate-900/60 z-[60] backdrop-blur-[2px] transition-opacity touch-none"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-
-            {/* Floating Left Rounded Panel on layer z-[70], sitting on top of the dark backdrop */}
-            <div
-              className={`fixed left-2 sm:left-3 top-3 bottom-[82px] z-[70] w-[84vw] max-w-[315px] rounded-[18px] shadow-[0_22px_55px_rgba(15,23,42,0.45)] border border-slate-200/60 flex flex-col overflow-hidden overscroll-contain ${
-                darkHeader ? 'bg-slate-900 text-slate-100 border-slate-700' : 'bg-white text-[#1B2958]'
-              }`}
-            >
-              {/* Top Shaded Pill Box with Duotone Module Icon + Label + [<<] Collapse Button */}
-              <div
-                className={`m-3 rounded-[12px] px-3.5 py-2.5 flex items-center justify-between gap-2 ${
-                  darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
-                  <span
-                    className={`font-display font-bold text-[14px] truncate ${
-                      darkHeader ? 'text-white' : 'text-[#1B2958]'
-                    }`}
-                  >
-                    {activeNavMeta.sidebarLabel}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  title="Tutup menu"
-                  aria-label="Tutup menu"
-                  className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition cursor-pointer ${
-                    darkHeader
-                      ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
-                      : 'bg-white border-[#E2E8F0] text-[#1B2958] hover:bg-slate-50'
-                  }`}
-                >
-                  <ChevronsLeft className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Clean Single-Line Truncated Submenu Items */}
-              <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
-                {activeNavMeta.items.map((sub) => {
-                  const isSubActive = activeSubTab === sub.id;
-                  return (
-                    <button
-                      key={sub.id}
-                      type="button"
-                      title={sub.label}
-                      onClick={() => {
-                        onNavigate(activeModule, sub.id);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[13px] transition cursor-pointer block truncate ${
-                        isSubActive
-                          ? darkHeader
-                            ? 'bg-slate-800 text-[#F4C430] font-bold'
-                            : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
-                          : darkHeader
-                            ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
-                            : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  );
-                })}
-
-                {activeNavMeta.groups &&
-                  activeNavMeta.groups.map((grp) => (
-                    <div key={grp.groupLabel} className="pt-2 mt-1.5 border-t border-slate-100">
-                      <div className="px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        {grp.groupLabel}
-                      </div>
-                      {grp.items.map((sub) => {
-                        const isSubActive = activeSubTab === sub.id;
-                        return (
-                          <button
-                            key={sub.id}
-                            type="button"
-                            title={sub.label}
-                            onClick={() => {
-                              onNavigate(activeModule, sub.id);
-                              setMobileMenuOpen(false);
-                            }}
-                            className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[12.5px] transition cursor-pointer block truncate ${
-                              isSubActive
-                                ? darkHeader
-                                  ? 'bg-slate-800 text-[#F4C430] font-bold'
-                                  : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
-                                : darkHeader
-                                  ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
-                                  : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
-                            }`}
-                          >
-                            {sub.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* RIGHT FLOATING WHITE MAIN CONTENT CARD (Exact match to screenshot) */}
         <main
           className={`flex-1 min-w-0 rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] flex flex-col overflow-hidden ${
@@ -1616,9 +1517,123 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK (Layer z-[70] above dark backdrop) */}
+      {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Top-level sibling: z-[80] covers header z-30 & body) */}
       {/* ===================================================================== */}
-      <div className="lg:hidden fixed bottom-3 inset-x-0 z-[70] px-3 pointer-events-none flex justify-center">
+      {mobileMenuOpen && (
+        <div className="lg:hidden">
+          {/* Dark Backdrop dimming entire screen including header and navbar (z-[80] covers header z-30) */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 z-[80] backdrop-blur-[2px] transition-opacity touch-none"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Floating Left Rounded Panel on layer z-[90], sitting on top of the dark backdrop */}
+          <div
+            className={`fixed left-2 sm:left-3 top-3 bottom-[82px] z-[90] w-[84vw] max-w-[315px] rounded-[18px] shadow-[0_22px_55px_rgba(15,23,42,0.45)] border border-slate-200/60 flex flex-col overflow-hidden overscroll-contain ${
+              darkHeader ? 'bg-slate-900 text-slate-100 border-slate-700' : 'bg-white text-[#1B2958]'
+            }`}
+          >
+            {/* Top Shaded Pill Box with Duotone Module Icon + Label + [<<] Collapse Button */}
+            <div
+              className={`m-3 rounded-[12px] px-3.5 py-2.5 flex items-center justify-between gap-2 ${
+                darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
+                <span
+                  className={`font-display font-bold text-[14px] truncate ${
+                    darkHeader ? 'text-white' : 'text-[#1B2958]'
+                  }`}
+                >
+                  {activeNavMeta.sidebarLabel}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                title="Tutup menu"
+                aria-label="Tutup menu"
+                className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition cursor-pointer ${
+                  darkHeader
+                    ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
+                    : 'bg-white border-[#E2E8F0] text-[#1B2958] hover:bg-slate-50'
+                }`}
+              >
+                <ChevronsLeft className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Clean Single-Line Truncated Submenu Items */}
+            <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
+              {activeNavMeta.items.map((sub) => {
+                const isSubActive = activeSubTab === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    title={sub.label}
+                    onClick={() => {
+                      onNavigate(activeModule, sub.id);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[13px] transition cursor-pointer block truncate ${
+                      isSubActive
+                        ? darkHeader
+                          ? 'bg-slate-800 text-[#F4C430] font-bold'
+                          : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
+                        : darkHeader
+                          ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
+                          : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                );
+              })}
+
+              {activeNavMeta.groups &&
+                activeNavMeta.groups.map((grp) => (
+                  <div key={grp.groupLabel} className="pt-2 mt-1.5 border-t border-slate-100">
+                    <div className="px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      {grp.groupLabel}
+                    </div>
+                    {grp.items.map((sub) => {
+                      const isSubActive = activeSubTab === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          title={sub.label}
+                          onClick={() => {
+                            onNavigate(activeModule, sub.id);
+                            setMobileMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[12.5px] transition cursor-pointer block truncate ${
+                            isSubActive
+                              ? darkHeader
+                                ? 'bg-slate-800 text-[#F4C430] font-bold'
+                                : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
+                              : darkHeader
+                                ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
+                                : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
+                          }`}
+                        >
+                          {sub.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK (Layer z-[90] above dark backdrop) */}
+      {/* ===================================================================== */}
+      <div className="lg:hidden fixed bottom-3 inset-x-0 z-[90] px-3 pointer-events-none flex justify-center">
         <div
           className={`pointer-events-auto w-full max-w-[440px] rounded-full border p-1.5 shadow-[0_14px_38px_rgba(27,41,88,0.22)] backdrop-blur-md flex items-center gap-1.5 ${
             darkHeader
