@@ -461,19 +461,18 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Direction-aware scroll handling: Auto-hide sidebar when scrolling down, restore when scrolling up
+  // Auto-hide LEFT SIDEBAR when scrolling down (if toggle is active).
+  // When scrolling back up: stays hidden (tidak tampil lagi kecuali menu ditekan).
+  // If sidebar is visible, scrolling up does not hide it.
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
       const diff = currentY - lastScrollYRef.current;
 
       if (autoHideOnScroll) {
-        if (currentY > 60 && diff > 10) {
+        if (currentY > 60 && diff > 8) {
           // Scrolling down (content goes up): hide sidebar
           setLeftCollapsed(true);
-        } else if (diff < -10 || currentY <= 40) {
-          // Scrolling up (back towards top): restore sidebar (tidak hilang)
-          setLeftCollapsed(false);
         }
       }
 
@@ -1073,6 +1072,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        setLeftCollapsed(false);
                         if (item.key === 'ebupot') {
                           onNavigate('ebupot', 'empty');
                         } else {
@@ -1118,6 +1118,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                                   key={sub.id}
                                   type="button"
                                   onClick={() => {
+                                    setLeftCollapsed(false);
                                     onNavigate(item.key, sub.id);
                                     setOpenDropdown(null);
                                   }}
@@ -1485,7 +1486,10 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 <>
                   <button
                     type="button"
-                    onClick={() => onNavigate(activeModule, activeNavMeta.items[0]?.id)}
+                    onClick={() => {
+                      setLeftCollapsed(false);
+                      onNavigate(activeModule, activeNavMeta.items[0]?.id);
+                    }}
                     className={`font-semibold hover:underline cursor-pointer whitespace-nowrap ${
                       darkHeader ? 'text-slate-200' : 'text-[#1B2958]'
                     }`}
