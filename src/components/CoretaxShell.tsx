@@ -404,7 +404,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const [darkHeader, setDarkHeader] = useState(false);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [autoHideOnScroll, setAutoHideOnScroll] = useState(true);
+  const [autoHideOnScroll, setAutoHideOnScroll] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     'Perubahan Data': true,
     'Perubahan Status': true,
@@ -562,15 +562,15 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               darkHeader ? 'lg:border-slate-800' : 'lg:border-[#F1F5F9]'
             }`}
           >
-            {/* Left: KelasBrevet Logo Lockup */}
+            {/* Left: Official Kemenkeu & DJP Logo (KelasBrevet logo removed from navbar as requested) */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
               <button
                 type="button"
                 onClick={() => onNavigate('portal', 'ikhtisar')}
                 className="cursor-pointer text-left shrink-0"
-                title="Beranda Coretax KelasBrevet"
+                title="Beranda Coretax"
               >
-                <KelasBrevetLogo variant="portalbar" dark={darkHeader} />
+                <KelasBrevetLogo variant="topbar" dark={darkHeader} />
               </button>
             </div>
 
@@ -1212,32 +1212,44 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* ===================================================================== */}
       {/* FLOATING 2-COLUMN WORKSPACE (LEFT SUBMENU CARD + RIGHT CONTENT CARD)  */}
       {/* ===================================================================== */}
-      <div className="relative z-10 flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full overflow-x-hidden">
-        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge (visible on mobile & desktop) */}
-        <button
-          type="button"
-          onClick={() => {
-            if (window.innerWidth < 1024) {
-              setMobileMenuOpen(true);
-            } else {
-              setLeftCollapsed(false);
-            }
-          }}
-          title={`Buka menu ${activeNavMeta.sidebarLabel}`}
-          className={`${
-            leftCollapsed ? 'flex' : 'flex lg:hidden'
-          } fixed left-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-md cursor-pointer transition`}
-        >
-          <ModuleBadgeIcon icon={activeNavMeta.icon} />
-          <span
-            className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
-            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+      <div className="relative z-20 flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full min-h-[260px]">
+        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge: Contained inside workspace so footer is always below and layer is above footer */}
+        {leftCollapsed && (
+          <button
+            type="button"
+            onClick={() => setLeftCollapsed(false)}
+            title={`Buka menu ${activeNavMeta.sidebarLabel}`}
+            className="hidden lg:flex sticky top-32 z-30 flex-col items-center gap-2 py-3.5 px-1.5 -ml-2.5 sm:-ml-4 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-md cursor-pointer transition self-start shrink-0"
           >
-            {activeNavMeta.sidebarLabel}
-          </span>
-        </button>
+            <ModuleBadgeIcon icon={activeNavMeta.icon} />
+            <span
+              className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              {activeNavMeta.sidebarLabel}
+            </span>
+          </button>
+        )}
 
-        {/* LEFT FLOATING WHITE SUBMENU CARD */}
+        {/* Mobile Left Edge Gold Tab to toggle mobile menu */}
+        {!mobileMenuOpen && (
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            title={`Buka menu ${activeNavMeta.sidebarLabel}`}
+            className="lg:hidden fixed left-0 top-[38%] -translate-y-1/2 z-30 flex flex-col items-center gap-2 py-3 px-1 rounded-r-[9px] bg-[#FEF08A] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-sm cursor-pointer"
+          >
+            <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
+            <span
+              className="text-[10px] font-bold tracking-wide max-h-[120px] truncate"
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              {activeNavMeta.sidebarLabel}
+            </span>
+          </button>
+        )}
+
+        {/* LEFT FLOATING WHITE SUBMENU CARD (Level with right main content card from the start) */}
         {!leftCollapsed &&
           (() => {
             const sidebarMeta =
@@ -1247,7 +1259,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
 
             return (
               <aside
-                className={`hidden lg:flex flex-col shrink-0 rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] transition-all duration-200 sticky top-[132px] max-h-[calc(100vh-148px)] w-[224px] xl:w-[258px] ${
+                className={`hidden lg:flex flex-col shrink-0 self-start rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] transition-all duration-200 sticky top-[124px] max-h-[calc(100vh-140px)] w-[224px] xl:w-[258px] ${
                   darkHeader ? 'bg-slate-900 border-slate-700/80' : 'bg-white border-[#E5EAF2]'
                 }`}
               >
@@ -1421,31 +1433,31 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             );
           })()}
 
-        {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Topmost Layer, Locks Background Scroll) */}
+        {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Matches Image 3: starts below header, ends above bottom dock, same top layer z-50) */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-[70] lg:hidden">
-            {/* Dark Backdrop covering top header & content */}
+          <div className="lg:hidden">
+            {/* Dark Backdrop dimming background content */}
             <div
-              className="fixed inset-0 bg-slate-900/55 transition-opacity touch-none"
+              className="fixed inset-0 bg-slate-900/40 z-40 transition-opacity touch-none"
               onClick={() => setMobileMenuOpen(false)}
             />
 
-            {/* Floating Left Panel on topmost layer leaving bottom space for the Floating Bottom Navigation Dock */}
+            {/* Floating Left Rounded Panel on layer z-50, sitting between header and bottom dock */}
             <div
-              className={`fixed left-0 top-1.5 bottom-[78px] z-10 w-[82vw] max-w-[315px] rounded-r-[18px] shadow-[0_18px_45px_rgba(15,23,42,0.35)] flex flex-col overflow-hidden overscroll-contain ${
+              className={`fixed left-0 top-[64px] bottom-[76px] z-50 w-[82vw] max-w-[310px] rounded-r-[18px] shadow-[0_18px_45px_rgba(15,23,42,0.32)] flex flex-col overflow-hidden overscroll-contain ${
                 darkHeader ? 'bg-slate-900 text-slate-100' : 'bg-white text-[#1B2958]'
               }`}
             >
               {/* Top Shaded Pill Box with Duotone Module Icon + Label + [<<] Collapse Button */}
               <div
-                className={`m-3.5 rounded-[12px] px-3.5 py-3 flex items-center justify-between gap-2 ${
+                className={`m-3 rounded-[12px] px-3.5 py-2.5 flex items-center justify-between gap-2 ${
                   darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
                   <span
-                    className={`font-display font-bold text-[14.5px] truncate ${
+                    className={`font-display font-bold text-[14px] truncate ${
                       darkHeader ? 'text-white' : 'text-[#1B2958]'
                     }`}
                   >
@@ -1463,12 +1475,12 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       : 'bg-white border-[#E2E8F0] text-[#1B2958] hover:bg-slate-50'
                   }`}
                 >
-                  <ChevronsLeft className="w-4 h-4" />
+                  <ChevronsLeft className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* Clean Single-Line Truncated Submenu Items */}
-              <div className="flex-1 overflow-y-auto px-3.5 pb-4 space-y-0.5">
+              <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
                 {activeNavMeta.items.map((sub) => {
                   const isSubActive = activeSubTab === sub.id;
                   return (
@@ -1480,7 +1492,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                         onNavigate(activeModule, sub.id);
                         setMobileMenuOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2.5 rounded-[10px] text-[13.5px] transition cursor-pointer block truncate ${
+                      className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[13px] transition cursor-pointer block truncate ${
                         isSubActive
                           ? darkHeader
                             ? 'bg-slate-800 text-[#F4C430] font-bold'
@@ -1497,8 +1509,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
 
                 {activeNavMeta.groups &&
                   activeNavMeta.groups.map((grp) => (
-                    <div key={grp.groupLabel} className="pt-2.5 mt-2 border-t border-slate-100">
-                      <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div key={grp.groupLabel} className="pt-2 mt-1.5 border-t border-slate-100">
+                      <div className="px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         {grp.groupLabel}
                       </div>
                       {grp.items.map((sub) => {
@@ -1512,7 +1524,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                               onNavigate(activeModule, sub.id);
                               setMobileMenuOpen(false);
                             }}
-                            className={`w-full text-left px-3 py-2 rounded-[10px] text-[13px] transition cursor-pointer block truncate ${
+                            className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[12.5px] transition cursor-pointer block truncate ${
                               isSubActive
                                 ? darkHeader
                                   ? 'bg-slate-800 text-[#F4C430] font-bold'
@@ -1603,7 +1615,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* ===================================================================== */}
       {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK (Exact Match to Coretax Mobile) */}
       {/* ===================================================================== */}
-      <div className="lg:hidden fixed bottom-3 inset-x-0 z-[80] px-3 pointer-events-none flex justify-center">
+      <div className="lg:hidden fixed bottom-3 inset-x-0 z-50 px-3 pointer-events-none flex justify-center">
         <div
           className={`pointer-events-auto w-full max-w-[440px] rounded-full border p-1.5 shadow-[0_14px_38px_rgba(27,41,88,0.22)] backdrop-blur-md flex items-center gap-1.5 ${
             darkHeader
@@ -1708,7 +1720,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* ===================================================================== */}
       {/* OFFICIAL CORETAX DJP FOOTER (Exact Match to PDF 2, 3, 4)              */}
       {/* ===================================================================== */}
-      <footer className="relative z-10 mx-2.5 sm:mx-4 mb-24 lg:mb-3">
+      <footer className="relative z-10 mx-2.5 sm:mx-4 mt-6 mb-24 lg:mb-4 clear-both">
         <div
           className={`rounded-[16px] border px-6 py-5 shadow-[0_4px_20px_rgba(30,44,94,0.04)] ${
             darkHeader
@@ -1776,14 +1788,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
 
           <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-[10.5px] text-slate-400">
             <span>Copyright © 2024 Direktorat Jenderal Pajak. All rights reserved.</span>
-            <button
-              type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              title="Kembali ke atas"
-              className="w-7 h-7 rounded-full bg-slate-200/80 hover:bg-[#1E2C5E] text-slate-600 hover:text-white inline-flex items-center justify-center transition cursor-pointer"
-            >
-              ^
-            </button>
           </div>
         </div>
       </footer>

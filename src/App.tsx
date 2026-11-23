@@ -271,7 +271,13 @@ function CoretaxSimulatorApp() {
       nextEntries.push({ module: activeModule, subTab: activeSubTab, accountMode });
       if (typeof window !== 'undefined') {
         window.history.pushState(
-          { coretaxIdx: nextIndex, module: activeModule, subTab: activeSubTab, accountMode },
+          {
+            coretaxSimulator: true,
+            coretaxIdx: nextIndex,
+            module: activeModule,
+            subTab: activeSubTab,
+            accountMode,
+          },
           ''
         );
       }
@@ -279,17 +285,48 @@ function CoretaxSimulatorApp() {
     });
   }, [workspace?.nikKey, activeModule, activeSubTab, accountMode]);
 
-  // Listen to browser native Back / Forward buttons (popstate)
+  // Listen to browser native Back / Forward buttons (popstate) with boundary trap so undo never exits the simulation
   useEffect(() => {
     if (!workspace?.nikKey) return;
     const handlePopState = (e: PopStateEvent) => {
       const st = e.state as {
+        coretaxSimulator?: boolean;
         coretaxIdx?: number;
         module?: MainNavKey;
         subTab?: string;
         accountMode?: 'INDIVIDUAL' | 'CORPORATE';
       } | null;
-      if (st && typeof st.coretaxIdx === 'number' && st.module && st.subTab) {
+
+      // If user reaches the beginning of simulator history or pops outside, keep them inside the simulator
+      if (!st || typeof st.coretaxIdx !== 'number' || st.coretaxIdx <= 0) {
+        isPopStateRef.current = true;
+        const rootEntry = navHistory.entries[0] || {
+          module: 'portal',
+          subTab: 'ikhtisar',
+          accountMode: 'INDIVIDUAL',
+        };
+        setActiveModule(rootEntry.module);
+        setActiveSubTab(rootEntry.subTab);
+        setAccountMode(rootEntry.accountMode);
+        setNavHistory((prev) => ({ ...prev, index: 0 }));
+
+        // Re-push root state to prevent browser from navigating back to external history/other apps
+        if (typeof window !== 'undefined') {
+          window.history.pushState(
+            {
+              coretaxSimulator: true,
+              coretaxIdx: 0,
+              module: rootEntry.module,
+              subTab: rootEntry.subTab,
+              accountMode: rootEntry.accountMode,
+            },
+            ''
+          );
+        }
+        return;
+      }
+
+      if (st.module && st.subTab) {
         isPopStateRef.current = true;
         setActiveModule(st.module);
         setActiveSubTab(st.subTab);
@@ -302,7 +339,7 @@ function CoretaxSimulatorApp() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [workspace?.nikKey]);
+  }, [workspace?.nikKey, navHistory.entries]);
 
   const handleNavigate = (module: MainNavKey, subTab?: string) => {
     if (module !== activeModule) {

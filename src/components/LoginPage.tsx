@@ -776,12 +776,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         : 'Sign In'}
                   </button>
 
-                  {/* ATAU Divider + Pengguna Baru? & Belum Aktivasi? Cards (Matches Image 2) */}
-                  <div className="pt-3 space-y-4">
-                    <div className="flex items-center gap-4">
+                  {/* ATAU Divider + Pengguna Baru? & Belum Aktivasi? Cards (Small & Responsive) */}
+                  <div className="pt-2 space-y-2.5">
+                    <div className="flex items-center gap-3">
                       <div className={`h-px flex-1 ${darkTheme ? 'bg-slate-700' : 'bg-[#CBD5E1]'}`} />
                       <span
-                        className={`text-[11px] font-bold tracking-[0.18em] uppercase ${
+                        className={`text-[10px] font-bold tracking-[0.16em] uppercase ${
                           darkTheme ? 'text-slate-400' : 'text-[#64748B]'
                         }`}
                       >
@@ -790,37 +790,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       <div className={`h-px flex-1 ${darkTheme ? 'bg-slate-700' : 'bg-[#CBD5E1]'}`} />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                       {/* Card 1: Pengguna Baru? / Daftar di sini */}
                       <button
                         type="button"
                         onClick={() => setModalMode('REGISTER')}
-                        className={`group rounded-[14px] border p-3.5 flex items-center justify-between gap-3 text-left transition cursor-pointer ${
+                        className={`group rounded-[10px] sm:rounded-[12px] border px-2.5 py-2 sm:py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
                           darkTheme
                             ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
-                            : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_2px_8px_rgba(30,44,94,0.03)]'
+                            : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_1px_4px_rgba(30,44,94,0.03)]'
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                           <div
-                            className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-[8px] flex items-center justify-center shrink-0 ${
                               darkTheme
                                 ? 'bg-slate-700/80 text-slate-200'
                                 : 'bg-[#F1F5FB] text-[#1E2C5E]'
                             }`}
                           >
-                            <UserPlus className="w-[18px] h-[18px]" />
+                            <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </div>
                           <div className="min-w-0">
                             <div
-                              className={`text-[13px] font-bold leading-snug ${
+                              className={`text-[11px] sm:text-[11.5px] font-bold leading-snug truncate ${
                                 darkTheme ? 'text-white' : 'text-[#1E2C5E]'
                               }`}
                             >
                               {isId ? 'Pengguna Baru?' : 'New User?'}
                             </div>
                             <div
-                              className={`text-[11.5px] leading-tight mt-0.5 ${
+                              className={`text-[9.5px] sm:text-[10px] leading-tight mt-0.5 truncate ${
                                 darkTheme ? 'text-slate-400' : 'text-[#64748B]'
                               }`}
                             >
@@ -829,7 +829,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           </div>
                         </div>
                         <ArrowRight
-                          className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+                          className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
                             darkTheme ? 'text-slate-400' : 'text-[#64748B]'
                           }`}
                         />
@@ -839,32 +839,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       <button
                         type="button"
                         onClick={() => setModalMode('ACTIVATE')}
-                        className={`group rounded-[14px] border p-3.5 flex items-center justify-between gap-3 text-left transition cursor-pointer ${
+                        className={`group rounded-[10px] sm:rounded-[12px] border px-2.5 py-2 sm:py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
                           darkTheme
                             ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
-                            : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_2px_8px_rgba(30,44,94,0.03)]'
+                            : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_1px_4px_rgba(30,44,94,0.03)]'
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                           <div
-                            className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-[8px] flex items-center justify-center shrink-0 ${
                               darkTheme
                                 ? 'bg-slate-700/80 text-slate-200'
                                 : 'bg-[#F1F5FB] text-[#1E2C5E]'
                             }`}
                           >
-                            <UserPlus className="w-[18px] h-[18px]" />
+                            <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </div>
                           <div className="min-w-0">
                             <div
-                              className={`text-[13px] font-bold leading-snug ${
+                              className={`text-[11px] sm:text-[11.5px] font-bold leading-snug truncate ${
                                 darkTheme ? 'text-white' : 'text-[#1E2C5E]'
                               }`}
                             >
                               {isId ? 'Belum Aktivasi?' : 'Not Activated?'}
                             </div>
                             <div
-                              className={`text-[11.5px] leading-tight mt-0.5 ${
+                              className={`text-[9.5px] sm:text-[10px] leading-tight mt-0.5 truncate ${
                                 darkTheme ? 'text-slate-400' : 'text-[#64748B]'
                               }`}
                             >
@@ -873,7 +873,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           </div>
                         </div>
                         <ArrowRight
-                          className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+                          className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
                             darkTheme ? 'text-slate-400' : 'text-[#64748B]'
                           }`}
                         />
