@@ -512,11 +512,14 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
         darkHeader ? 'bg-[#0F172A] text-slate-100' : 'bg-[#EAEEF7] text-[#1E293B]'
       }`}
     >
-      {/* Official Coretax Background (coretax-bg.jpg) across all Post-Login screens */}
+      {/* Official Coretax Background (djpcoretaxbg.webp) from official DJP portal */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/coretax-bg.jpg')" }}
+          style={{
+            backgroundImage:
+              "url('https://coretaxdjp.pajak.go.id/identityproviderportal/asset-login-new/djpcoretaxbg.webp'), url('/djpcoretaxbg.webp')",
+          }}
         />
         {darkHeader && (
           <div className="absolute inset-0 bg-[#0B1224]/85 backdrop-blur-[1px]" />

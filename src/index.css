@@ -16,7 +16,7 @@
   body {
     font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--coretax-bg);
-    background-image: url('/coretax-bg.jpg');
+    background-image: url('https://coretaxdjp.pajak.go.id/identityproviderportal/asset-login-new/djpcoretaxbg.webp'), url('/djpcoretaxbg.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;

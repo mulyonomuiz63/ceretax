@@ -108,11 +108,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           : 'bg-[#F3F5FA] text-[#1B2958]'
       }`}
     >
-      {/* Official Coretax Background (coretax-bg.jpg) across Landing & Login */}
+      {/* Official Coretax Background (djpcoretaxbg.webp) from official DJP portal */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/coretax-bg.jpg')" }}
+          style={{
+            backgroundImage:
+              "url('https://coretaxdjp.pajak.go.id/identityproviderportal/asset-login-new/djpcoretaxbg.webp'), url('/djpcoretaxbg.webp')",
+          }}
         />
         {darkTheme && (
           <div className="absolute inset-0 bg-[#0B1224]/85 backdrop-blur-[1px]" />
