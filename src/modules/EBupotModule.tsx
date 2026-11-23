@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowUpDown,
   ChevronDown,
+  ChevronRight,
   Download,
   Eye,
   FileCode2,
@@ -13,7 +15,6 @@ import {
   Send,
   Trash2,
   Upload,
-  X,
 } from 'lucide-react';
 import { PtkpStatus, SlipType, Taxpayer, WithholdingSlip, WorkspaceState } from '../types/tax.ts';
 import {
@@ -188,14 +189,21 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const [xmlContent, setXmlContent] = useState(SAMPLE_XML_TEMPLATE);
   const [xmlStatus, setXmlStatus] = useState<string | null>(null);
 
-  // Create form state
+  // Create inline form state (Coretax e-Bupot PDF fields)
+  const [formCollapsed, setFormCollapsed] = useState<Record<string, boolean>>({});
   const [recipientNik, setRecipientNik] = useState('3174051908920005');
   const [recipientName, setRecipientName] = useState('ANDI WIJAYA');
+  const [recipientPosition, setRecipientPosition] = useState('Staff Operasional');
   const [month, setMonth] = useState(1);
   const [year, setYear] = useState(2025);
   const [ptkp, setPtkp] = useState<PtkpStatus>('TK/0');
   const [grossAmount, setGrossAmount] = useState(20_000_000);
   const [pph23Code, setPph23Code] = useState('24-104-29');
+  const [taxFacility, setTaxFacility] = useState<'NONE' | 'SKB' | 'DTP'>('NONE');
+  const [refDocType, setRefDocType] = useState('Invoice / Daftar Gaji');
+  const [refDocNumber, setRefDocNumber] = useState('DOC/2025/01/001');
+  const [refDocDate, setRefDocDate] = useState('2025-01-25');
+  const [submitBanner, setSubmitBanner] = useState<string | null>(null);
 
   const activeConfig = SUBTAB_CONFIG[subTab] || SUBTAB_CONFIG.bppu;
   const currentSlipType: SlipType = activeConfig.slipType;
@@ -331,8 +339,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
 
   const calc = computeSlipValues();
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveSlipRecord = async (asSubmit: boolean) => {
     await onCreateSlip({
       issuerId: workspace.corporateTaxpayer.id,
       issuerNpwp: workspace.corporateTaxpayer.nikNpwp,
@@ -356,6 +363,18 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
     });
     setStatusView('UNISSUED');
     setCreateOpen(false);
+    setSubmitBanner(
+      asSubmit
+        ? `Bukti Potong ${activeConfig.shortTitle} untuk ${recipientName} (${formatRp(
+            calc.taxWithheld
+          )}) berhasil disimpan ke daftar Belum Terbit. Centang baris lalu klik "Terbitkan" untuk Tanda Tangan Elektronik.`
+        : `Konsep ${activeConfig.shortTitle} untuk ${recipientName} berhasil disimpan ke daftar Belum Terbit.`
+    );
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveSlipRecord(true);
   };
 
   const handleDownloadXmlTemplate = () => {
@@ -828,7 +847,386 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
           </aside>
 
           {/* RIGHT MAIN WORKSPACE CARD */}
+          {createOpen ? (
+            /* =============================================================== */
+            /* INLINE FULL-PAGE CORETAX e-BUPOT FORM (pph 21 dan unifikasi.pdf)*/
+            /* =============================================================== */
+            <form
+              onSubmit={handleCreate}
+              className="flex-1 min-w-0 w-full bg-white border border-[#E2E8F0] rounded-[8px] overflow-hidden shadow-xs"
+            >
+              <div className="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreateOpen(false)}
+                    className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <div>
+                    <h1 className="font-display font-extrabold text-[15px] text-[#1E2C5E] uppercase tracking-tight">
+                      {activeConfig.headingPrefix} — FORMULIR PEMBUATAN BUKTI POTONG
+                    </h1>
+                    <p className="text-[11px] text-slate-500">
+                      {currentSlipType === 'BPMP'
+                        ? 'Bukti Pemotongan Bulanan Pegawai Tetap (TER Kategori A/B/C PP 58/2023)'
+                        : currentSlipType === 'BPPU_23'
+                          ? 'Bukti Pemotongan/Pemungutan Unifikasi (PPh Pasal 23 / 4(2) / 15 / 22)'
+                          : currentSlipType === 'BPA1'
+                            ? 'Bukti Pemotongan A1 / A2 Masa Pajak Terakhir (Tahunan)'
+                            : 'Bukti Pemotongan Selain Pegawai Tetap (BP 21 / BP 26)'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                  Status: NORMAL · DRAFT
+                </span>
+              </div>
+
+              <div className="p-5 space-y-4 text-[12px]">
+                {/* Section 1: Informasi Umum */}
+                <div className="border border-slate-200 rounded overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setFormCollapsed((p) => ({ ...p, umum: !p.umum }))}
+                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
+                  >
+                    {formCollapsed.umum ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span>Informasi Umum</span>
+                  </button>
+                  {!formCollapsed.umum && (
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 bg-white">
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <label className="col-span-5 font-semibold text-slate-700">
+                          Masa Pajak <span className="text-rose-600">*</span>
+                        </label>
+                        <div className="col-span-7 grid grid-cols-2 gap-2">
+                          <select
+                            value={month}
+                            onChange={(e) => setMonth(Number(e.target.value))}
+                            disabled={currentSlipType === 'BPA1'}
+                            className="border border-slate-300 rounded px-2.5 py-1.5 bg-white disabled:bg-slate-100"
+                          >
+                            {MONTHS_ID.map((m, i) => (
+                              <option key={m} value={i + 1}>
+                                {m}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            value={year}
+                            onChange={(e) => setYear(Number(e.target.value) || 2025)}
+                            className="border border-slate-300 rounded px-2.5 py-1.5 font-mono-num"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <label className="col-span-5 font-semibold text-slate-700">Status Bukti Potong</label>
+                        <input
+                          type="text"
+                          readOnly
+                          value="Normal"
+                          className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5"
+                        />
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <label className="col-span-5 font-semibold text-slate-700">
+                          NIK / NPWP Penerima <span className="text-rose-600">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={recipientNik}
+                          onChange={(e) => setRecipientNik(e.target.value)}
+                          className="col-span-7 border border-slate-300 rounded px-3 py-1.5 font-mono-num"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <label className="col-span-5 font-semibold text-slate-700">
+                          Nama Penerima <span className="text-rose-600">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={recipientName}
+                          onChange={(e) => setRecipientName(e.target.value)}
+                          className="col-span-7 border border-slate-300 rounded px-3 py-1.5 font-semibold"
+                          required
+                        />
+                      </div>
+                      {currentSlipType !== 'BPPU_23' && (
+                        <>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 font-semibold text-slate-700">
+                              Status PTKP <span className="text-rose-600">*</span>
+                            </label>
+                            <select
+                              value={ptkp}
+                              onChange={(e) => setPtkp(e.target.value as PtkpStatus)}
+                              className="col-span-7 border border-slate-300 rounded px-2.5 py-1.5 bg-white font-semibold"
+                            >
+                              {(['TK/0', 'TK/1', 'TK/2', 'TK/3', 'K/0', 'K/1', 'K/2', 'K/3'] as PtkpStatus[]).map(
+                                (p) => (
+                                  <option key={p} value={p}>
+                                    {p} — PTKP {formatRp(PTKP_VALUES[p])}
+                                  </option>
+                                )
+                              )}
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 font-semibold text-slate-700">Posisi / Jabatan</label>
+                            <input
+                              type="text"
+                              value={recipientPosition}
+                              onChange={(e) => setRecipientPosition(e.target.value)}
+                              className="col-span-7 border border-slate-300 rounded px-3 py-1.5"
+                            />
+                          </div>
+                        </>
+                      )}
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <label className="col-span-5 font-semibold text-slate-700">NITKU Pemotong</label>
+                        <input
+                          type="text"
+                          readOnly
+                          value={`${workspace.corporateTaxpayer.nikNpwp}000000`}
+                          className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                        />
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <label className="col-span-5 font-semibold text-slate-700">Fasilitas Perpajakan</label>
+                        <select
+                          value={taxFacility}
+                          onChange={(e) => setTaxFacility(e.target.value as 'NONE' | 'SKB' | 'DTP')}
+                          className="col-span-7 border border-slate-300 rounded px-2.5 py-1.5 bg-white"
+                        >
+                          <option value="NONE">Tanpa Fasilitas</option>
+                          <option value="SKB">Surat Keterangan Bebas (SKB)</option>
+                          <option value="DTP">PPh Ditanggung Pemerintah (DTP)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Pajak Penghasilan & Kalkulasi Otomatis */}
+                <div className="border border-slate-200 rounded overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setFormCollapsed((p) => ({ ...p, tax: !p.tax }))}
+                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
+                  >
+                    {formCollapsed.tax ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span>
+                      {currentSlipType === 'BPMP'
+                        ? 'Penghitungan PPh Pasal 21 (TER PP 58/2023)'
+                        : currentSlipType === 'BPA1'
+                          ? 'Penghasilan Bruto, Pengurang & Penghitungan PPh Pasal 21 Tahunan'
+                          : 'Pajak Penghasilan (Rp)'}
+                    </span>
+                  </button>
+                  {!formCollapsed.tax && (
+                    <div className="p-4 space-y-3 bg-white">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
+                        {currentSlipType === 'BPPU_23' ? (
+                          <div className="md:col-span-2 grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-3 font-semibold text-slate-700">
+                              Kode Objek Pajak <span className="text-rose-600">*</span>
+                            </label>
+                            <select
+                              value={pph23Code}
+                              onChange={(e) => setPph23Code(e.target.value)}
+                              className="col-span-9 border border-slate-300 rounded px-3 py-1.5 bg-white"
+                            >
+                              {PPH23_OBJECT_CODES.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                  {c.code} — {c.name} ({c.rate}%)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <div className="md:col-span-2 grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-3 font-semibold text-slate-700">Nama Objek Pajak</label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={`${calc.objectCode} — ${calc.objectName}`}
+                              className="col-span-9 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-semibold text-[#1E2C5E]"
+                            />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 font-semibold text-slate-700">
+                            Penghasilan Bruto (Rp) <span className="text-rose-600">*</span>
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={grossAmount}
+                            onChange={(e) => setGrossAmount(Number(e.target.value) || 0)}
+                            className="col-span-7 text-right border border-slate-300 rounded px-3 py-1.5 font-mono-num font-semibold"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 font-semibold text-slate-700">
+                            {currentSlipType === 'BPA1' ? 'Penghasilan Neto (Rp)' : 'Dasar Pengenaan Pajak (Rp)'}
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={formatRp(calc.netAmount)}
+                            className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                          />
+                        </div>
+
+                        {currentSlipType === 'BPA1' && (
+                          <>
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <label className="col-span-5 font-semibold text-slate-700">Biaya Jabatan (5%)</label>
+                              <input
+                                type="text"
+                                readOnly
+                                value={formatRp(calc.positionAllowance || 0)}
+                                className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                              />
+                            </div>
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <label className="col-span-5 font-semibold text-slate-700">PKP Setahun</label>
+                              <input
+                                type="text"
+                                readOnly
+                                value={formatRp(calc.pkpAmount || 0)}
+                                className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 font-semibold text-slate-700">Tarif Pajak (%)</label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={`${calc.ratePercent}%`}
+                            className="col-span-7 text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num font-bold text-[#1E2C5E]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <label className="col-span-5 font-semibold text-slate-700">KAP - KJS</label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={currentSlipType === 'BPPU_23' ? '411124-104 (PPh Pasal 23)' : '411121-100 (PPh Pasal 21)'}
+                            className="col-span-7 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-[#FEF9E7] border border-[#F7CA36] rounded px-4 py-2.5 flex items-center justify-between">
+                        <span className="font-bold text-[#1E2C5E]">Pajak Penghasilan (PPh) Dipotong / Terutang</span>
+                        <span className="font-mono-num text-[15px] font-extrabold text-[#1E2C5E]">
+                          {formatRp(calc.taxWithheld)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 3: Dokumen Referensi */}
+                <div className="border border-slate-200 rounded overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setFormCollapsed((p) => ({ ...p, ref: !p.ref }))}
+                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
+                  >
+                    {formCollapsed.ref ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span>Dokumen Referensi</span>
+                  </button>
+                  {!formCollapsed.ref && (
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3 bg-white">
+                      <div>
+                        <label className="block font-semibold text-slate-700 mb-1">Jenis Dokumen</label>
+                        <select
+                          value={refDocType}
+                          onChange={(e) => setRefDocType(e.target.value)}
+                          className="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white"
+                        >
+                          <option value="Invoice / Daftar Gaji">Invoice / Daftar Gaji</option>
+                          <option value="Faktur Pajak">Faktur Pajak</option>
+                          <option value="Kontrak / Perjanjian">Kontrak / Perjanjian</option>
+                          <option value="Bukti Pembayaran">Bukti Pembayaran</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-semibold text-slate-700 mb-1">Nomor Dokumen</label>
+                        <input
+                          type="text"
+                          value={refDocNumber}
+                          onChange={(e) => setRefDocNumber(e.target.value)}
+                          className="w-full border border-slate-300 rounded px-3 py-1.5 font-mono-num"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold text-slate-700 mb-1">Tanggal Dokumen</label>
+                        <input
+                          type="date"
+                          value={refDocDate}
+                          onChange={(e) => setRefDocDate(e.target.value)}
+                          className="w-full border border-slate-300 rounded px-3 py-1.5 font-mono-num"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Action Bar matching Coretax PDF (Go to search · Simpan Konsep · Submit) */}
+              <div className="px-5 py-3.5 bg-[#F8FAFC] border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCreateOpen(false)}
+                  className="px-4 py-2 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs cursor-pointer"
+                >
+                  Go to search
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => saveSlipRecord(false)}
+                    className="px-4 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs cursor-pointer"
+                  >
+                    Simpan Konsep
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-[6px] bg-[#F7CA36] hover:bg-[#E5B822] text-[#1E2C5E] font-extrabold text-xs cursor-pointer"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </form>
+          ) : (
           <div className="flex-1 min-w-0 w-full bg-white border border-[#E2E8F0] rounded-[8px] overflow-hidden">
+            {submitBanner && (
+              <div className="mx-5 mt-4 bg-[#D8F1FD] border border-[#9CDDFB] text-[#0E4A6B] px-4 py-2.5 rounded text-xs flex items-center justify-between gap-2">
+                <span className="font-medium">{submitBanner}</span>
+                <button
+                  type="button"
+                  onClick={() => setSubmitBanner(null)}
+                  className="font-bold underline cursor-pointer shrink-0"
+                >
+                  Tutup
+                </button>
+              </div>
+            )}
             {/* Top Header Row: Uppercase Coretax Title + 6 Action Buttons */}
             <div className="px-5 py-4 border-b border-[#E5EAF2] flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -1267,150 +1665,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Create e-Bupot Modal */}
-      {createOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-slate-300 w-full max-w-lg overflow-hidden">
-            <div className="bg-[#1E2C5E] text-white px-5 py-3.5 flex items-center justify-between border-b-2 border-[#F4C430]">
-              <h3 className="font-display font-bold text-sm">
-                Buat Bukti Potong — {activeConfig.shortTitle} ({currentSlipType})
-              </h3>
-              <button type="button" onClick={() => setCreateOpen(false)} className="cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleCreate} className="p-5 space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#1E2C5E] mb-1">Masa Pajak</label>
-                  <select
-                    value={month}
-                    onChange={(e) => setMonth(Number(e.target.value))}
-                    disabled={currentSlipType === 'BPA1'}
-                    className="w-full border border-[#CBD5E1] rounded px-3 py-2 bg-white"
-                  >
-                    {MONTHS_ID.map((m, i) => (
-                      <option key={m} value={i + 1}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#1E2C5E] mb-1">Tahun Pajak</label>
-                  <input
-                    type="number"
-                    value={year}
-                    onChange={(e) => setYear(Number(e.target.value))}
-                    className="w-full border border-[#CBD5E1] rounded px-3 py-2 font-mono-num"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#1E2C5E] mb-1">NIK / NPWP Penerima</label>
-                  <input
-                    type="text"
-                    value={recipientNik}
-                    onChange={(e) => setRecipientNik(e.target.value)}
-                    className="w-full border border-[#CBD5E1] rounded px-3 py-2 font-mono-num"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#1E2C5E] mb-1">Nama Penerima</label>
-                  <input
-                    type="text"
-                    value={recipientName}
-                    onChange={(e) => setRecipientName(e.target.value)}
-                    className="w-full border border-[#CBD5E1] rounded px-3 py-2"
-                    required
-                  />
-                </div>
-              </div>
-
-              {currentSlipType === 'BPPU_23' ? (
-                <div>
-                  <label className="block font-semibold text-[#1E2C5E] mb-1">Kode Objek Pajak PPh 23</label>
-                  <select
-                    value={pph23Code}
-                    onChange={(e) => setPph23Code(e.target.value)}
-                    className="w-full border border-[#CBD5E1] rounded px-3 py-2 bg-white"
-                  >
-                    {PPH23_OBJECT_CODES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.code} — {c.name} ({c.rate}%)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="block font-semibold text-[#1E2C5E] mb-1">Status PTKP Penerima</label>
-                  <select
-                    value={ptkp}
-                    onChange={(e) => setPtkp(e.target.value as PtkpStatus)}
-                    className="w-full border border-[#CBD5E1] rounded px-3 py-2 bg-white"
-                  >
-                    {(['TK/0', 'TK/1', 'TK/2', 'TK/3', 'K/0', 'K/1', 'K/2', 'K/3'] as PtkpStatus[]).map(
-                      (p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block font-semibold text-[#1E2C5E] mb-1">Penghasilan Bruto (Rp)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={grossAmount}
-                  onChange={(e) => setGrossAmount(Number(e.target.value))}
-                  className="w-full border border-[#CBD5E1] rounded px-3 py-2 font-mono-num"
-                  required
-                />
-              </div>
-
-              {/* Automatic Tax Calculation Box */}
-              <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded p-3 grid grid-cols-3 gap-2">
-                <div>
-                  <span className="text-[10px] text-slate-500 block">Objek Pajak</span>
-                  <span className="font-mono-num font-bold text-[#1E2C5E]">{calc.objectCode}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block">Tarif Efektif / Pasal</span>
-                  <span className="font-mono-num font-bold text-[#1E2C5E]">{calc.ratePercent}%</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block">PPh Terutang</span>
-                  <span className="font-mono-num font-extrabold text-emerald-700">
-                    {formatRp(calc.taxWithheld)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(false)}
-                  className="px-4 py-2 border border-slate-300 rounded font-semibold cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#1E2C5E] text-white font-bold rounded cursor-pointer"
-                >
-                  Simpan Konsep (Belum Terbit)
-                </button>
-              </div>
-            </form>
-          </div>
+          )}
         </div>
       )}
 

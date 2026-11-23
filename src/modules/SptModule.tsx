@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Download,
   Edit3,
   Eye,
   FilePlus2,
@@ -13,6 +14,7 @@ import {
   FileText,
   Filter,
   Info,
+  Mail,
   Printer,
   RefreshCw,
   Trash2,
@@ -608,15 +610,15 @@ export const SptModule: React.FC<SptModuleProps> = ({
               </button>
             </div>
 
-            {/* White 3-Step Horizontal Stepper Card */}
+            {/* White 3-Step Horizontal Stepper Card (Authentic Coretax Wizard) */}
             <div className="bg-white border border-[#E5EAF2] rounded-[10px] overflow-hidden shadow-[0_2px_10px_rgba(30,44,94,0.03)]">
-              {/* Horizontal Numbered Circle Stepper */}
+              {/* Horizontal Numbered Circle Stepper (Golden Yellow Active) */}
               <div className="px-5 sm:px-8 py-5 bg-[#FAFBFD] border-b border-[#E5EAF2]">
-                <div className="flex items-center justify-between max-w-2xl mx-auto">
+                <div className="flex items-center justify-between max-w-3xl mx-auto">
                   {[
-                    { num: 1 as const, title: 'Pilih Jenis SPT' },
-                    { num: 2 as const, title: 'Pilih Periode Pelaporan SPT' },
-                    { num: 3 as const, title: 'Pilih Model SPT' },
+                    { num: 1 as const, title: 'Pilih Jenis Pajak' },
+                    { num: 2 as const, title: 'Pilih periode pelaporan SPT' },
+                    { num: 3 as const, title: 'Pilih Jenis SPT' },
                   ].map((st, idx) => {
                     const isCompleted = wizardStep > st.num;
                     const isActive = wizardStep === st.num;
@@ -624,11 +626,11 @@ export const SptModule: React.FC<SptModuleProps> = ({
                       <React.Fragment key={st.num}>
                         <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
                           <span
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 transition ${
                               isCompleted
-                                ? 'bg-emerald-600 text-white'
+                                ? 'bg-[#1E2C5E] text-[#F7CA36]'
                                 : isActive
-                                  ? 'bg-[#1E2C5E] text-white ring-4 ring-[#F4C430]/35'
+                                  ? 'bg-[#F7CA36] text-[#1E2C5E] ring-4 ring-[#F7CA36]/30'
                                   : 'bg-slate-200 text-slate-500'
                             }`}
                           >
@@ -639,7 +641,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
                               isActive
                                 ? 'font-bold text-[#1E2C5E]'
                                 : isCompleted
-                                  ? 'font-semibold text-emerald-700'
+                                  ? 'font-semibold text-[#1E2C5E]'
                                   : 'font-medium text-slate-400'
                             }`}
                           >
@@ -649,7 +651,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
                         {idx < 2 && (
                           <div
                             className={`flex-1 h-[2px] mx-2 sm:mx-4 rounded ${
-                              wizardStep > st.num ? 'bg-emerald-500' : 'bg-slate-200'
+                              wizardStep > st.num ? 'bg-[#F7CA36]' : 'bg-slate-200'
                             }`}
                           />
                         )}
@@ -659,323 +661,357 @@ export const SptModule: React.FC<SptModuleProps> = ({
                 </div>
               </div>
 
-              {/* Step Body Content */}
-              <div className="p-5 sm:p-7 space-y-5">
-                {wizardStep === 1 && (
-                  <div className="space-y-4">
-                    <div>
-                      <h2 className="font-display font-bold text-[15px] text-[#1B2958]">
-                        Pilih Jenis SPT
-                      </h2>
-                      <p className="text-[12.5px] text-slate-500 mt-0.5">
-                        Wajib Pajak aktif:{' '}
-                        <strong className="text-[#1B2958]">{activeTaxpayer.name}</strong> (
-                        <span className="font-mono-num">{activeTaxpayer.nikNpwp}</span>)
-                      </p>
+              {/* Two-Column Step Body: Left Step Illustration + Right Panel */}
+              <div className="p-5 sm:p-7">
+                <div className="flex flex-col lg:flex-row gap-6 items-start">
+                  {/* Left Coretax Vector Step Illustration */}
+                  <div className="hidden lg:flex w-[210px] shrink-0 flex-col items-center justify-center p-5 rounded-[10px] bg-[#F8FAFD] border border-[#E5EAF2] text-center">
+                    <svg width="136" height="118" viewBox="0 0 136 118" fill="none" aria-hidden="true">
+                      <rect x="18" y="12" width="100" height="86" rx="10" fill="#EEF3FA" stroke="#D5E0F2" strokeWidth="1.5" />
+                      <rect x="30" y="26" width="44" height="6" rx="3" fill="#1E2C5E" />
+                      <rect x="30" y="38" width="76" height="5" rx="2.5" fill="#CBD5E1" />
+                      <rect x="30" y="48" width="60" height="5" rx="2.5" fill="#CBD5E1" />
+                      <rect x="30" y="62" width="34" height="22" rx="5" fill="#F7CA36" />
+                      <path d="M40 73L45 78L55 68" stroke="#1E2C5E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <rect x="70" y="64" width="36" height="6" rx="3" fill="#94A3B8" />
+                      <rect x="70" y="74" width="24" height="6" rx="3" fill="#CBD5E1" />
+                    </svg>
+                    <div className="mt-3 text-[12px] font-bold text-[#1E2C5E]">
+                      Langkah {wizardStep} dari 3
                     </div>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      {wizardStep === 1
+                        ? 'Pilih jenis pajak yang akan dibuat konsep SPT-nya.'
+                        : wizardStep === 2
+                          ? 'Tentukan jenis periode serta masa atau tahun pajak.'
+                          : 'Pilih model SPT Normal atau Pembetulan lalu buat konsep.'}
+                    </p>
+                  </div>
 
-                    <div className="space-y-2.5">
-                      {availableTypes.map((typeKey) => {
-                        const checked = selectedType === typeKey;
-                        return (
-                          <label
-                            key={typeKey}
-                            className={`flex items-start gap-3 p-3.5 rounded-[10px] border transition cursor-pointer ${
-                              checked
-                                ? 'border-[#1E2C5E] bg-[#F2F6FC] ring-1 ring-[#1E2C5E]/20'
-                                : 'border-[#DCE2EC] bg-white hover:border-slate-300 hover:bg-[#FAFBFD]'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="jenisSpt"
-                              checked={checked}
-                              onChange={() => {
-                                setSelectedType(typeKey);
-                                const annual =
-                                  typeKey === 'SPT_TAHUNAN_OP' || typeKey === 'SPT_TAHUNAN_BADAN';
-                                setTaxYear(annual ? 2024 : 2025);
-                              }}
-                              className="mt-1 accent-[#1E2C5E]"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-[13.5px] font-bold text-[#1B2958]">
-                                  {TAX_TYPE_LABELS[typeKey]}
-                                </span>
-                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-[#EEF2FA] text-[#1E2C5E]">
-                                  {RETURN_KIND_LABELS[typeKey]}
-                                </span>
-                              </div>
-                              <p className="text-[12px] text-slate-500 mt-0.5">
-                                {RETURN_DESCRIPTIONS[typeKey]}
-                              </p>
+                  {/* Right Panel Content */}
+                  <div className="flex-1 min-w-0 w-full space-y-5">
+                    {wizardStep === 1 && (
+                      <div className="space-y-4">
+                        <div>
+                          <h2 className="font-display font-bold text-[15px] text-[#1B2958]">
+                            Pilih Jenis Pajak
+                          </h2>
+                          <p className="text-[12px] text-slate-500 mt-0.5">
+                            Wajib Pajak aktif:{' '}
+                            <strong className="text-[#1B2958]">{activeTaxpayer.name}</strong> (
+                            <span className="font-mono-num">{activeTaxpayer.nikNpwp}</span>)
+                          </p>
+                        </div>
+
+                        {/* Authentic Coretax Clickable Tile Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                          {availableTypes.map((typeKey) => {
+                            const checked = selectedType === typeKey;
+                            return (
+                              <button
+                                key={typeKey}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedType(typeKey);
+                                  const annual =
+                                    typeKey === 'SPT_TAHUNAN_OP' || typeKey === 'SPT_TAHUNAN_BADAN';
+                                  setTaxYear(annual ? 2024 : 2025);
+                                }}
+                                className={`text-left p-4 rounded-[8px] border transition cursor-pointer flex flex-col justify-between min-h-[104px] ${
+                                  checked
+                                    ? 'bg-[#FEF5D4] border-[#F7CA36] ring-1 ring-[#F7CA36] shadow-xs'
+                                    : 'bg-white border-[#DCE2EC] hover:border-[#1E2C5E]/40 hover:bg-[#FAFBFD]'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="text-[13.5px] font-bold text-[#1E2C5E] leading-snug">
+                                    {TAX_TYPE_LABELS[typeKey]}
+                                  </span>
+                                  <span
+                                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                                      checked
+                                        ? 'border-[#1E2C5E] bg-[#1E2C5E] text-[#F7CA36]'
+                                        : 'border-slate-300 bg-white'
+                                    }`}
+                                  >
+                                    {checked && <Check className="w-2.5 h-2.5" />}
+                                  </span>
+                                </div>
+                                <div className="mt-2">
+                                  <span className="inline-block text-[10.5px] font-bold px-2 py-0.5 rounded bg-[#1E2C5E]/10 text-[#1E2C5E]">
+                                    {RETURN_KIND_LABELS[typeKey]}
+                                  </span>
+                                  <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">
+                                    {RETURN_DESCRIPTIONS[typeKey]}
+                                  </p>
+                                </div>
+                              </button>
+                            );
+                          })}
+
+                          {/* Authentic Coretax reference tiles (non-simulated modules) */}
+                          {[
+                            { title: 'Bea Meterai', desc: 'SPT Masa Bea Meterai (Referensi Coretax)' },
+                            { title: 'Pajak Penjualan Barang Mewah', desc: 'SPT Masa PPnBM (Referensi Coretax)' },
+                          ].map((refTile) => (
+                            <div
+                              key={refTile.title}
+                              className="text-left p-4 rounded-[8px] border border-dashed border-slate-200 bg-slate-50/70 opacity-65 flex flex-col justify-between min-h-[104px]"
+                            >
+                              <span className="text-[13px] font-bold text-slate-500">{refTile.title}</span>
+                              <p className="text-[11px] text-slate-400 mt-2">{refTile.desc}</p>
                             </div>
-                          </label>
-                        );
-                      })}
-                    </div>
+                          ))}
+                        </div>
 
-                    {accountMode === 'INDIVIDUAL' && (
-                      <div className="flex items-start gap-2.5 p-3 rounded-[8px] bg-[#F8FAFC] border border-[#E5EAF2] text-[12px] text-slate-600">
-                        <Info className="w-4 h-4 text-[#1E2C5E] shrink-0 mt-0.5" />
-                        <span>
-                          Untuk membuat Konsep SPT <strong>PPN</strong>, <strong>PPh Pasal 21/26</strong>,{' '}
-                          <strong>PPh Unifikasi</strong>, atau <strong>PPh Badan</strong>, beralihlah ke
-                          akun Badan / PKP melalui menu <strong>Impersonate</strong> di pojok kanan atas.
-                        </span>
+                        {accountMode === 'INDIVIDUAL' && (
+                          <div className="flex items-start gap-2.5 p-3 rounded-[8px] bg-[#D8F1FD] border border-[#9CDDFB] text-[12px] text-[#0E4A6B]">
+                            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>
+                              Untuk membuat Konsep SPT <strong>PPN</strong>, <strong>PPh Pasal 21/26</strong>,{' '}
+                              <strong>PPh Unifikasi</strong>, atau <strong>PPh Badan</strong>, beralihlah ke
+                              akun Badan / PKP melalui menu <strong>Impersonate</strong> di pojok kanan atas.
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
-                )}
 
-                {wizardStep === 2 && (
-                  <div className="space-y-5">
-                    <div>
-                      <h2 className="font-display font-bold text-[15px] text-[#1B2958]">
-                        Pilih Periode Pelaporan SPT
-                      </h2>
-                      <p className="text-[12.5px] text-slate-500 mt-0.5">
-                        Jenis Pajak dipilih:{' '}
-                        <strong className="text-[#1B2958]">{TAX_TYPE_LABELS[selectedType]}</strong>
-                      </p>
-                    </div>
-
-                    {/* Jenis Periode SPT (Radio) */}
-                    <div className="space-y-2">
-                      <label className="block text-[12.5px] font-bold text-[#1B2958]">
-                        Jenis Periode SPT <span className="text-rose-600">*</span>
-                      </label>
-                      <div className="flex flex-wrap gap-3">
-                        <label
-                          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[8px] border text-[13px] ${
-                            !isSelectedAnnual
-                              ? 'border-[#1E2C5E] bg-[#F2F6FC] font-bold text-[#1B2958]'
-                              : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="jenisPeriode"
-                            checked={!isSelectedAnnual}
-                            disabled={isSelectedAnnual}
-                            readOnly
-                            className="accent-[#1E2C5E]"
-                          />
-                          <span>SPT Masa</span>
-                        </label>
-                        <label
-                          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[8px] border text-[13px] ${
-                            isSelectedAnnual
-                              ? 'border-[#1E2C5E] bg-[#F2F6FC] font-bold text-[#1B2958]'
-                              : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="jenisPeriode"
-                            checked={isSelectedAnnual}
-                            disabled={!isSelectedAnnual}
-                            readOnly
-                            className="accent-[#1E2C5E]"
-                          />
-                          <span>SPT Tahunan</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Periode dan Tahun Pajak */}
-                    {isSelectedAnnual ? (
-                      <div className="max-w-md space-y-1.5">
-                        <label className="block text-[12.5px] font-bold text-[#1B2958]">
-                          Periode dan Tahun Pajak <span className="text-rose-600">*</span>
-                        </label>
-                        <select
-                          value={taxYear}
-                          onChange={(e) => setTaxYear(Number(e.target.value))}
-                          className="w-full border border-[#CBD5E1] rounded-[8px] px-3.5 py-2.5 text-[13px] bg-white text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
-                        >
-                          <option value={2024}>Januari 2024 - Desember 2024</option>
-                          <option value={2025}>Januari 2025 - Desember 2025</option>
-                          <option value={2026}>Januari 2026 - Desember 2026</option>
-                        </select>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-                        <div className="space-y-1.5">
-                          <label className="block text-[12.5px] font-bold text-[#1B2958]">
-                            Masa Pajak <span className="text-rose-600">*</span>
-                          </label>
-                          <select
-                            value={taxMonth}
-                            onChange={(e) => setTaxMonth(Number(e.target.value))}
-                            className="w-full border border-[#CBD5E1] rounded-[8px] px-3.5 py-2.5 text-[13px] bg-white text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
-                          >
-                            {MONTHS_ID.map((m, idx) => (
-                              <option key={m} value={idx + 1}>
-                                {m}
-                              </option>
-                            ))}
-                          </select>
+                    {wizardStep === 2 && (
+                      <div className="space-y-4">
+                        <div>
+                          <h2 className="font-display font-bold text-[15px] text-[#1B2958]">
+                            Pilih periode pelaporan SPT
+                          </h2>
+                          <p className="text-[12px] text-slate-500 mt-0.5">
+                            Lengkapi jenis surat pemberitahuan dan periode pelaporan pajak.
+                          </p>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="block text-[12.5px] font-bold text-[#1B2958]">
-                            Tahun Pajak <span className="text-rose-600">*</span>
-                          </label>
-                          <select
-                            value={taxYear}
-                            onChange={(e) => setTaxYear(Number(e.target.value))}
-                            className="w-full border border-[#CBD5E1] rounded-[8px] px-3.5 py-2.5 text-[13px] bg-white text-[#1E293B] font-mono-num focus:outline-none focus:border-[#1E2C5E]"
-                          >
-                            <option value={2024}>2024</option>
-                            <option value={2025}>2025</option>
-                            <option value={2026}>2026</option>
-                          </select>
+
+                        <div className="max-w-xl space-y-3.5">
+                          <div>
+                            <label className="block text-[12px] font-bold text-[#1B2958] mb-1">
+                              Jenis Surat Pemberitahuan Pajak
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={`${TAX_TYPE_LABELS[selectedType]} — ${RETURN_DESCRIPTIONS[selectedType]}`}
+                              className="w-full border border-slate-200 bg-slate-100 rounded-[6px] px-3 py-2 text-[12.5px] font-semibold text-slate-700"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[12px] font-bold text-[#1B2958] mb-1.5">
+                              Jenis Periode SPT <span className="text-rose-600">*</span>
+                            </label>
+                            <div className="flex flex-wrap gap-3">
+                              <label
+                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-[6px] border text-[12.5px] ${
+                                  !isSelectedAnnual
+                                    ? 'border-[#F7CA36] bg-[#FEF5D4] font-bold text-[#1E2C5E]'
+                                    : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="jenisPeriode"
+                                  checked={!isSelectedAnnual}
+                                  disabled={isSelectedAnnual}
+                                  readOnly
+                                  className="accent-[#1E2C5E]"
+                                />
+                                <span>SPT Masa</span>
+                              </label>
+                              <label
+                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-[6px] border text-[12.5px] ${
+                                  isSelectedAnnual
+                                    ? 'border-[#F7CA36] bg-[#FEF5D4] font-bold text-[#1E2C5E]'
+                                    : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="jenisPeriode"
+                                  checked={isSelectedAnnual}
+                                  disabled={!isSelectedAnnual}
+                                  readOnly
+                                  className="accent-[#1E2C5E]"
+                                />
+                                <span>SPT Tahunan</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          {isSelectedAnnual ? (
+                            <div>
+                              <label className="block text-[12px] font-bold text-[#1B2958] mb-1">
+                                Periode dan Tahun Pajak <span className="text-rose-600">*</span>
+                              </label>
+                              <select
+                                value={taxYear}
+                                onChange={(e) => setTaxYear(Number(e.target.value))}
+                                className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 text-[13px] bg-white text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
+                              >
+                                <option value={2024}>Januari 2024 - Desember 2024</option>
+                                <option value={2025}>Januari 2025 - Desember 2025</option>
+                                <option value={2026}>Januari 2026 - Desember 2026</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[12px] font-bold text-[#1B2958] mb-1">
+                                  Masa Pajak <span className="text-rose-600">*</span>
+                                </label>
+                                <select
+                                  value={taxMonth}
+                                  onChange={(e) => setTaxMonth(Number(e.target.value))}
+                                  className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 text-[13px] bg-white text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
+                                >
+                                  {MONTHS_ID.map((m, idx) => (
+                                    <option key={m} value={idx + 1}>
+                                      {m}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[12px] font-bold text-[#1B2958] mb-1">
+                                  Tahun Pajak <span className="text-rose-600">*</span>
+                                </label>
+                                <select
+                                  value={taxYear}
+                                  onChange={(e) => setTaxYear(Number(e.target.value))}
+                                  className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 text-[13px] bg-white text-[#1E293B] font-mono-num focus:outline-none focus:border-[#1E2C5E]"
+                                >
+                                  <option value={2024}>2024</option>
+                                  <option value={2025}>2025</option>
+                                  <option value={2026}>2026</option>
+                                </select>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
 
-                {wizardStep === 3 && (
-                  <div className="space-y-5">
-                    <div>
-                      <h2 className="font-display font-bold text-[15px] text-[#1B2958]">
-                        Pilih Model SPT
-                      </h2>
-                      <p className="text-[12.5px] text-slate-500 mt-0.5">
-                        Tentukan apakah SPT yang dibuat merupakan pelaporan Normal atau Pembetulan.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <label className="block text-[12.5px] font-bold text-[#1B2958]">
-                        Model SPT <span className="text-rose-600">*</span>
-                      </label>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <label
-                          className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-[8px] border text-[13px] cursor-pointer transition ${
-                            revisionNo === 0
-                              ? 'border-[#1E2C5E] bg-[#F2F6FC] font-bold text-[#1B2958]'
-                              : 'border-[#DCE2EC] bg-white text-slate-700 hover:bg-slate-50'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="modelSpt"
-                            checked={revisionNo === 0}
-                            onChange={() => setRevisionNo(0)}
-                            className="accent-[#1E2C5E]"
-                          />
-                          <span>Normal</span>
-                        </label>
-                        <label
-                          className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-[8px] border text-[13px] cursor-pointer transition ${
-                            revisionNo > 0
-                              ? 'border-[#1E2C5E] bg-[#F2F6FC] font-bold text-[#1B2958]'
-                              : 'border-[#DCE2EC] bg-white text-slate-700 hover:bg-slate-50'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="modelSpt"
-                            checked={revisionNo > 0}
-                            onChange={() => setRevisionNo(1)}
-                            className="accent-[#1E2C5E]"
-                          />
-                          <span>Pembetulan</span>
-                        </label>
-                      </div>
-
-                      {revisionNo > 0 && (
-                        <div className="max-w-[200px] pt-2">
-                          <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                            Pembetulan ke-
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={revisionNo}
-                            onChange={(e) => setRevisionNo(Math.max(1, Number(e.target.value) || 1))}
-                            className="w-full border border-[#CBD5E1] rounded-[8px] px-3 py-2 text-[13px] font-mono-num focus:outline-none focus:border-[#1E2C5E]"
-                          />
+                    {wizardStep === 3 && (
+                      <div className="space-y-4">
+                        <div>
+                          <h2 className="font-display font-bold text-[15px] text-[#1B2958]">
+                            Pilih Jenis SPT (Model SPT)
+                          </h2>
+                          <p className="text-[12px] text-slate-500 mt-0.5">
+                            Konfirmasi ringkasan dan pilih model pelaporan SPT sebelum membuat konsep.
+                          </p>
                         </div>
+
+                        <div className="max-w-xl space-y-3.5">
+                          <div>
+                            <label className="block text-[12px] font-bold text-[#1B2958] mb-1">
+                              Model SPT <span className="text-rose-600">*</span>
+                            </label>
+                            <select
+                              value={revisionNo === 0 ? 'NORMAL' : 'PEMBETULAN'}
+                              onChange={(e) => setRevisionNo(e.target.value === 'NORMAL' ? 0 : 1)}
+                              className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 text-[13px] bg-white text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
+                            >
+                              <option value="NORMAL">Normal</option>
+                              <option value="PEMBETULAN">Pembetulan</option>
+                            </select>
+                          </div>
+
+                          {revisionNo > 0 && (
+                            <div className="max-w-[200px]">
+                              <label className="block text-[12px] font-semibold text-slate-600 mb-1">
+                                Pembetulan ke-
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={10}
+                                value={revisionNo}
+                                onChange={(e) => setRevisionNo(Math.max(1, Number(e.target.value) || 1))}
+                                className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 text-[13px] font-mono-num focus:outline-none focus:border-[#1E2C5E]"
+                              />
+                            </div>
+                          )}
+
+                          <div className="rounded-[8px] border border-[#E5EAF2] bg-[#F8FAFC] p-4 space-y-2">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                              Ringkasan Konsep SPT
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[12.5px]">
+                              <div>
+                                <span className="text-slate-500">Jenis Pajak:</span>{' '}
+                                <strong className="text-[#1B2958]">{TAX_TYPE_LABELS[selectedType]}</strong>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Jenis SPT:</span>{' '}
+                                <strong className="text-[#1B2958]">{RETURN_KIND_LABELS[selectedType]}</strong>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Periode Pajak:</span>{' '}
+                                <strong className="text-[#1B2958]">
+                                  {isSelectedAnnual
+                                    ? `Januari ${taxYear} - Desember ${taxYear}`
+                                    : `${MONTHS_ID[taxMonth - 1]} ${taxYear}`}
+                                </strong>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Model SPT:</span>{' '}
+                                <strong className="text-[#1B2958]">
+                                  {revisionNo === 0 ? 'Normal' : `Pembetulan ke-${revisionNo}`}
+                                </strong>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step Footer Buttons */}
+                    <div className="pt-4 border-t border-[#EEF2F6] flex items-center justify-between gap-3">
+                      {wizardStep === 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => setCreatingConcept(false)}
+                          className="px-4 py-2 rounded-[6px] border border-[#CBD5E1] text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setWizardStep((s) => ((s - 1) as 1 | 2 | 3))}
+                          className="px-4 py-2 rounded-[6px] border border-[#CBD5E1] text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        >
+                          Kembali
+                        </button>
+                      )}
+
+                      {wizardStep < 3 ? (
+                        <button
+                          type="button"
+                          onClick={() => setWizardStep((s) => ((s + 1) as 1 | 2 | 3))}
+                          className="px-6 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#2A3B7A] text-white text-[12.5px] font-bold shadow-sm cursor-pointer"
+                        >
+                          Lanjut
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={submittingConcept}
+                          onClick={handleFinishCreateConcept}
+                          className="px-5 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#2A3B7A] disabled:opacity-60 text-white text-[12.5px] font-bold shadow-sm inline-flex items-center gap-2 cursor-pointer"
+                        >
+                          <FilePlus2 className="w-4 h-4 text-[#F7CA36]" />
+                          <span>{submittingConcept ? 'Membuat Konsep...' : 'Buat Konsep SPT'}</span>
+                        </button>
                       )}
                     </div>
-
-                    {/* Ringkasan Konsep SPT */}
-                    <div className="rounded-[10px] border border-[#E5EAF2] bg-[#F8FAFC] p-4 space-y-2">
-                      <div className="text-[12px] font-bold uppercase tracking-wider text-slate-500">
-                        Ringkasan Konsep SPT
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[12.5px]">
-                        <div>
-                          <span className="text-slate-500">Jenis Pajak:</span>{' '}
-                          <strong className="text-[#1B2958]">{TAX_TYPE_LABELS[selectedType]}</strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Jenis Surat Pemberitahuan Pajak:</span>{' '}
-                          <strong className="text-[#1B2958]">{RETURN_KIND_LABELS[selectedType]}</strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Masa Pajak:</span>{' '}
-                          <strong className="text-[#1B2958]">
-                            {isSelectedAnnual
-                              ? `Januari ${taxYear} - Desember ${taxYear}`
-                              : `${MONTHS_ID[taxMonth - 1]} ${taxYear}`}
-                          </strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Model SPT:</span>{' '}
-                          <strong className="text-[#1B2958]">
-                            {revisionNo === 0 ? 'Normal' : `Pembetulan ke-${revisionNo}`}
-                          </strong>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                )}
-
-                {/* Step Footer Buttons */}
-                <div className="pt-4 border-t border-[#EEF2F6] flex items-center justify-between gap-3">
-                  {wizardStep === 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => setCreatingConcept(false)}
-                      className="px-4 py-2 rounded-[7px] border border-[#CBD5E1] text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-                    >
-                      Batal
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep((s) => ((s - 1) as 1 | 2 | 3))}
-                      className="px-4 py-2 rounded-[7px] border border-[#CBD5E1] text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-                    >
-                      Kembali
-                    </button>
-                  )}
-
-                  {wizardStep < 3 ? (
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep((s) => ((s + 1) as 1 | 2 | 3))}
-                      className="px-5 py-2 rounded-[7px] bg-[#1E2C5E] hover:bg-[#2A3B7A] text-white text-[12.5px] font-bold shadow-sm cursor-pointer"
-                    >
-                      Lanjut
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={submittingConcept}
-                      onClick={handleFinishCreateConcept}
-                      className="px-5 py-2 rounded-[7px] bg-[#1E2C5E] hover:bg-[#2A3B7A] disabled:opacity-60 text-white text-[12.5px] font-bold shadow-sm inline-flex items-center gap-2 cursor-pointer"
-                    >
-                      <FilePlus2 className="w-4 h-4 text-[#F4C430]" />
-                      <span>{submittingConcept ? 'Membuat Konsep...' : 'Buat Konsep SPT'}</span>
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -1260,20 +1296,36 @@ export const SptModule: React.FC<SptModuleProps> = ({
                                   </button>
 
                                   {ret.status === 'SUBMITTED' && ret.bpeNumber && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        onPrintDocument({
-                                          type: 'BPE',
-                                          taxReturn: ret,
-                                          taxpayer: activeTaxpayer,
-                                        })
-                                      }
-                                      title="Cetak Bukti Penerimaan Elektronik (BPE)"
-                                      className="p-1.5 rounded-[6px] bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer transition"
-                                    >
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onPrintDocument({
+                                            type: 'BPE',
+                                            taxReturn: ret,
+                                            taxpayer: activeTaxpayer,
+                                          })
+                                        }
+                                        title="Bukti Penerimaan Elektronik (BPE)"
+                                        className="p-1.5 rounded-[6px] border border-slate-200 bg-white hover:bg-[#EEF4FF] text-[#1E2C5E] cursor-pointer transition"
+                                      >
+                                        <Mail className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onPrintDocument({
+                                            type: 'BPE',
+                                            taxReturn: ret,
+                                            taxpayer: activeTaxpayer,
+                                          })
+                                        }
+                                        title="Unduh Salinan SPT / BPE"
+                                        className="p-1.5 rounded-[6px] border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 cursor-pointer transition"
+                                      >
+                                        <Download className="w-3.5 h-3.5" />
+                                      </button>
+                                    </>
                                   )}
 
                                   {ret.status === 'DRAFT' && (
