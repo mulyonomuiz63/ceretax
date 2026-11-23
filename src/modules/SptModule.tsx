@@ -31,6 +31,7 @@ import {
 import { createDefaultBadanPayload } from '../data/seedData.ts';
 import { MONTHS_ID, PTKP_VALUES } from '../utils/taxCalc.ts';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
+import { downloadSptIndukPdf, downloadBpePdf } from '../utils/sptIndukPdfGenerator.ts';
 import { SptMasaPpnEditor } from './spt/SptMasaPpnEditor.tsx';
 import { SptMasaPphEditor } from './spt/SptMasaPphEditor.tsx';
 import { SptTahunanOpEditor } from './spt/SptTahunanOpEditor.tsx';
@@ -1048,8 +1049,15 @@ export const SptModule: React.FC<SptModuleProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  title="Cetak Daftar SPT (PDF)"
+                  onClick={() => {
+                    const targetReturn = paginatedReturns[0] || (returns && returns[0]);
+                    if (targetReturn) {
+                      downloadSptIndukPdf(targetReturn, activeTaxpayer);
+                    } else {
+                      window.print();
+                    }
+                  }}
+                  title="Download SPT Induk (PDF)"
                   className="w-7 h-7 rounded-[5px] bg-[#C62828] hover:bg-[#A62020] text-white inline-flex items-center justify-center transition cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -1251,28 +1259,23 @@ export const SptModule: React.FC<SptModuleProps> = ({
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() =>
+                                      onClick={() => {
+                                        downloadBpePdf(ret, activeTaxpayer);
                                         onPrintDocument({
                                           type: 'BPE',
                                           taxReturn: ret,
                                           taxpayer: activeTaxpayer,
-                                        })
-                                      }
-                                      title="Bukti Penerimaan Elektronik (BPE)"
+                                        });
+                                      }}
+                                      title="Download & Cetak BPE (PDF)"
                                       className="w-6 h-6 rounded-[4px] bg-[#2F7D4A] hover:bg-[#236339] text-white inline-flex items-center justify-center cursor-pointer transition"
                                     >
                                       <Mail className="w-3.5 h-3.5" />
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        onPrintDocument({
-                                          type: 'BPE',
-                                          taxReturn: ret,
-                                          taxpayer: activeTaxpayer,
-                                        })
-                                      }
-                                      title="Download SPT / BPE (PDF)"
+                                      onClick={() => downloadSptIndukPdf(ret, activeTaxpayer)}
+                                      title="Download SPT Induk (PDF Resmi DJP)"
                                       className="w-6 h-6 rounded-[4px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition"
                                     >
                                       <FileText className="w-3.5 h-3.5" />

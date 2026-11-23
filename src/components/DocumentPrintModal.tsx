@@ -2,6 +2,7 @@ import React from 'react';
 import { Printer, X } from 'lucide-react';
 import { BillingCode, TaxInvoice, TaxReturn, Taxpayer, WithholdingSlip } from '../types/tax.ts';
 import { formatRp, MONTHS_ID } from '../utils/taxCalc.ts';
+import { downloadBpePdf } from '../utils/sptIndukPdfGenerator.ts';
 import { KelasBrevetLogo } from './KelasBrevetLogo.tsx';
 
 export type PrintablePayload =
@@ -46,6 +47,15 @@ export const DocumentPrintModal: React.FC<DocumentPrintModalProps> = ({ doc, onC
               : 'Pratinjau Dokumen Resmi Simulasi Coretax'}
           </span>
           <div className="flex items-center gap-2">
+            {doc.type === 'BPE' && (
+              <button
+                type="button"
+                onClick={() => downloadBpePdf(doc.taxReturn, doc.taxpayer)}
+                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded cursor-pointer transition"
+              >
+                <span>Unduh PDF BPE</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => window.print()}
