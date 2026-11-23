@@ -375,6 +375,22 @@ export const SptModule: React.FC<SptModuleProps> = ({
     safePage * pageSize
   );
 
+  // Monthly period options (e.g., November 2025, Oktober 2025, ...) — must be declared before early return
+  const monthlyPeriodOptions = useMemo(() => {
+    const opts: Array<{ value: string; label: string; month: number; year: number }> = [];
+    for (const yr of [2026, 2025, 2024]) {
+      for (let m = 12; m >= 1; m--) {
+        opts.push({
+          value: `${yr}-${m}`,
+          label: `${MONTHS_ID[m - 1]} ${yr}`,
+          month: m,
+          year: yr,
+        });
+      }
+    }
+    return opts;
+  }, []);
+
   // If editing an existing SPT return, render the specialized SPT Form Editor
   if (editingReturn) {
     if (editingReturn.returnType === 'SPT_MASA_PPN') {
@@ -586,22 +602,6 @@ export const SptModule: React.FC<SptModuleProps> = ({
     link.click();
     URL.revokeObjectURL(url);
   };
-
-  // Monthly period options (e.g., November 2025, Oktober 2025, ...)
-  const monthlyPeriodOptions = useMemo(() => {
-    const opts: Array<{ value: string; label: string; month: number; year: number }> = [];
-    for (const yr of [2026, 2025, 2024]) {
-      for (let m = 12; m >= 1; m--) {
-        opts.push({
-          value: `${yr}-${m}`,
-          label: `${MONTHS_ID[m - 1]} ${yr}`,
-          month: m,
-          year: yr,
-        });
-      }
-    }
-    return opts;
-  }, []);
 
   return (
     <div className="relative flex flex-col md:flex-row gap-4 items-start">
