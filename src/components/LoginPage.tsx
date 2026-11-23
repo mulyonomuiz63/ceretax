@@ -14,6 +14,7 @@ import {
   ShieldX,
   Sun,
   User,
+  UserPlus,
   UserX,
   Wifi,
   X,
@@ -73,7 +74,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [humanVerified, setHumanVerified] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [modalMode, setModalMode] = useState<'NONE' | 'FORGOT'>('NONE');
+  const [modalMode, setModalMode] = useState<'NONE' | 'FORGOT' | 'REGISTER' | 'ACTIVATE'>('NONE');
 
   const isId = language === 'id-ID';
   const displayError = localError || error;
@@ -107,95 +108,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           : 'bg-[#F3F5FA] text-[#1B2958]'
       }`}
     >
-      {/* Luminous Pearl-White / Warm-Ivory to Cool-Periwinkle Sculpted 3D Backdrop (Exact 2026 Coretax Aesthetic) */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        {/* Base multi-directional atmospheric luminance */}
+      {/* Official Coretax Background (coretax-bg.jpg) across Landing & Login */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
         <div
-          className={`absolute inset-0 ${
-            darkTheme
-              ? 'bg-[radial-gradient(circle_at_8%_18%,rgba(244,196,48,0.10)_0%,transparent_42%),radial-gradient(circle_at_88%_35%,rgba(59,89,182,0.28)_0%,transparent_55%),linear-gradient(135deg,#0B1224_0%,#111C38_55%,#18254A_100%)]'
-              : 'bg-[radial-gradient(circle_at_6%_24%,rgba(255,244,214,0.78)_0%,transparent_44%),radial-gradient(circle_at_92%_28%,rgba(216,225,246,0.92)_0%,transparent_54%),linear-gradient(125deg,#FAFBFD_0%,#F6F7FB_48%,#E9EEF8_100%)]'
-          }`}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/coretax-bg.jpg')" }}
         />
-
-        {/* Sculpted 3D Embossed Geometric Reliefs & Sweeping Silk Wave SVG */}
-        <svg
-          viewBox="0 0 1440 820"
-          preserveAspectRatio="xMidYMid slice"
-          className="absolute inset-0 w-full h-full"
-        >
-          <defs>
-            <linearGradient id="silkWaveLight" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={darkTheme ? '#243563' : '#D5DDEE'} stopOpacity={darkTheme ? '0.55' : '0.85'} />
-              <stop offset="48%" stopColor={darkTheme ? '#1A274D' : '#F8FAFF'} stopOpacity={darkTheme ? '0.65' : '0.96'} />
-              <stop offset="100%" stopColor={darkTheme ? '#131E3D' : '#C9D4EA'} stopOpacity={darkTheme ? '0.5' : '0.78'} />
-            </linearGradient>
-            <linearGradient id="reliefOrb" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={darkTheme ? '#2B3E75' : '#FFFFFF'} stopOpacity={darkTheme ? '0.55' : '0.92'} />
-              <stop offset="100%" stopColor={darkTheme ? '#152042' : '#CDD6EA'} stopOpacity={darkTheme ? '0.45' : '0.65'} />
-            </linearGradient>
-            <filter id="softEmbossed" x="-15%" y="-15%" width="130%" height="130%">
-              <feDropShadow
-                dx="0"
-                dy="14"
-                stdDeviation="18"
-                floodColor={darkTheme ? '#050914' : '#9AA9C8'}
-                floodOpacity={darkTheme ? '0.45' : '0.32'}
-              />
-            </filter>
-          </defs>
-
-          {/* Right-side embossed 3D sculptural circles & petals (matches both Coretax screenshots) */}
-          <g filter="url(#softEmbossed)">
-            {/* Top-right sweeping rounded arc */}
-            <path
-              d="M1195 -40 C1150 90 1190 215 1310 250 C1385 272 1455 245 1495 190 L1495 -40 Z"
-              fill="url(#reliefOrb)"
-              stroke={darkTheme ? '#384D88' : '#FFFFFF'}
-              strokeWidth="2.5"
-            />
-            {/* Mid-right sculpted circular disc */}
-            <circle
-              cx="1348"
-              cy="412"
-              r="116"
-              fill="url(#reliefOrb)"
-              stroke={darkTheme ? '#384D88' : '#FFFFFF'}
-              strokeWidth="2.5"
-            />
-            {/* Bottom-right sculpted teardrop / petal */}
-            <path
-              d="M1480 518 C1390 520 1358 585 1364 685 C1368 750 1425 790 1490 770 Z"
-              fill="url(#reliefOrb)"
-              stroke={darkTheme ? '#384D88' : '#FFFFFF'}
-              strokeWidth="2.5"
-            />
-            {/* Lower-right curved ribbon */}
-            <path
-              d="M1195 840 C1235 765 1315 735 1470 725 L1470 840 Z"
-              fill="url(#reliefOrb)"
-              stroke={darkTheme ? '#384D88' : '#FFFFFF'}
-              strokeWidth="2"
-            />
-          </g>
-
-          {/* Bottom-left sweeping silk wave ribbon (prominent in Login screenshot & subtle on Landing) */}
-          <g filter="url(#softEmbossed)">
-            <path
-              d="M-60 555 C120 515 265 625 495 835 L-60 835 Z"
-              fill="url(#silkWaveLight)"
-              stroke={darkTheme ? '#34477C' : '#FFFFFF'}
-              strokeWidth="3"
-            />
-            <path
-              d="M-60 660 C115 615 230 690 365 840"
-              fill="none"
-              stroke={darkTheme ? '#3E5594' : '#FFFFFF'}
-              strokeWidth="2.2"
-              opacity="0.7"
-            />
-          </g>
-        </svg>
+        {darkTheme && (
+          <div className="absolute inset-0 bg-[#0B1224]/85 backdrop-blur-[1px]" />
+        )}
       </div>
 
       {/* TOP HEADER BAR — Exact Layout of Official Coretax Landing & Login */}
@@ -854,6 +775,111 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         ? 'Masuk'
                         : 'Sign In'}
                   </button>
+
+                  {/* ATAU Divider + Pengguna Baru? & Belum Aktivasi? Cards (Matches Image 2) */}
+                  <div className="pt-3 space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`h-px flex-1 ${darkTheme ? 'bg-slate-700' : 'bg-[#CBD5E1]'}`} />
+                      <span
+                        className={`text-[11px] font-bold tracking-[0.18em] uppercase ${
+                          darkTheme ? 'text-slate-400' : 'text-[#64748B]'
+                        }`}
+                      >
+                        {isId ? 'ATAU' : 'OR'}
+                      </span>
+                      <div className={`h-px flex-1 ${darkTheme ? 'bg-slate-700' : 'bg-[#CBD5E1]'}`} />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Card 1: Pengguna Baru? / Daftar di sini */}
+                      <button
+                        type="button"
+                        onClick={() => setModalMode('REGISTER')}
+                        className={`group rounded-[14px] border p-3.5 flex items-center justify-between gap-3 text-left transition cursor-pointer ${
+                          darkTheme
+                            ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
+                            : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_2px_8px_rgba(30,44,94,0.03)]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${
+                              darkTheme
+                                ? 'bg-slate-700/80 text-slate-200'
+                                : 'bg-[#F1F5FB] text-[#1E2C5E]'
+                            }`}
+                          >
+                            <UserPlus className="w-[18px] h-[18px]" />
+                          </div>
+                          <div className="min-w-0">
+                            <div
+                              className={`text-[13px] font-bold leading-snug ${
+                                darkTheme ? 'text-white' : 'text-[#1E2C5E]'
+                              }`}
+                            >
+                              {isId ? 'Pengguna Baru?' : 'New User?'}
+                            </div>
+                            <div
+                              className={`text-[11.5px] leading-tight mt-0.5 ${
+                                darkTheme ? 'text-slate-400' : 'text-[#64748B]'
+                              }`}
+                            >
+                              {isId ? 'Daftar di sini' : 'Register here'}
+                            </div>
+                          </div>
+                        </div>
+                        <ArrowRight
+                          className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+                            darkTheme ? 'text-slate-400' : 'text-[#64748B]'
+                          }`}
+                        />
+                      </button>
+
+                      {/* Card 2: Belum Aktivasi? / Aktivasi Akun Wajib Pajak */}
+                      <button
+                        type="button"
+                        onClick={() => setModalMode('ACTIVATE')}
+                        className={`group rounded-[14px] border p-3.5 flex items-center justify-between gap-3 text-left transition cursor-pointer ${
+                          darkTheme
+                            ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
+                            : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_2px_8px_rgba(30,44,94,0.03)]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${
+                              darkTheme
+                                ? 'bg-slate-700/80 text-slate-200'
+                                : 'bg-[#F1F5FB] text-[#1E2C5E]'
+                            }`}
+                          >
+                            <UserPlus className="w-[18px] h-[18px]" />
+                          </div>
+                          <div className="min-w-0">
+                            <div
+                              className={`text-[13px] font-bold leading-snug ${
+                                darkTheme ? 'text-white' : 'text-[#1E2C5E]'
+                              }`}
+                            >
+                              {isId ? 'Belum Aktivasi?' : 'Not Activated?'}
+                            </div>
+                            <div
+                              className={`text-[11.5px] leading-tight mt-0.5 ${
+                                darkTheme ? 'text-slate-400' : 'text-[#64748B]'
+                              }`}
+                            >
+                              {isId ? 'Aktivasi Akun Wajib Pajak' : 'Activate Taxpayer Account'}
+                            </div>
+                          </div>
+                        </div>
+                        <ArrowRight
+                          className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+                            darkTheme ? 'text-slate-400' : 'text-[#64748B]'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 </form>
               </div>
             </div>
@@ -887,13 +913,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </div>
       </footer>
 
-      {/* HELPER MODAL FOR LUPA KATA SANDI */}
+      {/* HELPER MODAL FOR LUPA KATA SANDI / PENGGUNA BARU / AKTIVASI */}
       {modalMode !== 'NONE' && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-4">
           <div className="bg-white text-slate-800 rounded-[16px] shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
             <div className="bg-[#1E2C5E] text-white px-5 py-4 flex items-center justify-between">
               <h3 className="font-display font-bold text-sm">
-                Informasi Login &amp; Kata Sandi Simulasi
+                {modalMode === 'REGISTER'
+                  ? 'Pendaftaran Wajib Pajak Baru (Pengguna Baru)'
+                  : modalMode === 'ACTIVATE'
+                    ? 'Aktivasi Akun Wajib Pajak'
+                    : 'Informasi Login & Kata Sandi Simulasi'}
               </h3>
               <button
                 type="button"
@@ -905,16 +935,49 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
 
             <div className="p-5 space-y-4 text-xs text-slate-700">
-              <div className="space-y-3 leading-relaxed">
-                <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E3A8A] p-3.5 rounded-lg">
-                  Bagi peserta paket Brevet dari <strong>kelasbrevet.com</strong>, silakan gunakan <strong>ID Pengguna (NIK/NPWP)</strong> dan <strong>Kata Sandi</strong> yang ditampilkan pada menu Simulasi di dashboard <strong>kelasbrevet.com</strong>.
+              {modalMode === 'REGISTER' ? (
+                <div className="space-y-3 leading-relaxed">
+                  <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E3A8A] p-3.5 rounded-lg">
+                    Pada simulasi <strong>Coretax KelasBrevet</strong>, pendaftaran NIK baru dilakukan secara otomatis ketika Anda memasukkan 16 digit NIK pada kolom <strong>ID Pengguna</strong> dan menekan tombol <strong>Masuk</strong>.
+                  </div>
+                  <p>
+                    Sistem akan otomatis membentuk profil Wajib Pajak Orang Pribadi beserta akun Impersonate Wajib Pajak Badan (PKP) lengkap dengan data latihan e-Bupot, e-Faktur, dan SPT.
+                  </p>
                 </div>
-                <p>
-                  Untuk penandatanganan elektronik (e-Faktur, e-Bupot, dan SPT), gunakan Passphrase default Kode Otorisasi DJP: <strong className="font-mono-num text-[#1E2C5E]">123456</strong>.
-                </p>
-              </div>
+              ) : modalMode === 'ACTIVATE' ? (
+                <div className="space-y-3 leading-relaxed">
+                  <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E3A8A] p-3.5 rounded-lg">
+                    Seluruh akun peserta simulasi <strong>KelasBrevet</strong> telah berstatus <strong>Aktif</strong> secara otomatis beserta Sertifikat Digital / Kode Otorisasi DJP.
+                  </div>
+                  <p>
+                    Silakan langsung masukkan 16 digit NIK/NPWP Anda pada form Login. Untuk Passphrase penandatanganan elektronik, gunakan kode default: <strong className="font-mono-num text-[#1E2C5E]">123456</strong>.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 leading-relaxed">
+                  <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E3A8A] p-3.5 rounded-lg">
+                    Bagi peserta paket Brevet dari <strong>kelasbrevet.com</strong>, silakan gunakan <strong>ID Pengguna (NIK/NPWP)</strong> dan <strong>Kata Sandi</strong> yang ditampilkan pada menu Simulasi di dashboard <strong>kelasbrevet.com</strong>.
+                  </div>
+                  <p>
+                    Untuk penandatanganan elektronik (e-Faktur, e-Bupot, dan SPT), gunakan Passphrase default Kode Otorisasi DJP: <strong className="font-mono-num text-[#1E2C5E]">123456</strong>.
+                  </p>
+                </div>
+              )}
 
-              <div className="flex justify-end pt-2 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                {(modalMode === 'REGISTER' || modalMode === 'ACTIVATE') && !nik && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNik('3175071505851001');
+                      setHumanVerified(true);
+                      setModalMode('NONE');
+                    }}
+                    className="px-3.5 py-2 bg-[#F4C430] text-[#1E2C5E] font-bold rounded-lg text-xs cursor-pointer"
+                  >
+                    Isi NIK Simulasi
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setModalMode('NONE')}

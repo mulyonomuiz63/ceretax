@@ -72,9 +72,21 @@ function CoretaxSimulatorApp() {
   const [printDoc, setPrintDoc] = useState<PrintablePayload | null>(null);
   const [examOpen, setExamOpen] = useState(false);
   const [toastNotif, setToastNotif] = useState<NotificationItem | null>(null);
+  const [navHistory, setNavHistory] = useState<{
+    entries: Array<{
+      module: MainNavKey;
+      subTab: string;
+      accountMode: 'INDIVIDUAL' | 'CORPORATE';
+    }>;
+    index: number;
+  }>({
+    entries: [{ module: 'portal', subTab: 'ikhtisar', accountMode: 'INDIVIDUAL' }],
+    index: 0,
+  });
 
   const socketRef = useRef<Socket | null>(null);
   const navTimerRef = useRef<number | null>(null);
+  const isPopStateRef = useRef(false);
 
   const SESSION_KEY = 'kelasbrevet_coretax_session_v1';
 
@@ -98,9 +110,22 @@ function CoretaxSimulatorApp() {
         const ws: WorkspaceState = await resp.json();
         if (active && ws?.nikKey) {
           setWorkspace(ws);
-          if (saved.accountMode) setAccountMode(saved.accountMode);
-          if (saved.activeModule) setActiveModule(saved.activeModule);
-          if (saved.activeSubTab) setActiveSubTab(saved.activeSubTab);
+          const restoredMode = saved.accountMode || 'INDIVIDUAL';
+          const restoredMod = saved.activeModule || 'portal';
+          const restoredSub = saved.activeSubTab || 'ikhtisar';
+          setAccountMode(restoredMode);
+          setActiveModule(restoredMod);
+          setActiveSubTab(restoredSub);
+          setNavHistory({
+            entries: [{ module: restoredMod, subTab: restoredSub, accountMode: restoredMode }],
+            index: 0,
+          });
+          if (typeof window !== 'undefined') {
+            window.history.replaceState(
+              { coretaxIdx: 0, module: restoredMod, subTab: restoredSub, accountMode: restoredMode },
+              ''
+            );
+          }
         }
       } catch {
         // Ignore malformed sessionStorage or network errors on restore
@@ -179,6 +204,16 @@ function CoretaxSimulatorApp() {
       setAccountMode('INDIVIDUAL');
       setActiveModule('portal');
       setActiveSubTab('ikhtisar');
+      setNavHistory({
+        entries: [{ module: 'portal', subTab: 'ikhtisar', accountMode: 'INDIVIDUAL' }],
+        index: 0,
+      });
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(
+          { coretaxIdx: 0, module: 'portal', subTab: 'ikhtisar', accountMode: 'INDIVIDUAL' },
+          ''
+        );
+      }
     } catch {
       setLoginError('Tidak dapat menghubungi server simulasi.');
     } finally {
@@ -212,6 +247,62 @@ function CoretaxSimulatorApp() {
       setNavLoading(false);
     }, durationMs);
   }, []);
+
+  // Sync navigation changes (module, subTab, accountMode) into history stack & browser History API
+  useEffect(() => {
+    if (!workspace?.nikKey) return;
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
+    }
+
+    setNavHistory((prev) => {
+      const current = prev.entries[prev.index];
+      if (
+        current &&
+        current.module === activeModule &&
+        current.subTab === activeSubTab &&
+        current.accountMode === accountMode
+      ) {
+        return prev;
+      }
+      const nextEntries = prev.entries.slice(0, prev.index + 1);
+      const nextIndex = nextEntries.length;
+      nextEntries.push({ module: activeModule, subTab: activeSubTab, accountMode });
+      if (typeof window !== 'undefined') {
+        window.history.pushState(
+          { coretaxIdx: nextIndex, module: activeModule, subTab: activeSubTab, accountMode },
+          ''
+        );
+      }
+      return { entries: nextEntries, index: nextIndex };
+    });
+  }, [workspace?.nikKey, activeModule, activeSubTab, accountMode]);
+
+  // Listen to browser native Back / Forward buttons (popstate)
+  useEffect(() => {
+    if (!workspace?.nikKey) return;
+    const handlePopState = (e: PopStateEvent) => {
+      const st = e.state as {
+        coretaxIdx?: number;
+        module?: MainNavKey;
+        subTab?: string;
+        accountMode?: 'INDIVIDUAL' | 'CORPORATE';
+      } | null;
+      if (st && typeof st.coretaxIdx === 'number' && st.module && st.subTab) {
+        isPopStateRef.current = true;
+        setActiveModule(st.module);
+        setActiveSubTab(st.subTab);
+        if (st.accountMode) setAccountMode(st.accountMode);
+        setNavHistory((prev) => ({
+          ...prev,
+          index: Math.max(0, Math.min(st.coretaxIdx!, prev.entries.length - 1)),
+        }));
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [workspace?.nikKey]);
 
   const handleNavigate = (module: MainNavKey, subTab?: string) => {
     if (module !== activeModule) {

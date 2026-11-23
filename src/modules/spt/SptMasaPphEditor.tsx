@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUpDown, ChevronDown, ChevronRight, Settings } from 'lucide-react';
+import { ArrowUpDown, Calendar, ChevronDown, ChevronRight, Filter, Settings, X } from 'lucide-react';
 import { SptPphMasaPayload, TaxReturn, Taxpayer, WithholdingSlip, WorkspaceState } from '../../types/tax.ts';
 import { formatRp, MONTHS_ID } from '../../utils/taxCalc.ts';
 import { SignModal } from '../../components/SignModal.tsx';
@@ -40,6 +40,12 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
   const [declarationOk, setDeclarationOk] = useState(true);
   const [signerType, setSignerType] = useState<'WP' | 'KUASA'>('WP');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [showFilters, setShowFilters] = useState(true);
+  const [filterNik, setFilterNik] = useState('');
+  const [filterName, setFilterName] = useState('');
+  const [filterSlipNo, setFilterSlipNo] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterObjCode, setFilterObjCode] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -119,126 +125,377 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
     </div>
   );
 
-  const renderSlipTable = (rows: WithholdingSlip[], exportName: string, showPeriodCol = false) => {
-    const paged = rows.slice((page - 1) * pageSize, page * pageSize);
-    const totalGross = rows.reduce((s, r) => s + r.grossAmount, 0);
-    const totalTax = rows.reduce((s, r) => s + r.taxWithheld, 0);
+  const renderSlipTable = (
+    rows: WithholdingSlip[],
+    exportName: string,
+    showPeriodCol = false,
+    isPph21Lampiran = false
+  ) => {
+    const filtered = rows.filter((r) => {
+      if (filterNik && !r.recipientNikNpwp.toLowerCase().includes(filterNik.toLowerCase())) return false;
+      if (filterName && !r.recipientName.toLowerCase().includes(filterName.toLowerCase())) return false;
+      if (filterSlipNo && !r.slipNumber.toLowerCase().includes(filterSlipNo.toLowerCase())) return false;
+      if (filterObjCode && !r.objectCode.toLowerCase().includes(filterObjCode.toLowerCase())) return false;
+      return true;
+    });
+    const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+    const totalGross = filtered.reduce((s, r) => s + r.grossAmount, 0);
+    const totalTax = filtered.reduce((s, r) => s + r.taxWithheld, 0);
+    const nitkuStr = `${activeTaxpayer.nikNpwp}000000`;
 
     return (
       <div className="space-y-2">
         <CoretaxIconToolbar
-          onRefresh={() => setPage(1)}
+          onRefresh={() => {
+            setFilterNik('');
+            setFilterName('');
+            setFilterSlipNo('');
+            setFilterDate('');
+            setFilterObjCode('');
+            setPage(1);
+          }}
           onExportCsv={() =>
             downloadCsvFile(
               `${exportName}.csv`,
-              ['No', 'NIK/NPWP', 'Nama', 'Nomor Bukti Potong', 'Kode Objek', 'Penghasilan Bruto', 'Tarif %', 'PPh Dipotong'],
-              rows.map((r, i) => [
+              [
+                'No',
+                'NIK/NPWP',
+                'Nama',
+                'Nomor Bukti Potong',
+                'Tanggal',
+                'Kode Objek Pajak',
+                'Penghasilan Bruto',
+                'Tarif %',
+                'Pajak Penghasilan',
+                'Fasilitas Perpajakan',
+                'Negara',
+                'ID Tempat Kegiatan Usaha',
+              ],
+              filtered.map((r, i) => [
                 i + 1,
                 r.recipientNikNpwp,
                 r.recipientName,
                 r.slipNumber,
+                `31-${String(r.taxPeriodMonth).padStart(2, '0')}-${r.taxPeriodYear}`,
                 r.objectCode,
                 r.grossAmount,
                 r.ratePercent,
                 r.taxWithheld,
+                'Tanpa Fasilitas',
+                'Indonesia',
+                nitkuStr,
               ])
             )
           }
           onExportExcel={() =>
             downloadCsvFile(
               `${exportName}.csv`,
-              ['No', 'NIK/NPWP', 'Nama', 'Nomor Bukti Potong', 'Kode Objek', 'Penghasilan Bruto', 'Tarif %', 'PPh Dipotong'],
-              rows.map((r, i) => [
+              [
+                'No',
+                'NIK/NPWP',
+                'Nama',
+                'Nomor Bukti Potong',
+                'Tanggal',
+                'Kode Objek Pajak',
+                'Penghasilan Bruto',
+                'Tarif %',
+                'Pajak Penghasilan',
+                'Fasilitas Perpajakan',
+                'Negara',
+                'ID Tempat Kegiatan Usaha',
+              ],
+              filtered.map((r, i) => [
                 i + 1,
                 r.recipientNikNpwp,
                 r.recipientName,
                 r.slipNumber,
+                `31-${String(r.taxPeriodMonth).padStart(2, '0')}-${r.taxPeriodYear}`,
                 r.objectCode,
                 r.grossAmount,
                 r.ratePercent,
                 r.taxWithheld,
+                'Tanpa Fasilitas',
+                'Indonesia',
+                nitkuStr,
               ])
             )
           }
           onPrintPdf={() => window.print()}
+          onToggleFilter={() => setShowFilters((p) => !p)}
+          filterActive={showFilters}
         />
         <div className="border border-[#DCE2EC] rounded-[6px] overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-[11px] border-collapse">
+            <table className="w-full text-[11px] border-collapse min-w-[1150px]">
               <thead>
                 <tr className="bg-[#F6C324] text-[#1E293B] font-bold">
-                  <th className="px-3 py-2 text-center w-10 border-r border-white/50">NO.</th>
-                  <th className="px-3 py-2 text-left border-r border-white/50">
+                  <th className="px-3 py-2.5 text-center w-10 border-r border-white/50">NO.</th>
+                  <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1">
                       NIK/NPWP <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </span>
                   </th>
-                  <th className="px-3 py-2 text-left border-r border-white/50">NAMA</th>
-                  <th className="px-3 py-2 text-left border-r border-white/50">NOMOR BUKTI POTONG</th>
-                  <th className="px-3 py-2 text-center border-r border-white/50">TANGGAL</th>
-                  <th className="px-3 py-2 text-left border-r border-white/50">KODE OBJEK PAJAK</th>
-                  <th className="px-3 py-2 text-left border-r border-white/50">OBJEK PAJAK</th>
-                  {showPeriodCol && (
-                    <th className="px-3 py-2 text-center border-r border-white/50">MASA</th>
+                  <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      NAMA <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      NOMOR BUKTI POTONG <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-center border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      TANGGAL BUKTI PEMOTONGAN (dd-mm-yyyy) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      KODE OBJEK PAJAK <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  {!isPph21Lampiran && (
+                    <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                      OBJEK PAJAK
+                    </th>
                   )}
-                  <th className="px-3 py-2 text-right border-r border-white/50">PENGHASILAN BRUTO (Rp)</th>
-                  <th className="px-3 py-2 text-right border-r border-white/50">TARIF (%)</th>
-                  <th className="px-3 py-2 text-right">PAJAK PENGHASILAN (Rp)</th>
+                  {showPeriodCol && (
+                    <th className="px-3 py-2.5 text-center border-r border-white/50 whitespace-nowrap">
+                      MASA PEROLEHAN PENGHASILAN
+                    </th>
+                  )}
+                  <th className="px-3 py-2.5 text-right border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      PENGHASILAN BRUTO (Rp) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-right border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      TARIF PAJAK (%) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-right border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      PAJAK PENGHASILAN (Rp) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      FASILITAS PERPAJAKAN <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      Negara <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
+                  <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      ID TEMPAT KEGIATAN USAHA <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </span>
+                  </th>
                 </tr>
+
+                {/* Official Coretax Inline Filter Row directly below yellow header (Exact Match to Screenshot) */}
+                {showFilters && (
+                  <tr className="bg-white border-b border-[#E2E8F0]">
+                    <th className="px-2 py-2 border-r border-slate-100" />
+                    <th className="px-2 py-2 border-r border-slate-100">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={filterNik}
+                          onChange={(e) => setFilterNik(e.target.value)}
+                          className="w-full min-w-[95px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal"
+                        />
+                        <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                      </div>
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={filterName}
+                          onChange={(e) => setFilterName(e.target.value)}
+                          className="w-full min-w-[100px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal"
+                        />
+                        <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                      </div>
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={filterSlipNo}
+                          onChange={(e) => setFilterSlipNo(e.target.value)}
+                          className="w-full min-w-[105px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal"
+                        />
+                        <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                      </div>
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100">
+                      <div className="flex items-center border border-[#CBD5E1] rounded-[4px] bg-white overflow-hidden">
+                        <input
+                          type="text"
+                          value={filterDate}
+                          onChange={(e) => setFilterDate(e.target.value)}
+                          placeholder="dd-mm-yyyy"
+                          className="w-full min-w-[95px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                        />
+                        <span className="px-1.5 text-slate-400 border-l border-slate-200">
+                          <Calendar className="w-3 h-3" />
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setFilterDate('')}
+                          className="px-1.5 text-slate-400 hover:text-slate-600 border-l border-slate-200 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={filterObjCode}
+                          onChange={(e) => setFilterObjCode(e.target.value)}
+                          className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal"
+                        />
+                        <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                      </div>
+                    </th>
+                    {!isPph21Lampiran && (
+                      <th className="px-2 py-2 border-r border-slate-100 text-center">
+                        <Filter className="w-3 h-3 text-slate-400 inline" />
+                      </th>
+                    )}
+                    {showPeriodCol && (
+                      <th className="px-2 py-2 border-r border-slate-100 text-center">
+                        <Filter className="w-3 h-3 text-slate-400 inline" />
+                      </th>
+                    )}
+                    <th className="px-2 py-2 border-r border-slate-100 text-center">
+                      <Filter className="w-3 h-3 text-slate-400 inline" />
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100 text-center">
+                      <Filter className="w-3 h-3 text-slate-400 inline" />
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100 text-center">
+                      <Filter className="w-3 h-3 text-slate-400 inline" />
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100">
+                      <select className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal bg-white text-slate-600">
+                        <option value="">Pilih FASILITAS PERPAJAKAN</option>
+                        <option value="Tanpa Fasilitas">Tanpa Fasilitas</option>
+                        <option value="DTP">DTP</option>
+                      </select>
+                    </th>
+                    <th className="px-2 py-2 border-r border-slate-100">
+                      <select className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal bg-white text-slate-600">
+                        <option value="">Pilih Negara</option>
+                        <option value="Indonesia">Indonesia</option>
+                      </select>
+                    </th>
+                    <th className="px-2 py-2 text-center">
+                      <Filter className="w-3 h-3 text-slate-400 inline" />
+                    </th>
+                  </tr>
+                )}
               </thead>
               <tbody className="divide-y divide-[#EEF2F6] bg-white">
                 {paged.length === 0 ? (
                   <tr>
-                    <td colSpan={showPeriodCol ? 11 : 10} className="px-4 py-6 text-slate-500">
+                    <td
+                      colSpan={11 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                      className="px-4 py-6 text-slate-500"
+                    >
                       Tidak ada data yang ditemukan.
                     </td>
                   </tr>
                 ) : (
-                  paged.map((s, i) => (
-                    <tr key={s.id} className="hover:bg-[#F8FAFC]">
-                      <td className="px-3 py-2 text-center font-mono-num text-slate-500">
-                        {(page - 1) * pageSize + i + 1}
-                      </td>
-                      <td className="px-3 py-2 font-mono-num">{s.recipientNikNpwp}</td>
-                      <td className="px-3 py-2 font-medium text-slate-800">{s.recipientName}</td>
-                      <td className="px-3 py-2 font-mono-num font-semibold text-[#1E2C5E]">
-                        {s.slipNumber}
-                      </td>
-                      <td className="px-3 py-2 text-center font-mono-num">
-                        {s.createdAt?.slice(0, 10) || `${taxReturn.taxYear}-${String(taxReturn.taxPeriodMonth).padStart(2, '0')}-25`}
-                      </td>
-                      <td className="px-3 py-2 font-mono-num">{s.objectCode}</td>
-                      <td className="px-3 py-2 text-slate-600 max-w-[200px] truncate">{s.objectName}</td>
-                      {showPeriodCol && (
-                        <td className="px-3 py-2 text-center font-mono-num">{periodCode}</td>
-                      )}
-                      <td className="px-3 py-2 text-right font-mono-num">
-                        {s.grossAmount.toLocaleString('id-ID')}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono-num">{s.ratePercent.toFixed(2)}</td>
-                      <td className="px-3 py-2 text-right font-mono-num font-bold text-[#1E2C5E]">
-                        {s.taxWithheld.toLocaleString('id-ID')}
-                      </td>
-                    </tr>
-                  ))
+                  paged.map((s, i) => {
+                    const ddMmYyyy = `31-${String(s.taxPeriodMonth).padStart(2, '0')}-${s.taxPeriodYear}`;
+                    return (
+                      <tr key={s.id} className="hover:bg-[#F8FAFC]">
+                        <td className="px-3 py-2 text-center font-mono-num text-slate-600">
+                          {(page - 1) * pageSize + i + 1}
+                        </td>
+                        <td className="px-3 py-2 font-mono-num text-slate-700">{s.recipientNikNpwp}</td>
+                        <td className="px-3 py-2 font-medium text-slate-800 uppercase">{s.recipientName}</td>
+                        <td className="px-3 py-2 font-mono-num text-slate-800">{s.slipNumber}</td>
+                        <td className="px-3 py-2 text-center font-mono-num text-slate-700">{ddMmYyyy}</td>
+                        <td className="px-3 py-2 font-mono-num text-slate-700">{s.objectCode}</td>
+                        {!isPph21Lampiran && (
+                          <td className="px-3 py-2 text-slate-600 max-w-[200px] truncate">{s.objectName}</td>
+                        )}
+                        {showPeriodCol && (
+                          <td className="px-3 py-2 text-center font-mono-num">{periodCode}</td>
+                        )}
+                        <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                          {s.grossAmount.toLocaleString('id-ID')}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono-num text-slate-700">
+                          {s.ratePercent.toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                          {s.taxWithheld.toLocaleString('id-ID')}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">Tanpa Fasilitas</td>
+                        <td className="px-3 py-2 text-slate-700">Indonesia</td>
+                        <td className="px-3 py-2 font-mono-num text-slate-600">{nitkuStr}</td>
+                      </tr>
+                    );
+                  })
                 )}
-                <tr className="bg-[#FAFBFD] font-bold border-t border-[#CBD5E1]">
-                  <td colSpan={showPeriodCol ? 8 : 7} className="px-3 py-2 text-right text-slate-600">
+
+                {/* Exact 3 Coretax Footer Summary Rows inside the table (Matches User Image 100%) */}
+                <tr className="bg-[#FAFBFD] border-t border-[#E2E8F0]">
+                  <td
+                    colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                    className="px-3 py-2 text-right text-slate-700"
+                  >
+                    JUMLAH PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DITANGGUNG OLEH PEMERINTAH
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">0</td>
+                  <td colSpan={3} />
+                </tr>
+                <tr className="bg-[#FAFBFD] border-t border-[#E2E8F0]">
+                  <td
+                    colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                    className="px-3 py-2 text-right text-slate-700"
+                  >
                     JUMLAH PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DIPOTONG
                   </td>
-                  <td className="px-3 py-2 text-right font-mono-num">
+                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
                     {totalGross.toLocaleString('id-ID')}
                   </td>
-                  <td />
-                  <td className="px-3 py-2 text-right font-mono-num text-[#1E2C5E]">
+                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
                     {totalTax.toLocaleString('id-ID')}
                   </td>
+                  <td colSpan={2} />
+                </tr>
+                <tr className="bg-[#FAFBFD] border-t border-[#CBD5E1] font-semibold">
+                  <td
+                    colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                    className="px-3 py-2 text-right text-slate-800"
+                  >
+                    JUMLAH TOTAL PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DITANGGUNG OLEH PEMERINTAH SERTA PAJAK PENGHASILAN YANG DIPOTONG
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                    {totalGross.toLocaleString('id-ID')}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                    {totalTax.toLocaleString('id-ID')}
+                  </td>
+                  <td colSpan={2} />
                 </tr>
               </tbody>
             </table>
           </div>
           <CoretaxPagination
-            totalItems={rows.length}
+            totalItems={filtered.length}
             page={page}
             pageSize={pageSize}
             onPageChange={setPage}
@@ -598,53 +855,30 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
 
         {isPph21 && pph21Tab === 'l1a' && (
           <div className="space-y-3">
-            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
-              DAFTAR PEMOTONGAN BULANAN PPh PASAL 21 BAGI PEGAWAI TETAP DAN PENSIUNAN (BPMP)
+            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase leading-snug">
+              DAFTAR PEMOTONGAN BULANAN PAJAK PENGHASILAN PASAL 21 BAGI PEGAWAI TETAP DAN PENSIUNAN YANG MENERIMA UANG TERKAIT PENSIUN SECARA BERKALA SERTA BAGI PEGAWAI NEGERI SIPIL, ANGGOTA TENTARA NASIONAL INDONESIA, ANGGOTA KEPOLISIAN REPUBLIK INDONESIA, PEJABAT NEGARA, DAN PENSIUNANNYA
             </h2>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>HEADER</span>
               </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+              <div className="p-4 space-y-2 max-w-3xl">
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
-                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
-                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">MASA PAJAK (MM-YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
               </div>
             </div>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>LIST-IA</span>
               </div>
-              <div className="p-4 space-y-3">
-                {renderSlipTable(bpmpSlips, `SPT_PPh21_L1A_${periodCode}`)}
-                <div className="grid grid-cols-12 items-center gap-2 pt-2 border-t border-[#E2E8F0]">
-                  <span className="col-span-6 text-slate-700 font-semibold">
-                    1. Jumlah Penghasilan Bruto dan PPh yang Dipotong (selain DTP)
-                  </span>
-                  <div className="col-span-3">{renderNumBox(bpmpSlips.reduce((s, r) => s + r.grossAmount, 0), true)}</div>
-                  <div className="col-span-3">{renderNumBox(bpmpSlips.reduce((s, r) => s + r.taxWithheld, 0), true)}</div>
-                </div>
-                <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-6 text-slate-700 font-semibold">
-                    2. Jumlah Penghasilan Bruto dan PPh yang Ditanggung Pemerintah (DTP)
-                  </span>
-                  <div className="col-span-3">{renderNumBox(0)}</div>
-                  <div className="col-span-3">{renderNumBox(0)}</div>
-                </div>
-                <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-6 text-slate-700 font-semibold">
-                    3. Jumlah Penghasilan Bruto Pegawai Tetap di bawah PTKP yang Tidak Dibuatkan Bukti Pemotongan
-                  </span>
-                  <div className="col-span-3">{renderNumBox(0)}</div>
-                  <div className="col-span-3">{renderNumBox(0)}</div>
-                </div>
+              <div className="p-4">
+                {renderSlipTable(bpmpSlips, `SPT_PPh21_L1A_${periodCode}`, false, true)}
               </div>
             </div>
           </div>
@@ -652,35 +886,33 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
 
         {isPph21 && pph21Tab === 'l1b' && (
           <div className="space-y-3">
-            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
-              DAFTAR PEMOTONGAN PPh PASAL 21 MASA PAJAK TERAKHIR (BPA1 / BPA2)
+            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase leading-snug">
+              DAFTAR PEMOTONGAN PAJAK PENGHASILAN PASAL 21 BAGI PEGAWAI TETAP DAN PENSIUNAN YANG MENERIMA UANG TERKAIT PENSIUN SECARA BERKALA SERTA BAGI PEGAWAI NEGERI SIPIL, ANGGOTA TENTARA NASIONAL INDONESIA, ANGGOTA KEPOLISIAN REPUBLIK INDONESIA, PEJABAT NEGARA, DAN PENSIUNANNYA UNTUK MASA PAJAK TERAKHIR
             </h2>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>HEADER</span>
               </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+              <div className="p-4 space-y-2 max-w-3xl">
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
-                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
-                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">MASA PAJAK (MM-YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
               </div>
             </div>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>LIST-IB</span>
               </div>
               <div className="p-4 space-y-4">
-                <div className="font-semibold text-[#1E293B]">I. DAFTAR BUKTI PEMOTONGAN BPA1</div>
-                {renderSlipTable(bpa1Slips, `SPT_PPh21_L1B_BPA1_${periodCode}`)}
-                <div className="font-semibold text-[#1E293B] pt-2">II. DAFTAR BUKTI PEMOTONGAN BPA2</div>
-                {renderSlipTable([], `SPT_PPh21_L1B_BPA2_${periodCode}`)}
+                <div className="font-semibold text-[#1E293B]">BPA1</div>
+                {renderSlipTable(bpa1Slips, `SPT_PPh21_L1B_BPA1_${periodCode}`, false, true)}
+                <div className="font-semibold text-[#1E293B] pt-2">BPA2</div>
+                {renderSlipTable([], `SPT_PPh21_L1B_BPA2_${periodCode}`, false, true)}
               </div>
             </div>
           </div>
@@ -688,35 +920,33 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
 
         {isPph21 && pph21Tab === 'l2' && (
           <div className="space-y-3">
-            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
-              DAFTAR PEMOTONGAN SATU TAHUN PAJAK ATAU BAGIAN TAHUN PAJAK (BPA1 / BPA2)
+            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase leading-snug">
+              DAFTAR PEMOTONGAN SATU TAHUN PAJAK ATAU BAGIAN TAHUN PAJAK PAJAK PENGHASILAN PASAL 21 BAGI PEGAWAI TETAP DAN PENSIUNAN YANG MENERIMA UANG TERKAIT PENSIUN SECARA BERKALA SERTA BAGI PEGAWAI NEGERI SIPIL, ANGGOTA TENTARA NASIONAL INDONESIA, ANGGOTA KEPOLISIAN REPUBLIK INDONESIA, PEJABAT NEGARA, DAN PENSIUNANNYA
             </h2>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>HEADER</span>
               </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+              <div className="p-4 space-y-2 max-w-3xl">
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
-                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
-                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">MASA PAJAK (MM-YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
               </div>
             </div>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>LIST-II</span>
               </div>
               <div className="p-4 space-y-4">
-                <div className="font-semibold text-[#1E293B]">I. DAFTAR BUKTI PEMOTONGAN BPA1</div>
-                {renderSlipTable(bpa1Slips, `SPT_PPh21_LII_BPA1_${periodCode}`, true)}
-                <div className="font-semibold text-[#1E293B] pt-2">II. DAFTAR BUKTI PEMOTONGAN BPA2</div>
-                {renderSlipTable([], `SPT_PPh21_LII_BPA2_${periodCode}`, true)}
+                <div className="font-semibold text-[#1E293B]">BPA1</div>
+                {renderSlipTable(bpa1Slips, `SPT_PPh21_LII_BPA1_${periodCode}`, true, true)}
+                <div className="font-semibold text-[#1E293B] pt-2">BPA2</div>
+                {renderSlipTable([], `SPT_PPh21_LII_BPA2_${periodCode}`, true, true)}
               </div>
             </div>
           </div>
@@ -724,34 +954,32 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
 
         {isPph21 && pph21Tab === 'l3' && (
           <div className="space-y-3">
-            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
-              DAFTAR PEMOTONGAN PPh PASAL 21/26 SELAIN PEGAWAI TETAP (BP21 / BP26)
+            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase leading-snug">
+              DAFTAR PEMOTONGAN PAJAK PENGHASILAN PASAL 21 DAN/ATAU PASAL 26 SELAIN PEGAWAI TETAP ATAU PENSIUNAN YANG MENERIMA UANG TERKAIT PENSIUN SECARA BERKALA
             </h2>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>HEADER</span>
               </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+              <div className="p-4 space-y-2 max-w-3xl">
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">Nomor Identitas WP</span>
-                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">Nomor Identitas WP</span>
+                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">MASA PAJAK (MM/YYYY)</span>
-                  <input readOnly value={periodCode} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-3 text-slate-600">MASA PAJAK (MM-YYYY)</span>
+                  <input readOnly value={periodCode} className="col-span-9 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
                 </div>
               </div>
             </div>
             <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
               <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
                 <span>LIST-III</span>
               </div>
               <div className="p-4 space-y-4">
-                <div className="font-semibold text-[#1E293B]">I. DAFTAR PEMOTONGAN PPh PASAL 21 (BP21)</div>
+                <div className="font-semibold text-[#1E293B]">BP21</div>
                 {renderSlipTable(bp21Slips, `SPT_PPh21_LIII_BP21_${periodCode}`)}
-                <div className="font-semibold text-[#1E293B] pt-2">II. DAFTAR PEMOTONGAN PPh PASAL 26 (BP26)</div>
+                <div className="font-semibold text-[#1E293B] pt-2">BP26</div>
                 {renderSlipTable([], `SPT_PPh21_LIII_BP26_${periodCode}`)}
               </div>
             </div>

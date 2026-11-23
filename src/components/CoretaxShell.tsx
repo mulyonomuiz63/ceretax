@@ -8,6 +8,7 @@ import {
   CheckCheck,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   ChevronsLeft,
   CreditCard,
   FileSpreadsheet,
@@ -15,7 +16,6 @@ import {
   HelpCircle,
   Home,
   LogOut,
-  Menu,
   Moon,
   PanelTop,
   Receipt,
@@ -273,13 +273,117 @@ const FlagMini: React.FC<{ lang: 'id-ID' | 'en-US' }> = ({ lang }) => {
   );
 };
 
-/** Dual-tone Navy & Gold badge icon matching the 2026 Coretax horizontal nav bar */
+/** Clean Navy badge icon matching the official Coretax horizontal nav bar (no yellow dot) */
 const ModuleBadgeIcon: React.FC<{ icon: React.FC<{ className?: string }> }> = ({ icon: Icon }) => (
   <span className="relative inline-flex items-center justify-center w-5 h-5 shrink-0">
     <Icon className="w-[17px] h-[17px] text-[#1E2C5E]" />
-    <span className="w-1.5 h-1.5 rounded-full bg-[#F4B81B] absolute -bottom-0.5 -right-0.5 ring-1 ring-white" />
   </span>
 );
+
+/** Official Coretax Mobile Duotone Navy/Slate + Gold (Kuning) Module Icon */
+const MobileDuotoneModuleIcon: React.FC<{
+  moduleKey: string;
+  active?: boolean;
+}> = ({ moduleKey, active = false }) => {
+  const baseColor = active ? '#1B2958' : '#8C9BB5';
+  const goldColor = '#F4B81B';
+
+  switch (moduleKey) {
+    case 'portal':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M12 2.5L4.5 5.8V11.6C4.5 16.6 7.7 21.1 12 22.5C16.3 21.1 19.5 16.6 19.5 11.6V5.8L12 2.5Z"
+            fill={baseColor}
+          />
+          <circle cx="12" cy="10" r="2.6" fill={goldColor} />
+          <path
+            d="M8 16.8C8.6 14.7 10.1 13.7 12 13.7C13.9 13.7 15.4 14.7 16 16.8"
+            stroke={goldColor}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case 'efaktur':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M11 3L4 7V15L11 19L18 15V7L11 3Z"
+            fill={baseColor}
+            fillOpacity={active ? '0.92' : '0.78'}
+          />
+          <rect x="10" y="7" width="9.5" height="12" rx="2" fill={goldColor} />
+          <path
+            d="M12.5 10.5H17M12.5 13H17M12.5 15.5H15.5"
+            stroke="#FFFFFF"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case 'ebupot':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M11.5 2.5L4.5 5.6V11.2C4.5 15.9 7.5 20.1 11.5 21.5C15.5 20.1 18.5 15.9 18.5 11.2V5.6L11.5 2.5Z"
+            fill={baseColor}
+          />
+          <rect x="11" y="10" width="9" height="8" rx="1.8" fill={goldColor} />
+          <path
+            d="M13 13H18M13 15.5H16.5"
+            stroke="#FFFFFF"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case 'spt':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M6 3.5C6 2.67 6.67 2 7.5 2H14.5L19 6.5V20.5C19 21.33 18.33 22 17.5 22H7.5C6.67 22 6 21.33 6 20.5V3.5Z"
+            fill={baseColor}
+          />
+          <path d="M14.5 2V6.5H19L14.5 2Z" fill={goldColor} />
+          <rect x="8.5" y="10" width="7" height="1.8" rx="0.9" fill="#FFFFFF" />
+          <rect x="8.5" y="13.5" width="7" height="1.8" rx="0.9" fill={goldColor} />
+          <rect x="8.5" y="17" width="4.5" height="1.8" rx="0.9" fill={goldColor} />
+        </svg>
+      );
+    case 'pembayaran':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <rect x="2.5" y="5" width="19" height="14" rx="2.5" fill={baseColor} />
+          <rect x="2.5" y="8" width="19" height="2.6" fill={goldColor} />
+          <circle cx="16.5" cy="14.8" r="2" fill={goldColor} />
+        </svg>
+      );
+    case 'bukubesar':
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M3.5 5.5C3.5 4.4 4.4 3.5 5.5 3.5H11.5V19.5H5.5C4.4 19.5 3.5 20.4 3.5 21.5V5.5Z"
+            fill={baseColor}
+          />
+          <path
+            d="M20.5 5.5C20.5 4.4 19.6 3.5 18.5 3.5H12.5V19.5H18.5C19.6 19.5 20.5 20.4 20.5 21.5V5.5Z"
+            fill={goldColor}
+          />
+        </svg>
+      );
+    default:
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M12 2.5L4.5 5.8V11.6C4.5 16.6 7.7 21.1 12 22.5C16.3 21.1 19.5 16.6 19.5 11.6V5.8L12 2.5Z"
+            fill={baseColor}
+          />
+          <circle cx="12" cy="11.5" r="3.2" fill={goldColor} />
+        </svg>
+      );
+  }
+};
 
 export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   activeModule,
@@ -314,6 +418,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [compactSearchOpen, setCompactSearchOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const shellRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -323,6 +428,19 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   useEffect(() => {
     setLeftCollapsed(false);
   }, [activeModule]);
+
+  // Lock background page scroll when mobile sidebar drawer is open
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [mobileMenuOpen]);
 
   // Ctrl+K shortcut to focus global Coretax service search
   useEffect(() => {
@@ -342,13 +460,13 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Auto-hide LEFT SIDEBAR when scrolling down (if toggle is active); header navbar always stays sticky!
-  // Sidebar remains hidden until page refresh or switching to another main module.
+  // Auto-hide LEFT SIDEBAR when scrolling down (if toggle is active) & toggle floating Scroll-to-Top button
   useEffect(() => {
     const handleScroll = () => {
       if (autoHideOnScroll && window.scrollY > 40) {
         setLeftCollapsed(true);
       }
+      setShowScrollTop(window.scrollY > 180);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -394,33 +512,15 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
         darkHeader ? 'bg-[#0F172A] text-slate-100' : 'bg-[#EAEEF7] text-[#1E293B]'
       }`}
     >
-      {/* Subtle Sculpted Pearl-Lavender Atmospheric Background matching Official 2026 Coretax */}
+      {/* Official Coretax Background (coretax-bg.jpg) across all Post-Login screens */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
         <div
-          className={`absolute inset-0 ${
-            darkHeader
-              ? 'bg-[radial-gradient(circle_at_90%_12%,rgba(59,89,182,0.22)_0%,transparent_48%),linear-gradient(135deg,#0B1224_0%,#111C38_100%)]'
-              : 'bg-[radial-gradient(circle_at_92%_10%,rgba(216,226,248,0.9)_0%,transparent_45%),radial-gradient(circle_at_8%_85%,rgba(221,230,248,0.85)_0%,transparent_50%),linear-gradient(135deg,#F1F4FA_0%,#E7ECF6_100%)]'
-          }`}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/coretax-bg.jpg')" }}
         />
-        <svg
-          viewBox="0 0 1440 820"
-          preserveAspectRatio="xMidYMid slice"
-          className="absolute inset-0 w-full h-full opacity-50"
-        >
-          <circle
-            cx="1370"
-            cy="310"
-            r="150"
-            fill={darkHeader ? '#1E2F5C' : '#FFFFFF'}
-            fillOpacity={darkHeader ? '0.28' : '0.45'}
-          />
-          <path
-            d="M-60 560 C180 510 380 650 640 840 L-60 840 Z"
-            fill={darkHeader ? '#19274D' : '#FFFFFF'}
-            fillOpacity={darkHeader ? '0.25' : '0.42'}
-          />
-        </svg>
+        {darkHeader && (
+          <div className="absolute inset-0 bg-[#0B1224]/85 backdrop-blur-[1px]" />
+        )}
       </div>
 
       {/* Impersonation Slim Ribbon when acting as Corporate PKP */}
@@ -458,20 +558,12 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
         >
           {/* ROW 1: LOGO | SEARCH (Ctrl K on xl+) | UTILITIES | ACCOUNT BOX | HOME */}
           <div
-            className={`px-3 sm:px-4 xl:px-5 py-2.5 flex items-center justify-between gap-2 xl:gap-3 min-w-0 border-b ${
-              darkHeader ? 'border-slate-800' : 'border-[#F1F5F9]'
+            className={`px-3 sm:px-4 xl:px-5 py-2.5 flex items-center justify-between gap-1.5 sm:gap-2 xl:gap-3 min-w-0 lg:border-b ${
+              darkHeader ? 'lg:border-slate-800' : 'lg:border-[#F1F5F9]'
             }`}
           >
-            {/* Left: Mobile/Tablet Menu Button + KelasBrevet Logo Lockup */}
-            <div className="flex items-center gap-2 shrink-0 min-w-0">
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
-                aria-label="Buka submenu"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
+            {/* Left: KelasBrevet Logo Lockup */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
               <button
                 type="button"
                 onClick={() => onNavigate('portal', 'ikhtisar')}
@@ -545,8 +637,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             </div>
 
             {/* Right Controls: Search (<xl) · Help/Exam · Sun/Moon · Bell · Flag ID · Account Box · Home */}
-            <div className="flex items-center gap-1 sm:gap-1.5 xl:gap-2 shrink-0 min-w-0">
-              {/* Compact Search Toggle Button on Tablet & Mobile (< xl) */}
+            <div className="flex items-center gap-0.5 sm:gap-1.5 xl:gap-2 shrink-0 min-w-0">
+              {/* Compact Search Toggle Button on Tablet (lg to xl); on mobile (<lg) search is in the bottom dock */}
               <button
                 type="button"
                 onClick={() => {
@@ -559,7 +651,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   });
                 }}
                 title="Cari layanan (Ctrl+K)"
-                className={`xl:hidden p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
+                className={`hidden lg:inline-flex xl:hidden p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
                   compactSearchOpen
                     ? 'bg-[#EEF2FA] text-[#1E2C5E]'
                     : darkHeader
@@ -575,7 +667,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 type="button"
                 onClick={onOpenExamDrawer}
                 title="Lihat Soal Latihan"
-                className={`relative p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
+                className={`hidden sm:inline-flex relative p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
                   darkHeader
                     ? 'text-slate-300 hover:bg-slate-800'
                     : 'text-[#1E2C5E] hover:bg-[#F4F6FA]'
@@ -665,8 +757,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 )}
               </div>
 
-              {/* Language Flag Selector */}
-              <div className="relative hidden md:block">
+              {/* Language Flag Selector (Visible on mobile & desktop like official mobile screenshot) */}
+              <div className="relative">
                 <button
                   type="button"
                   onClick={() => {
@@ -674,7 +766,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     setNotifOpen(false);
                     setAccountMenuOpen(false);
                   }}
-                  className={`px-1.5 xl:px-2 py-1.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-semibold transition cursor-pointer ${
+                  className={`px-1.5 xl:px-2 py-1.5 rounded-lg inline-flex items-center gap-1 sm:gap-1.5 text-xs font-semibold transition cursor-pointer ${
                     darkHeader
                       ? 'text-slate-200 hover:bg-slate-800'
                       : 'text-[#1E293B] hover:bg-[#F4F6FA]'
@@ -717,7 +809,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 )}
               </div>
 
-              {/* Rounded Bordered Taxpayer / Impersonate Box */}
+              {/* Rounded Bordered Taxpayer / Impersonate Box (Icon-only square on mobile/tablet, full pill on lg+) */}
               <div className="relative">
                 <button
                   type="button"
@@ -728,7 +820,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     setOpenDropdown(null);
                     setOpenExtraDropdown(null);
                   }}
-                  className={`flex items-center gap-2 px-2 sm:px-2.5 xl:px-3 py-1.5 rounded-[10px] border transition cursor-pointer ${
+                  title={`${activeTaxpayer.name} (${activeTaxpayer.nikNpwp})`}
+                  className={`flex items-center justify-center gap-2 p-2 lg:px-3 lg:py-1.5 rounded-[10px] border transition cursor-pointer ${
                     darkHeader
                       ? 'bg-slate-800 border-slate-700 hover:border-slate-500 text-white'
                       : 'bg-white border-[#DCE2EC] hover:border-[#1E2C5E]/50 text-[#1B2958]'
@@ -743,7 +836,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       }`}
                     />
                   )}
-                  <div className="hidden md:block text-left leading-[1.15] max-w-[110px] lg:max-w-[140px] xl:max-w-[175px]">
+                  <div className="hidden lg:block text-left leading-[1.15] max-w-[140px] xl:max-w-[175px]">
                     <div
                       className={`text-[10px] font-mono-num truncate ${
                         darkHeader ? 'text-slate-400' : 'text-slate-500'
@@ -756,7 +849,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     </div>
                   </div>
                   <span
-                    className={`hidden sm:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                    className={`hidden lg:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
                       accountMode === 'CORPORATE'
                         ? 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]'
                         : darkHeader
@@ -766,7 +859,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   >
                     IMPERSONATE
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                  <ChevronDown className="hidden lg:block w-3.5 h-3.5 opacity-60 shrink-0" />
                 </button>
 
                 {accountMenuOpen && (
@@ -852,7 +945,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 type="button"
                 onClick={() => onNavigate('portal', 'ikhtisar')}
                 title="Beranda Portal"
-                className={`p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
+                className={`hidden sm:inline-flex p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
                   darkHeader
                     ? 'text-slate-300 hover:bg-slate-800'
                     : 'text-[#1E2C5E] hover:bg-[#F4F6FA]'
@@ -919,9 +1012,9 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             </div>
           )}
 
-          {/* ROW 2: RESPONSIVE HORIZONTAL MODULE RIBBON (Exact 8 Official Coretax Menus) */}
+          {/* ROW 2: RESPONSIVE HORIZONTAL MODULE RIBBON (Desktop lg+ only; on mobile it sits in the bottom floating dock) */}
           <nav
-            className="px-2.5 sm:px-4 xl:px-5 py-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5"
+            className="hidden lg:flex px-2.5 sm:px-4 xl:px-5 py-2 flex-wrap items-center justify-between gap-x-2 gap-y-1.5"
             onMouseLeave={() => {
               setOpenDropdown(null);
               setOpenExtraDropdown(null);
@@ -1119,24 +1212,30 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* ===================================================================== */}
       {/* FLOATING 2-COLUMN WORKSPACE (LEFT SUBMENU CARD + RIGHT CONTENT CARD)  */}
       {/* ===================================================================== */}
-      <div className="relative z-10 flex-1 flex gap-4 px-3 sm:px-4 py-4 items-start">
-        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge (matches PDF 2, 3, 4) */}
-        {leftCollapsed && (
-          <button
-            type="button"
-            onClick={() => setLeftCollapsed(false)}
-            title={`Buka menu ${activeNavMeta.sidebarLabel}`}
-            className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#F5C527] hover:bg-[#E7B618] text-[#1B2958] border border-l-0 border-[#D9A70F] shadow-md cursor-pointer transition"
+      <div className="relative z-10 flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full overflow-x-hidden">
+        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge (visible on mobile & desktop) */}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.innerWidth < 1024) {
+              setMobileMenuOpen(true);
+            } else {
+              setLeftCollapsed(false);
+            }
+          }}
+          title={`Buka menu ${activeNavMeta.sidebarLabel}`}
+          className={`${
+            leftCollapsed ? 'flex' : 'flex lg:hidden'
+          } fixed left-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-md cursor-pointer transition`}
+        >
+          <ModuleBadgeIcon icon={activeNavMeta.icon} />
+          <span
+            className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
           >
-            <ModuleBadgeIcon icon={activeNavMeta.icon} />
-            <span
-              className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
-              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-            >
-              {activeNavMeta.sidebarLabel}
-            </span>
-          </button>
-        )}
+            {activeNavMeta.sidebarLabel}
+          </span>
+        </button>
 
         {/* LEFT FLOATING WHITE SUBMENU CARD */}
         {!leftCollapsed &&
@@ -1322,57 +1421,113 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             );
           })()}
 
-        {/* MOBILE SUBMENU SLIDE-OVER DRAWER */}
+        {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Topmost Layer, Locks Background Scroll) */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div className="fixed inset-0 z-[70] lg:hidden">
+            {/* Dark Backdrop covering top header & content */}
             <div
-              className="fixed inset-0 bg-slate-900/45 backdrop-blur-[2px]"
+              className="fixed inset-0 bg-slate-900/55 transition-opacity touch-none"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <div className="relative z-10 w-[275px] max-w-[84vw] h-full bg-white shadow-2xl flex flex-col">
-              <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
-                <span className="font-display font-bold text-sm text-[#1B2958]">
-                  {activeNavMeta.sidebarLabel}
-                </span>
+
+            {/* Floating Left Panel on topmost layer leaving bottom space for the Floating Bottom Navigation Dock */}
+            <div
+              className={`fixed left-0 top-1.5 bottom-[78px] z-10 w-[82vw] max-w-[315px] rounded-r-[18px] shadow-[0_18px_45px_rgba(15,23,42,0.35)] flex flex-col overflow-hidden overscroll-contain ${
+                darkHeader ? 'bg-slate-900 text-slate-100' : 'bg-white text-[#1B2958]'
+              }`}
+            >
+              {/* Top Shaded Pill Box with Duotone Module Icon + Label + [<<] Collapse Button */}
+              <div
+                className={`m-3.5 rounded-[12px] px-3.5 py-3 flex items-center justify-between gap-2 ${
+                  darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
+                  <span
+                    className={`font-display font-bold text-[14.5px] truncate ${
+                      darkHeader ? 'text-white' : 'text-[#1B2958]'
+                    }`}
+                  >
+                    {activeNavMeta.sidebarLabel}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  title="Tutup menu"
+                  aria-label="Tutup menu"
+                  className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition cursor-pointer ${
+                    darkHeader
+                      ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
+                      : 'bg-white border-[#E2E8F0] text-[#1B2958] hover:bg-slate-50'
+                  }`}
                 >
-                  <X className="w-4 h-4" />
+                  <ChevronsLeft className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                {activeNavMeta.items.map((sub) => (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    onClick={() => {
-                      onNavigate(activeModule, sub.id);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-[13px] cursor-pointer ${
-                      activeSubTab === sub.id
-                        ? 'bg-[#EEF2FA] text-[#1B2958] font-bold'
-                        : 'text-slate-600 hover:bg-slate-50 font-medium'
-                    }`}
-                  >
-                    {sub.label}
-                  </button>
-                ))}
-              </div>
-              <div className="p-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenExamDrawer();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-[#FEF9E7] border border-[#F4C430] text-[#1B2958] text-xs font-bold flex items-center justify-between cursor-pointer"
-                >
-                  <span>Soal Latihan</span>
-                  <span className="text-[11px] text-[#7A5901]">Lihat Soal</span>
-                </button>
+
+              {/* Clean Single-Line Truncated Submenu Items */}
+              <div className="flex-1 overflow-y-auto px-3.5 pb-4 space-y-0.5">
+                {activeNavMeta.items.map((sub) => {
+                  const isSubActive = activeSubTab === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      title={sub.label}
+                      onClick={() => {
+                        onNavigate(activeModule, sub.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2.5 rounded-[10px] text-[13.5px] transition cursor-pointer block truncate ${
+                        isSubActive
+                          ? darkHeader
+                            ? 'bg-slate-800 text-[#F4C430] font-bold'
+                            : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
+                          : darkHeader
+                            ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
+                            : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
+                      }`}
+                    >
+                      {sub.label}
+                    </button>
+                  );
+                })}
+
+                {activeNavMeta.groups &&
+                  activeNavMeta.groups.map((grp) => (
+                    <div key={grp.groupLabel} className="pt-2.5 mt-2 border-t border-slate-100">
+                      <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        {grp.groupLabel}
+                      </div>
+                      {grp.items.map((sub) => {
+                        const isSubActive = activeSubTab === sub.id;
+                        return (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            title={sub.label}
+                            onClick={() => {
+                              onNavigate(activeModule, sub.id);
+                              setMobileMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-[10px] text-[13px] transition cursor-pointer block truncate ${
+                              isSubActive
+                                ? darkHeader
+                                  ? 'bg-slate-800 text-[#F4C430] font-bold'
+                                  : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
+                                : darkHeader
+                                  ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
+                                  : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
+                            }`}
+                          >
+                            {sub.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -1439,14 +1594,121 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
           </div>
 
           {/* Active Module Content Viewport */}
-          <div className="p-4 sm:p-5 xl:p-6 flex-1 bg-white text-[#1E293B]">{children}</div>
+          <div className="p-3 sm:p-5 xl:p-6 flex-1 bg-white text-[#1E293B] overflow-x-auto max-w-full">
+            {children}
+          </div>
         </main>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK (Exact Match to Coretax Mobile) */}
+      {/* ===================================================================== */}
+      <div className="lg:hidden fixed bottom-3 inset-x-0 z-[80] px-3 pointer-events-none flex justify-center">
+        <div
+          className={`pointer-events-auto w-full max-w-[440px] rounded-full border p-1.5 shadow-[0_14px_38px_rgba(27,41,88,0.22)] backdrop-blur-md flex items-center gap-1.5 ${
+            darkHeader
+              ? 'bg-slate-900/95 border-slate-700 text-slate-100'
+              : 'bg-white/95 border-[#DCE2EE] text-[#1B2958]'
+          }`}
+        >
+          {/* Horizontally Scrollable Module Pills */}
+          <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 px-1">
+            {NAV_CONFIG.map((item) => {
+              const isActive = activeModule === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    if (item.key === 'ebupot') {
+                      onNavigate('ebupot', 'empty');
+                    } else {
+                      onNavigate(item.key, item.items[0]?.id);
+                    }
+                    if (item.items.length > 0) {
+                      setMobileMenuOpen(true);
+                    } else {
+                      setMobileMenuOpen(false);
+                    }
+                  }}
+                  className={`relative shrink-0 min-w-[74px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center gap-0.5 transition cursor-pointer ${
+                    isActive
+                      ? darkHeader
+                        ? 'bg-slate-800 text-[#F4C430] font-bold shadow-inner'
+                        : 'bg-[#E2E8F3] text-[#1B2958] font-bold shadow-inner'
+                      : darkHeader
+                        ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
+                        : 'text-[#64748B] hover:bg-[#F4F6FA] font-medium'
+                  }`}
+                >
+                  <MobileDuotoneModuleIcon moduleKey={item.key} active={isActive} />
+                  <span className="text-[10.5px] leading-tight whitespace-nowrap">
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <span
+                      className="w-5 h-[2.5px] rounded-full bg-[#F4B81B] mt-0.5"
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              );
+            })}
+
+            {EXTRA_TOP_MENUS.map((extra) => (
+              <button
+                key={extra.key}
+                type="button"
+                onClick={() => {
+                  const first = extra.items[0];
+                  if (first) onNavigate(first.targetModule, first.targetSubTab);
+                }}
+                className={`shrink-0 min-w-[78px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center gap-0.5 transition cursor-pointer ${
+                  darkHeader
+                    ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
+                    : 'text-[#64748B] hover:bg-[#F4F6FA] font-medium'
+                }`}
+              >
+                <MobileDuotoneModuleIcon moduleKey={extra.key} active={false} />
+                <span className="text-[10.5px] leading-tight whitespace-nowrap">
+                  {extra.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Right Circular Search Button inside Floating Bottom Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              setCompactSearchOpen((prev) => {
+                const next = !prev;
+                if (next) {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setTimeout(() => compactSearchInputRef.current?.focus(), 60);
+                }
+                return next;
+              });
+            }}
+            title="Cari layanan"
+            aria-label="Cari layanan"
+            className={`w-11 h-11 rounded-full border shrink-0 flex items-center justify-center shadow-sm transition cursor-pointer ${
+              compactSearchOpen
+                ? 'bg-[#1E2C5E] border-[#1E2C5E] text-white'
+                : darkHeader
+                  ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
+                  : 'bg-white border-[#E2E8F0] text-[#1E2C5E] hover:bg-[#F4F6FA]'
+            }`}
+          >
+            <Search className="w-[18px] h-[18px]" />
+          </button>
+        </div>
       </div>
 
       {/* ===================================================================== */}
       {/* OFFICIAL CORETAX DJP FOOTER (Exact Match to PDF 2, 3, 4)              */}
       {/* ===================================================================== */}
-      <footer className="relative z-10 mx-3 sm:mx-4 mb-3">
+      <footer className="relative z-10 mx-2.5 sm:mx-4 mb-24 lg:mb-3">
         <div
           className={`rounded-[16px] border px-6 py-5 shadow-[0_4px_20px_rgba(30,44,94,0.04)] ${
             darkHeader
@@ -1525,6 +1787,21 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
           </div>
         </div>
       </footer>
+
+      {/* ===================================================================== */}
+      {/* FLOATING SCROLL-TO-TOP BUTTON ON BOTTOM-RIGHT (Matches Coretax Image) */}
+      {/* ===================================================================== */}
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          title="Kembali ke atas"
+          aria-label="Kembali ke atas"
+          className="fixed right-4 sm:right-6 bottom-20 lg:bottom-6 z-40 w-10 h-10 rounded-full bg-[#94A3B8]/85 hover:bg-[#1E2C5E] text-white shadow-[0_6px_20px_rgba(30,44,94,0.22)] backdrop-blur-sm flex items-center justify-center transition-all duration-200 cursor-pointer"
+        >
+          <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+        </button>
+      )}
     </div>
   );
 };

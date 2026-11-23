@@ -16,6 +16,11 @@
   body {
     font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--coretax-bg);
+    background-image: url('/coretax-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: #1E293B;
   }
 
@@ -31,6 +36,14 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Custom crisp scrollbar for dense Coretax tables */
