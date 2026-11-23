@@ -548,7 +548,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* ===================================================================== */}
       {/* PERMANENTLY STICKY 2-ROW WHITE HEADER CARD (EXACT CORETAX DJP)        */}
       {/* ===================================================================== */}
-      <header className="sticky top-0 sm:top-2 z-40 mx-3 sm:mx-4 mt-2.5">
+      <header className="sticky top-0 sm:top-2 z-30 mx-3 sm:mx-4 mt-2.5">
         <div
           className={`rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.07)] transition-colors ${
             darkHeader
@@ -1433,19 +1433,19 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             );
           })()}
 
-        {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Matches Image 3: starts below header, ends above bottom dock, same top layer z-50) */}
+        {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Matches Image 3: starts near top, ends above bottom dock, higher layer than header) */}
         {mobileMenuOpen && (
           <div className="lg:hidden">
-            {/* Dark Backdrop dimming background content */}
+            {/* Dark Backdrop dimming entire screen including header and navbar (z-[60] covers header z-30) */}
             <div
-              className="fixed inset-0 bg-slate-900/40 z-40 transition-opacity touch-none"
+              className="fixed inset-0 bg-slate-900/60 z-[60] backdrop-blur-[2px] transition-opacity touch-none"
               onClick={() => setMobileMenuOpen(false)}
             />
 
-            {/* Floating Left Rounded Panel on layer z-50, sitting between header and bottom dock */}
+            {/* Floating Left Rounded Panel on layer z-[70], sitting on top of the dark backdrop */}
             <div
-              className={`fixed left-0 top-[64px] bottom-[76px] z-50 w-[82vw] max-w-[310px] rounded-r-[18px] shadow-[0_18px_45px_rgba(15,23,42,0.32)] flex flex-col overflow-hidden overscroll-contain ${
-                darkHeader ? 'bg-slate-900 text-slate-100' : 'bg-white text-[#1B2958]'
+              className={`fixed left-2 sm:left-3 top-3 bottom-[82px] z-[70] w-[84vw] max-w-[315px] rounded-[18px] shadow-[0_22px_55px_rgba(15,23,42,0.45)] border border-slate-200/60 flex flex-col overflow-hidden overscroll-contain ${
+                darkHeader ? 'bg-slate-900 text-slate-100 border-slate-700' : 'bg-white text-[#1B2958]'
               }`}
             >
               {/* Top Shaded Pill Box with Duotone Module Icon + Label + [<<] Collapse Button */}
@@ -1613,9 +1613,9 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK (Exact Match to Coretax Mobile) */}
+      {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK (Layer z-[70] above dark backdrop) */}
       {/* ===================================================================== */}
-      <div className="lg:hidden fixed bottom-3 inset-x-0 z-50 px-3 pointer-events-none flex justify-center">
+      <div className="lg:hidden fixed bottom-3 inset-x-0 z-[70] px-3 pointer-events-none flex justify-center">
         <div
           className={`pointer-events-auto w-full max-w-[440px] rounded-full border p-1.5 shadow-[0_14px_38px_rgba(27,41,88,0.22)] backdrop-blur-md flex items-center gap-1.5 ${
             darkHeader

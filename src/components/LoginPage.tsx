@@ -264,10 +264,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep('LOGIN')}
-                  className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[linear-gradient(90deg,#23326B_0%,#394885_55%,#5A679F_100%)] hover:brightness-110 active:scale-[0.99] text-white font-semibold text-[15px] shadow-[0_14px_30px_rgba(35,50,107,0.28)] transition-all cursor-pointer whitespace-nowrap"
+                  className="relative overflow-hidden inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[linear-gradient(90deg,#23326B_0%,#394885_55%,#5A679F_100%)] hover:brightness-110 active:scale-[0.99] text-white font-semibold text-[15px] shadow-[0_14px_30px_rgba(35,50,107,0.28)] transition-all cursor-pointer whitespace-nowrap"
                 >
-                  <span>{isId ? 'Lanjutkan ke Login' : 'Continue to Login'}</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {/* Alternating Shiny sweep: Step 1 */}
+                  <span
+                    className="pointer-events-none absolute inset-0 -translate-x-full w-[65%] h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shiny-seq-1"
+                    aria-hidden="true"
+                  />
+                  <span className="relative z-10">{isId ? 'Lanjutkan ke Login' : 'Continue to Login'}</span>
+                  <ArrowRight className="w-4 h-4 relative z-10" />
                 </button>
               </div>
             </div>
@@ -281,7 +286,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <div
                 onMouseEnter={() => setFrontInfoCard('SAFE')}
                 onClick={() => setFrontInfoCard('SAFE')}
-                className={`w-full max-w-[405px] rounded-[24px] p-6 sm:p-7 backdrop-blur-md relative cursor-pointer transition-all duration-300 ease-out ${
+                className={`relative overflow-hidden w-full max-w-[405px] rounded-[24px] p-6 sm:p-7 backdrop-blur-md cursor-pointer transition-all duration-300 ease-out ${
                   frontInfoCard === 'SAFE'
                     ? darkTheme
                       ? 'z-30 scale-100 bg-slate-900/95 border border-emerald-400/40 shadow-[0_26px_60px_rgba(0,0,0,0.55)]'
@@ -291,6 +296,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       : 'z-10 scale-[0.985] bg-white/92 border border-white ring-1 ring-emerald-100/70 shadow-[0_14px_38px_rgba(30,44,94,0.07)] opacity-95'
                 }`}
               >
+                {/* Alternating Shiny sweep: Step 2 */}
+                <span
+                  className="pointer-events-none absolute inset-0 -translate-x-full w-[70%] h-full bg-gradient-to-r from-transparent via-emerald-400/25 sm:via-white/55 to-transparent animate-shiny-seq-2"
+                  aria-hidden="true"
+                />
                 <div className="flex items-start gap-3.5">
                   <div
                     className={`w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 ${
@@ -412,7 +422,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <div
                 onMouseEnter={() => setFrontInfoCard('AVOID')}
                 onClick={() => setFrontInfoCard('AVOID')}
-                className={`mt-5 lg:-mt-40 lg:ml-auto w-full max-w-[405px] rounded-[24px] p-6 sm:p-7 backdrop-blur-md relative cursor-pointer transition-all duration-300 ease-out ${
+                className={`relative overflow-hidden mt-5 lg:-mt-40 lg:ml-auto w-full max-w-[405px] rounded-[24px] p-6 sm:p-7 backdrop-blur-md cursor-pointer transition-all duration-300 ease-out ${
                   frontInfoCard === 'AVOID'
                     ? darkTheme
                       ? 'z-30 scale-100 bg-slate-900/95 border border-rose-400/40 shadow-[0_26px_60px_rgba(0,0,0,0.55)]'
@@ -422,6 +432,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       : 'z-10 scale-[0.985] bg-[#F5F4FA]/94 border border-white ring-1 ring-rose-100/70 shadow-[0_16px_40px_rgba(30,44,94,0.08)] opacity-95'
                 }`}
               >
+                {/* Alternating Shiny sweep: Step 3 */}
+                <span
+                  className="pointer-events-none absolute inset-0 -translate-x-full w-[70%] h-full bg-gradient-to-r from-transparent via-rose-400/25 sm:via-white/55 to-transparent animate-shiny-seq-3"
+                  aria-hidden="true"
+                />
                 <div className="flex items-start gap-3.5">
                   <div
                     className={`w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 ${
@@ -765,15 +780,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-1 py-3.5 rounded-[10px] bg-[#1E2C5E] hover:bg-[#16224A] active:bg-[#111A3A] disabled:opacity-60 text-white font-bold text-[15px] shadow-[0_8px_20px_rgba(30,44,94,0.22)] transition cursor-pointer"
+                    className="relative overflow-hidden w-full mt-1 py-3.5 rounded-[10px] bg-[#1E2C5E] hover:bg-[#16224A] active:bg-[#111A3A] disabled:opacity-60 text-white font-bold text-[15px] shadow-[0_8px_20px_rgba(30,44,94,0.22)] transition cursor-pointer"
                   >
-                    {loading
-                      ? isId
-                        ? 'Memproses...'
-                        : 'Signing in...'
-                      : isId
-                        ? 'Masuk'
-                        : 'Sign In'}
+                    {/* Alternating Shiny sweep: Step 1 */}
+                    <span
+                      className="pointer-events-none absolute inset-0 -translate-x-full w-[65%] h-full bg-gradient-to-r from-transparent via-white/35 to-transparent animate-shiny-seq-1"
+                      aria-hidden="true"
+                    />
+                    <span className="relative z-10">
+                      {loading
+                        ? isId
+                          ? 'Memproses...'
+                          : 'Signing in...'
+                        : isId
+                          ? 'Masuk'
+                          : 'Sign In'}
+                    </span>
                   </button>
 
                   {/* ATAU Divider + Pengguna Baru? & Belum Aktivasi? Cards (Small & Responsive) */}
@@ -795,13 +817,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       <button
                         type="button"
                         onClick={() => setModalMode('REGISTER')}
-                        className={`group rounded-[10px] sm:rounded-[12px] border px-2.5 py-2 sm:py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                        className={`relative overflow-hidden group rounded-[10px] sm:rounded-[12px] border px-2.5 py-2 sm:py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
                           darkTheme
                             ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
                             : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_1px_4px_rgba(30,44,94,0.03)]'
                         }`}
                       >
-                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        {/* Alternating Shiny sweep: Step 2 */}
+                        <span
+                          className="pointer-events-none absolute inset-0 -translate-x-full w-[70%] h-full bg-gradient-to-r from-transparent via-blue-400/20 sm:via-white/60 to-transparent animate-shiny-seq-2"
+                          aria-hidden="true"
+                        />
+                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 relative z-10">
                           <div
                             className={`w-7 h-7 sm:w-8 sm:h-8 rounded-[8px] flex items-center justify-center shrink-0 ${
                               darkTheme
@@ -829,7 +856,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           </div>
                         </div>
                         <ArrowRight
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+                          className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 relative z-10 ${
                             darkTheme ? 'text-slate-400' : 'text-[#64748B]'
                           }`}
                         />
@@ -839,13 +866,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       <button
                         type="button"
                         onClick={() => setModalMode('ACTIVATE')}
-                        className={`group rounded-[10px] sm:rounded-[12px] border px-2.5 py-2 sm:py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                        className={`relative overflow-hidden group rounded-[10px] sm:rounded-[12px] border px-2.5 py-2 sm:py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
                           darkTheme
                             ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
                             : 'bg-white border-[#DCE2EE] hover:border-[#1E2C5E]/40 shadow-[0_1px_4px_rgba(30,44,94,0.03)]'
                         }`}
                       >
-                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        {/* Alternating Shiny sweep: Step 3 */}
+                        <span
+                          className="pointer-events-none absolute inset-0 -translate-x-full w-[70%] h-full bg-gradient-to-r from-transparent via-blue-400/20 sm:via-white/60 to-transparent animate-shiny-seq-3"
+                          aria-hidden="true"
+                        />
+                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 relative z-10">
                           <div
                             className={`w-7 h-7 sm:w-8 sm:h-8 rounded-[8px] flex items-center justify-center shrink-0 ${
                               darkTheme
@@ -873,7 +905,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           </div>
                         </div>
                         <ArrowRight
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+                          className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 relative z-10 ${
                             darkTheme ? 'text-slate-400' : 'text-[#64748B]'
                           }`}
                         />
