@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
+  Edit3,
   Eye,
   FileCode2,
   Filter,
@@ -15,6 +16,7 @@ import {
   Send,
   Trash2,
   Upload,
+  X,
 } from 'lucide-react';
 import { PtkpStatus, SlipType, Taxpayer, WithholdingSlip, WorkspaceState } from '../types/tax.ts';
 import {
@@ -43,9 +45,56 @@ interface EBupotModuleProps {
   onCreateSlip: (slip: Omit<WithholdingSlip, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   onIssueSlips: (ids: string[]) => Promise<void>;
   onDeleteSlip: (id: string) => Promise<void>;
+  onUpdateSlip?: (id: string, updates: Partial<WithholdingSlip>) => Promise<void>;
+  onCancelSlips?: (ids: string[]) => Promise<void>;
   onImportXml: (xml: string) => Promise<number>;
   onPrintDocument: (doc: PrintablePayload) => void;
 }
+
+const BPMP_OBJECT_OPTIONS = [
+  {
+    code: '21-100-01',
+    name: 'Penghasilan yang Diterima atau Diperoleh Pegawai Tetap',
+  },
+  {
+    code: '21-100-02',
+    name: 'Penghasilan yang Diterima atau Diperoleh Pensiunan Secara Teratur',
+  },
+  {
+    code: '21-100-03',
+    name: 'Penghasilan yang Diterima atau Diperoleh Pegawai Tetap yang Menerima fasilitas di Daerah Tertentu',
+  },
+];
+
+const BP21_OBJECT_OPTIONS = [
+  {
+    code: '21-100-07',
+    name: 'Imbalan kepada Bukan Pegawai yang Bersifat Berkesinambungan / Tidak Berkesinambungan',
+  },
+  {
+    code: '21-100-09',
+    name: 'Imbalan kepada Tenaga Ahli (Pengacara, Akuntan, Arsitek, Dokter, Konsultan, Notaris, Penilai, Aktuaris)',
+  },
+  {
+    code: '21-100-13',
+    name: 'Imbalan kepada Peserta Kegiatan / Dewan Komisaris / Mantan Pegawai',
+  },
+];
+
+const BP26_OBJECT_OPTIONS = [
+  {
+    code: '27-100-01',
+    name: 'Imbalan Sehubungan dengan Jasa, Pekerjaan, dan Kegiatan Wajib Pajak Luar Negeri',
+  },
+  {
+    code: '27-100-02',
+    name: 'Penghasilan dari Hadiah dan Penghargaan Wajib Pajak Luar Negeri',
+  },
+  {
+    code: '27-100-03',
+    name: 'Penghasilan dari Pensiun dan Pembayaran Berkala Lainnya Wajib Pajak Luar Negeri',
+  },
+];
 
 const SAMPLE_XML_TEMPLATE = `<?xml version="1.0" encoding="UTF-8"?>
 <CoretaxEBupotImport>
@@ -158,13 +207,18 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   onCreateSlip,
   onIssueSlips,
   onDeleteSlip,
+  onUpdateSlip,
+  onCancelSlips,
   onImportXml,
   onPrintDocument,
 }) => {
   const [statusView, setStatusView] = useState<'UNISSUED' | 'ISSUED' | 'INVALID'>('UNISSUED');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [signOpen, setSignOpen] = useState(false);
+  const [cancelSignOpen, setCancelSignOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingSlip, setEditingSlip] = useState<WithholdingSlip | null>(null);
+  const [detailSlip, setDetailSlip] = useState<WithholdingSlip | null>(null);
   const [monitoringOpen, setMonitoringOpen] = useState(false);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
@@ -199,6 +253,9 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const [ptkp, setPtkp] = useState<PtkpStatus>('TK/0');
   const [grossAmount, setGrossAmount] = useState(20_000_000);
   const [pph23Code, setPph23Code] = useState('24-104-29');
+  const [bpmpObjectCode, setBpmpObjectCode] = useState('21-100-01');
+  const [bp21ObjectCode, setBp21ObjectCode] = useState('21-100-07');
+  const [bp26ObjectCode, setBp26ObjectCode] = useState('27-100-01');
   const [taxFacility, setTaxFacility] = useState<'NONE' | 'SKB' | 'DTP'>('NONE');
   const [refDocType, setRefDocType] = useState('Invoice / Daftar Gaji');
   const [refDocNumber, setRefDocNumber] = useState('DOC/2025/01/001');
@@ -246,9 +303,9 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
 
   // Slips for issuance tabs (Belum Terbit / Telah Terbit / Tidak Valid)
   const visibleSlips = useMemo(() => {
-    if (statusView === 'INVALID') return [];
+    const targetStatus = statusView === 'INVALID' ? 'CANCELLED' : statusView;
     return workspace.slips.filter((s) => {
-      if (s.slipType !== currentSlipType || s.status !== statusView) return false;
+      if (s.slipType !== currentSlipType || s.status !== targetStatus) return false;
       if (periodMonthFilter !== 'ALL' && String(s.taxPeriodMonth) !== periodMonthFilter) return false;
       if (numFilter.trim() && !s.slipNumber.toLowerCase().includes(numFilter.trim().toLowerCase()))
         return false;
@@ -285,26 +342,45 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const issuedCount = workspace.slips.filter(
     (s) => s.slipType === currentSlipType && s.status === 'ISSUED'
   ).length;
+  const invalidCount = workspace.slips.filter(
+    (s) => s.slipType === currentSlipType && s.status === 'CANCELLED'
+  ).length;
 
   // Live calculation preview for create modal (100% preserves Modul 3 TER / Psl 17 / PPh 23)
   const computeSlipValues = () => {
     if (currentSlipType === 'BPMP') {
       const res = calculatePph21Ter(grossAmount, ptkp);
+      const selectedObj =
+        BPMP_OBJECT_OPTIONS.find((o) => o.code === bpmpObjectCode) || BPMP_OBJECT_OPTIONS[0];
       return {
-        objectCode: '21-100-01',
-        objectName: `Pegawai Tetap (TER Kategori ${res.category})`,
+        objectCode: selectedObj.code,
+        objectName: selectedObj.name,
         netAmount: grossAmount,
         ratePercent: res.ratePercent,
         taxWithheld: res.tax,
       };
     }
     if (currentSlipType === 'BP21') {
+      if (subTab === 'bp26') {
+        const selected26 =
+          BP26_OBJECT_OPTIONS.find((o) => o.code === bp26ObjectCode) || BP26_OBJECT_OPTIONS[0];
+        const tax26 = Math.round(grossAmount * 0.2);
+        return {
+          objectCode: selected26.code,
+          objectName: selected26.name,
+          netAmount: grossAmount,
+          ratePercent: 20,
+          taxWithheld: tax26,
+        };
+      }
+      const selected21 =
+        BP21_OBJECT_OPTIONS.find((o) => o.code === bp21ObjectCode) || BP21_OBJECT_OPTIONS[0];
       const dpp = Math.round(grossAmount * 0.5);
       const tax = calculatePphPasal17(dpp);
       const eff = grossAmount > 0 ? Number(((tax / grossAmount) * 100).toFixed(2)) : 0;
       return {
-        objectCode: '21-100-07',
-        objectName: 'Bukan Pegawai / Tenaga Ahli (50% x Bruto x Psl 17)',
+        objectCode: selected21.code,
+        objectName: selected21.name,
         netAmount: dpp,
         ratePercent: eff,
         taxWithheld: tax,
@@ -317,8 +393,11 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
       const pkp = Math.max(0, net - ptkpVal);
       const tax = calculatePphPasal17(pkp);
       return {
-        objectCode: '21-100-01',
-        objectName: 'Pegawai Tetap — Bukti Potong Tahunan BPA1',
+        objectCode: subTab === 'bpa2' ? '21-100-02' : '21-100-01',
+        objectName:
+          subTab === 'bpa2'
+            ? 'Pegawai Negeri Sipil / Anggota TNI / Polri / Pejabat Negara / Pensiunannya (BPA2)'
+            : 'Penghasilan yang Diterima atau Diperoleh Pegawai Tetap',
         positionAllowance: biayaJabatan,
         netAmount: net,
         ptkpAmount: ptkpVal,
@@ -339,7 +418,65 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
 
   const calc = computeSlipValues();
 
+  const openEditForm = (slip: WithholdingSlip) => {
+    setEditingSlip(slip);
+    setDetailSlip(null);
+    setRecipientNik(slip.recipientNikNpwp);
+    setRecipientName(slip.recipientName);
+    setMonth(slip.taxPeriodMonth);
+    setYear(slip.taxPeriodYear);
+    setPtkp(slip.ptkpStatus);
+    setGrossAmount(slip.grossAmount);
+    if (slip.slipType === 'BPMP') {
+      setBpmpObjectCode(
+        BPMP_OBJECT_OPTIONS.some((o) => o.code === slip.objectCode) ? slip.objectCode : '21-100-01'
+      );
+    } else if (slip.slipType === 'BP21') {
+      if (subTab === 'bp26') {
+        setBp26ObjectCode(
+          BP26_OBJECT_OPTIONS.some((o) => o.code === slip.objectCode) ? slip.objectCode : '27-100-01'
+        );
+      } else {
+        setBp21ObjectCode(
+          BP21_OBJECT_OPTIONS.some((o) => o.code === slip.objectCode) ? slip.objectCode : '21-100-07'
+        );
+      }
+    } else if (slip.slipType === 'BPPU_23') {
+      setPph23Code(
+        PPH23_OBJECT_CODES.some((o) => o.code === slip.objectCode) ? slip.objectCode : '24-104-29'
+      );
+    }
+    setCreateOpen(true);
+  };
+
   const saveSlipRecord = async (asSubmit: boolean) => {
+    if (editingSlip && onUpdateSlip) {
+      await onUpdateSlip(editingSlip.id, {
+        recipientNikNpwp: recipientNik,
+        recipientName,
+        taxPeriodMonth: currentSlipType === 'BPA1' ? 12 : month,
+        taxPeriodYear: year,
+        objectCode: calc.objectCode,
+        objectName: calc.objectName,
+        ptkpStatus: ptkp,
+        grossAmount,
+        positionAllowance: calc.positionAllowance,
+        netAmount: calc.netAmount,
+        ptkpAmount: calc.ptkpAmount,
+        pkpAmount: calc.pkpAmount,
+        ratePercent: calc.ratePercent,
+        taxWithheld: calc.taxWithheld,
+      });
+      setEditingSlip(null);
+      setCreateOpen(false);
+      setSubmitBanner(
+        `Perubahan / Pembetulan (Amend) Bukti Potong ${editingSlip.slipNumber} untuk ${recipientName} (${formatRp(
+          calc.taxWithheld
+        )}) berhasil disimpan.`
+      );
+      return;
+    }
+
     await onCreateSlip({
       issuerId: workspace.corporateTaxpayer.id,
       issuerNpwp: workspace.corporateTaxpayer.nikNpwp,
@@ -833,7 +970,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                   [
                     { key: 'UNISSUED', label: 'Belum Terbit', count: unissuedCount },
                     { key: 'ISSUED', label: 'Telah Terbit', count: issuedCount },
-                    { key: 'INVALID', label: 'Tidak Valid', count: 0 },
+                    { key: 'INVALID', label: 'Tidak Valid', count: invalidCount },
                   ] as const
                 ).map((item) => {
                   const isActive = statusView === item.key;
@@ -844,6 +981,9 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                       onClick={() => {
                         setStatusView(item.key);
                         setSelectedIds([]);
+                        setDetailSlip(null);
+                        setCreateOpen(false);
+                        setEditingSlip(null);
                         setPage(1);
                       }}
                       className={`w-full text-left px-4 py-2.5 text-[12px] transition cursor-pointer flex items-center justify-between ${
@@ -866,7 +1006,200 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
           </aside>
 
           {/* RIGHT MAIN WORKSPACE CARD */}
-          {createOpen ? (
+          {detailSlip ? (
+            /* =============================================================== */
+            /* DETAIL VIEW / AMEND SCREEN (Exact 100% Match to Image 1)        */
+            /* =============================================================== */
+            <div className="flex-1 min-w-0 w-full bg-white border border-[#E2E8F0] rounded-[8px] overflow-hidden shadow-xs">
+              <div className="px-5 pt-4 pb-2 flex items-center justify-between gap-3">
+                <h1 className="font-display font-bold text-[15px] text-[#1E293B] uppercase">
+                  {activeConfig.headingPrefix}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onPrintDocument({ type: 'BPA1', slip: detailSlip })}
+                    className="px-3 py-1.5 rounded-[4px] border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E2C5E] font-semibold text-xs cursor-pointer"
+                  >
+                    Cetak / Unduh PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDetailSlip(null)}
+                    className="px-3 py-1.5 rounded-[4px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs cursor-pointer"
+                  >
+                    Kembali
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4 text-[11.5px]">
+                {/* Section 1: Informasi Umum */}
+                <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setFormCollapsed((p) => ({ ...p, detailUmum: !p.detailUmum }))}
+                    className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
+                  >
+                    <span>Informasi Umum</span>
+                    {formCollapsed.detailUmum ? (
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {!formCollapsed.detailUmum && (
+                    <div className="p-4 space-y-2.5 bg-white">
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Masa Pajak*</span>
+                        <span className="col-span-7 text-slate-800">
+                          {MONTHS_ID[Math.max(0, detailSlip.taxPeriodMonth - 1)]} {detailSlip.taxPeriodYear}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Status*</span>
+                        <span className="col-span-7 text-slate-800">
+                          {detailSlip.status === 'CANCELLED' ? 'DIBATALKAN' : 'NORMAL'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Pegawai Asing*</span>
+                        <span className="col-span-7 text-slate-800">Tidak</span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Nomor Identitas WP*</span>
+                        <span className="col-span-7 font-mono-num text-slate-800">
+                          {detailSlip.recipientNikNpwp}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Nama*</span>
+                        <span className="col-span-7 text-slate-800 uppercase">
+                          {detailSlip.recipientName}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Status PTKP*</span>
+                        <span className="col-span-7 text-slate-800">{detailSlip.ptkpStatus}</span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Jabatan*</span>
+                        <span className="col-span-7 text-slate-800 uppercase">
+                          {recipientPosition || 'STAFF / PEGAWAI TETAP'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Fasilitas Perpajakan */}
+                <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setFormCollapsed((p) => ({ ...p, detailTax: !p.detailTax }))}
+                    className="w-full flex items-center justify-between bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#1E293B] px-4 py-2.5 font-semibold text-[12px] cursor-pointer"
+                  >
+                    <span>Fasilitas Perpajakan</span>
+                    {formCollapsed.detailTax ? (
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                  {!formCollapsed.detailTax && (
+                    <div className="p-4 space-y-2.5 bg-white">
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">
+                          Fasilitas Pajak yang Dimiliki oleh Penerima Penghasilan*
+                        </span>
+                        <span className="col-span-7 text-slate-800">Tanpa Fasilitas</span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Nama Objek Pajak*</span>
+                        <span className="col-span-7 text-slate-800">
+                          {detailSlip.objectCode === '21-100-01'
+                            ? 'Penghasilan yang Diterima atau Diperoleh Pegawai Tetap'
+                            : detailSlip.objectName}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Jenis Pajak*</span>
+                        <span className="col-span-7 text-slate-800">
+                          {detailSlip.slipType === 'BPPU_23' ? 'Pasal 23' : 'Pasal 21'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Kode Objek Pajak*</span>
+                        <span className="col-span-7 font-mono-num text-slate-800">
+                          {detailSlip.objectCode}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Penghasilan Bruto (Rp)*</span>
+                        <span className="col-span-2 text-right font-mono-num text-slate-800">
+                          {detailSlip.grossAmount.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">Tarif (%)*</span>
+                        <span className="col-span-2 text-right font-mono-num text-slate-800">
+                          {detailSlip.ratePercent.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">
+                          Pajak Penghasilan yang Dipotong (Rp)*
+                        </span>
+                        <span className="col-span-2 text-right font-mono-num text-slate-800">
+                          {detailSlip.taxWithheld.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">KAP-KJS*</span>
+                        <span className="col-span-7 font-mono-num text-slate-800">
+                          {detailSlip.slipType === 'BPPU_23' ? '411124-100' : '411121-100'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <span className="col-span-5 text-slate-700">
+                          NITKU/Nomor Identitas Sub Unit Organisasi*
+                        </span>
+                        <span className="col-span-7 font-mono-num text-slate-800">
+                          {detailSlip.issuerNpwp}000000 - {detailSlip.issuerName}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom-Left Amend Button (Exact Match to Image 1) */}
+              <div className="px-5 py-4 bg-white border-t border-slate-100 flex items-center gap-3">
+                {detailSlip.status !== 'CANCELLED' && (
+                  <button
+                    type="button"
+                    onClick={() => openEditForm(detailSlip)}
+                    className="px-6 py-2.5 rounded-[5px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-semibold text-xs cursor-pointer"
+                  >
+                    Amend
+                  </button>
+                )}
+                {detailSlip.status === 'ISSUED' && onCancelSlips && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIds([detailSlip.id]);
+                      setDetailSlip(null);
+                      setCancelSignOpen(true);
+                    }}
+                    className="px-5 py-2.5 rounded-[5px] bg-[#C85A5A] hover:bg-[#B24949] text-white font-semibold text-xs cursor-pointer"
+                  >
+                    × Batal
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : createOpen ? (
             /* =============================================================== */
             /* INLINE FULL-PAGE CORETAX e-BUPOT FORM (100% Match to PDF 2)     */
             /* =============================================================== */
@@ -1038,9 +1371,16 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         <>
                           <div className="grid grid-cols-12 items-center gap-2">
                             <label className="col-span-5 text-slate-700">Nama Objek Pajak*</label>
-                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
-                              <option value="21-100-01">Pegawai Tetap</option>
-                              <option value="21-100-02">Penerima Pensiun Berkala</option>
+                            <select
+                              value={bpmpObjectCode}
+                              onChange={(e) => setBpmpObjectCode(e.target.value)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            >
+                              {BPMP_OBJECT_OPTIONS.map((opt) => (
+                                <option key={opt.code} value={opt.code}>
+                                  {opt.name}
+                                </option>
+                              ))}
                             </select>
                           </div>
                           <div className="grid grid-cols-12 items-center gap-2">
@@ -1057,7 +1397,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             <input
                               type="text"
                               readOnly
-                              value={subTab === 'bpa2' ? '21-100-02' : '21-100-01'}
+                              value={bpmpObjectCode}
                               className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5 font-mono-num"
                             />
                           </div>
@@ -1397,9 +1737,41 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                 </option>
                               ))}
                             </select>
+                          ) : subTab === 'bpmp' ? (
+                            <select
+                              value={bpmpObjectCode}
+                              onChange={(e) => setBpmpObjectCode(e.target.value)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            >
+                              {BPMP_OBJECT_OPTIONS.map((opt) => (
+                                <option key={opt.code} value={opt.code}>
+                                  {opt.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : subTab === 'bp26' ? (
+                            <select
+                              value={bp26ObjectCode}
+                              onChange={(e) => setBp26ObjectCode(e.target.value)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            >
+                              {BP26_OBJECT_OPTIONS.map((opt) => (
+                                <option key={opt.code} value={opt.code}>
+                                  {opt.name}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
-                            <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
-                              <option value={calc.objectCode}>{calc.objectName}</option>
+                            <select
+                              value={bp21ObjectCode}
+                              onChange={(e) => setBp21ObjectCode(e.target.value)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            >
+                              {BP21_OBJECT_OPTIONS.map((opt) => (
+                                <option key={opt.code} value={opt.code}>
+                                  {opt.name}
+                                </option>
+                              ))}
                             </select>
                           )}
                         </div>
@@ -1643,34 +2015,41 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(true)}
-                  className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{activeConfig.createBtnLabel}</span>
-                </button>
+                {statusView === 'UNISSUED' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSlip(null);
+                        setCreateOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{activeConfig.createBtnLabel}</span>
+                    </button>
 
-                <button
-                  type="button"
-                  disabled={statusView !== 'UNISSUED' || selectedIds.length === 0}
-                  onClick={handleBulkDelete}
-                  className="inline-flex items-center gap-1.5 bg-[#94A3B8] enabled:bg-rose-600 enabled:hover:bg-rose-700 disabled:opacity-55 text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus</span>
-                </button>
+                    <button
+                      type="button"
+                      disabled={selectedIds.length === 0}
+                      onClick={handleBulkDelete}
+                      className="inline-flex items-center gap-1.5 bg-[#94A3B8] enabled:bg-rose-600 enabled:hover:bg-rose-700 disabled:opacity-55 text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
 
-                <button
-                  type="button"
-                  disabled={statusView !== 'UNISSUED' || selectedIds.length === 0}
-                  onClick={() => setSignOpen(true)}
-                  className="inline-flex items-center gap-1.5 bg-[#94A3B8] enabled:bg-emerald-700 enabled:hover:bg-emerald-800 disabled:opacity-55 text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Terbitkan{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
-                </button>
+                    <button
+                      type="button"
+                      disabled={selectedIds.length === 0}
+                      onClick={() => setSignOpen(true)}
+                      className="inline-flex items-center gap-1.5 bg-[#94A3B8] enabled:bg-emerald-700 enabled:hover:bg-emerald-800 disabled:opacity-55 text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Terbitkan{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
+                    </button>
+                  </>
+                )}
 
                 {/* Monitoring */}
                 <div className="relative">
@@ -1700,50 +2079,68 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         <span className="text-slate-600">Telah Terbit</span>
                         <strong className="font-mono-num text-emerald-700">{issuedCount}</strong>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Tidak Valid / Batal</span>
+                        <strong className="font-mono-num text-rose-700">{invalidCount}</strong>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Impor Data Dropdown */}
-                <div className="relative">
+                {statusView === 'ISSUED' && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setImportMenuOpen((p) => !p);
-                      setMonitoringOpen(false);
-                      setBulkMenuOpen(false);
-                    }}
-                    className="inline-flex items-center gap-1 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                    disabled={selectedIds.length === 0}
+                    onClick={() => setCancelSignOpen(true)}
+                    className="inline-flex items-center gap-1.5 bg-[#C85A5A] hover:bg-[#B24949] disabled:opacity-50 text-white font-semibold text-xs px-3.5 py-2 rounded-[6px] transition cursor-pointer"
                   >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Impor data</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
+                    <span>Batal{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
                   </button>
-                  {importMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1 z-30 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImportMenuOpen(false);
-                          onChangeSubTab('xml');
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
-                      >
-                        Impor Berkas XML Massal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImportMenuOpen(false);
-                          handleDownloadXmlTemplate();
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-600 cursor-pointer"
-                      >
-                        Unduh Template XML
-                      </button>
-                    </div>
-                  )}
-                </div>
+                )}
+
+                {/* Impor Data Dropdown (only on UNISSUED) */}
+                {statusView === 'UNISSUED' && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImportMenuOpen((p) => !p);
+                        setMonitoringOpen(false);
+                        setBulkMenuOpen(false);
+                      }}
+                      className="inline-flex items-center gap-1 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Impor data</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {importMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1 z-30 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImportMenuOpen(false);
+                            onChangeSubTab('xml');
+                          }}
+                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
+                        >
+                          Impor Berkas XML Massal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImportMenuOpen(false);
+                            handleDownloadXmlTemplate();
+                          }}
+                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-600 cursor-pointer"
+                        >
+                          Unduh Template XML
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Bulk Process Dropdown */}
                 <div className="relative">
@@ -1787,6 +2184,23 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-emerald-700 cursor-pointer"
                         >
                           Terbitkan Semua Draf (TTE)
+                        </button>
+                      )}
+                      {statusView === 'ISSUED' && paginatedSlips.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const ids =
+                              selectedIds.length > 0
+                                ? selectedIds
+                                : paginatedSlips.map((s) => s.id);
+                            setSelectedIds(ids);
+                            setBulkMenuOpen(false);
+                            setCancelSignOpen(true);
+                          }}
+                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-rose-700 cursor-pointer"
+                        >
+                          Batalkan Bukti Potong Terpilih
                         </button>
                       )}
                     </div>
@@ -1853,7 +2267,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                     <thead>
                       <tr className="bg-[#FCD34D] text-[#1E293B] font-bold border-b border-[#EAB308]/40">
                         <th className="px-2.5 py-2.5 w-9 text-center border-r border-white/50">
-                          {statusView === 'UNISSUED' && (
+                          {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
                             <input
                               type="checkbox"
                               checked={
@@ -1977,7 +2391,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         paginatedSlips.map((slip) => (
                           <tr key={slip.id} className="hover:bg-[#F8FAFC]">
                             <td className="px-2.5 py-2.5 text-center">
-                              {statusView === 'UNISSUED' && (
+                              {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
                                 <input
                                   type="checkbox"
                                   checked={selectedIds.includes(slip.id)}
@@ -1989,12 +2403,30 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               <div className="flex items-center gap-1">
                                 <button
                                   type="button"
-                                  onClick={() => onPrintDocument({ type: 'BPA1', slip })}
+                                  onClick={() => setDetailSlip(slip)}
                                   className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
-                                  title="Pratinjau / Unduh Bukti Potong"
+                                  title="Lihat Detail Bukti Potong"
                                 >
                                   <Eye className="w-3.5 h-3.5" />
                                 </button>
+                                {slip.status !== 'CANCELLED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      slip.status === 'ISSUED'
+                                        ? setDetailSlip(slip)
+                                        : openEditForm(slip)
+                                    }
+                                    className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
+                                    title={
+                                      slip.status === 'ISSUED'
+                                        ? 'Edit / Pembetulan (Amend)'
+                                        : 'Edit Konsep Bukti Potong'
+                                    }
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 {slip.status === 'UNISSUED' && (
                                   <button
                                     type="button"
@@ -2018,10 +2450,16 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                 className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                                   slip.status === 'ISSUED'
                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : slip.status === 'CANCELLED'
+                                      ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
                                 }`}
                               >
-                                {slip.status === 'ISSUED' ? 'TELAH TERBIT' : 'BELUM TERBIT'}
+                                {slip.status === 'ISSUED'
+                                  ? 'Normal'
+                                  : slip.status === 'CANCELLED'
+                                    ? 'Dibatalkan'
+                                    : 'Belum Terbit'}
                               </span>
                             </td>
                             <td className="px-3 py-2.5">
@@ -2083,6 +2521,25 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
           await onIssueSlips(selectedIds);
           setSelectedIds([]);
           setStatusView('ISSUED');
+        }}
+      />
+
+      {/* Batch Cancel Electronic Signing Modal */}
+      <SignModal
+        open={cancelSignOpen}
+        title="Batalkan Bukti Potong e-Bupot"
+        description={`Anda akan membatalkan ${selectedIds.length} Bukti Potong yang telah terbit. Dokumen yang dibatalkan akan berpindah ke daftar Tidak Valid.`}
+        signerName={activeTaxpayer.name}
+        signerNik={activeTaxpayer.nikNpwp}
+        confirmLabel="Konfirmasi Pembatalan"
+        onClose={() => setCancelSignOpen(false)}
+        onConfirm={async () => {
+          if (onCancelSlips) {
+            await onCancelSlips(selectedIds);
+          }
+          setSelectedIds([]);
+          setCancelSignOpen(false);
+          setSubmitBanner('Bukti Potong terpilih berhasil dibatalkan.');
         }}
       />
     </div>

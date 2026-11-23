@@ -55,6 +55,10 @@ export const issueSlips: typeof mysqlRepo.issueSlips = (...args) =>
   activeRepo().issueSlips(...args);
 export const deleteSlip: typeof mysqlRepo.deleteSlip = (...args) =>
   activeRepo().deleteSlip(...args);
+export const updateSlip: typeof mysqlRepo.updateSlip = (...args) =>
+  activeRepo().updateSlip(...args);
+export const cancelSlips: typeof mysqlRepo.cancelSlips = (...args) =>
+  activeRepo().cancelSlips(...args);
 export const insertAsset: typeof mysqlRepo.insertAsset = (...args) =>
   activeRepo().insertAsset(...args);
 export const deleteAsset: typeof mysqlRepo.deleteAsset = (...args) =>

@@ -208,6 +208,37 @@ export async function deleteSlip(nikKey: string, id: string): Promise<void> {
   saveStore();
 }
 
+export async function updateSlip(
+  nikKey: string,
+  id: string,
+  updates: Partial<WithholdingSlip>
+): Promise<WithholdingSlip | null> {
+  const ws = getOrSeedSync(nikKey);
+  const idx = ws.slips.findIndex((s) => s.id === id);
+  if (idx === -1) return null;
+  ws.slips[idx] = {
+    ...ws.slips[idx],
+    ...updates,
+    id: ws.slips[idx].id,
+  };
+  saveStore();
+  return ws.slips[idx];
+}
+
+export async function cancelSlips(nikKey: string, ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const ws = getOrSeedSync(nikKey);
+  let count = 0;
+  for (const slip of ws.slips) {
+    if (ids.includes(slip.id) && slip.status === 'ISSUED') {
+      slip.status = 'CANCELLED';
+      count++;
+    }
+  }
+  if (count > 0) saveStore();
+  return count;
+}
+
 export async function insertAsset(nikKey: string, item: OpAssetLiabilityFamily): Promise<void> {
   const ws = getOrSeedSync(nikKey);
   ws.assets.push(item);

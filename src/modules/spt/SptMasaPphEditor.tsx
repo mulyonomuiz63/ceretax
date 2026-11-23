@@ -48,7 +48,7 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
   const monthLabel = MONTHS_ID[Math.max(0, taxReturn.taxPeriodMonth - 1)];
   const periodCode = `${String(taxReturn.taxPeriodMonth).padStart(2, '0')}-${taxReturn.taxYear}`;
 
-  const matchingSlips = workspace.slips.filter(
+  const exactPeriodSlips = workspace.slips.filter(
     (s) =>
       s.status === 'ISSUED' &&
       s.taxPeriodMonth === taxReturn.taxPeriodMonth &&
@@ -57,6 +57,16 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
         ? s.slipType === 'BPMP' || s.slipType === 'BP21' || s.slipType === 'BPA1'
         : s.slipType === 'BPPU_23')
   );
+  const matchingSlips =
+    exactPeriodSlips.length > 0
+      ? exactPeriodSlips
+      : workspace.slips.filter(
+          (s) =>
+            s.status === 'ISSUED' &&
+            (isPph21
+              ? s.slipType === 'BPMP' || s.slipType === 'BP21' || s.slipType === 'BPA1'
+              : s.slipType === 'BPPU_23')
+        );
 
   const bpmpSlips = matchingSlips.filter((s) => s.slipType === 'BPMP');
   const bpa1Slips = matchingSlips.filter((s) => s.slipType === 'BPA1');

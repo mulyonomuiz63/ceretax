@@ -363,6 +363,18 @@ function CoretaxSimulatorApp() {
                 method: 'DELETE',
               });
             }}
+            onUpdateSlip={async (id, updates) => {
+              await apiCall<{ slip: WithholdingSlip }>(
+                `/api/workspace/${workspace.nikKey}/slips/${id}`,
+                { method: 'PUT', body: JSON.stringify(updates) }
+              );
+            }}
+            onCancelSlips={async (ids) => {
+              await apiCall<{ workspace: WorkspaceState }>(
+                `/api/workspace/${workspace.nikKey}/slips/cancel`,
+                { method: 'POST', body: JSON.stringify({ ids }) }
+              );
+            }}
             onImportXml={async (xml) => {
               const res = await apiCall<{ importedCount: number }>(
                 `/api/workspace/${workspace.nikKey}/slips/import-xml`,

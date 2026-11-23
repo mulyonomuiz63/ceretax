@@ -392,6 +392,43 @@ async function startServer() {
     }
   });
 
+  app.put('/api/workspace/:nik/slips/:id', async (req: Request, res: Response) => {
+    try {
+      const nik = normalizeNik(req.params.nik);
+      const updated = await mysqlRepo.updateSlip(nik, req.params.id, req.body || {});
+      if (!updated) {
+        return res.status(404).json({ error: 'Bukti Potong tidak ditemukan.' });
+      }
+      const ws = await broadcastWorkspace(nik);
+      return res.json({ slip: updated, workspace: ws });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memperbarui Bukti Potong di MySQL.');
+    }
+  });
+
+  app.post('/api/workspace/:nik/slips/cancel', async (req: Request, res: Response) => {
+    try {
+      const nik = normalizeNik(req.params.nik);
+      const ws = await mysqlRepo.getOrCreateWorkspace(nik);
+      const ids: string[] = Array.isArray(req.body?.ids) ? req.body.ids : [];
+      const count = await mysqlRepo.cancelSlips(nik, ids);
+      if (count > 0) {
+        const { workspace } = await pushNotification(
+          nik,
+          ws.corporateTaxpayer.id,
+          `${count} Bukti Potong e-Bupot Dibatalkan`,
+          `${count} dokumen e-Bupot telah dibatalkan dan berstatus CANCELLED.`,
+          'BUPOT'
+        );
+        return res.json({ cancelledCount: count, workspace });
+      }
+      const latest = await mysqlRepo.getOrCreateWorkspace(nik);
+      return res.json({ cancelledCount: count, workspace: latest });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal membatalkan Bukti Potong di MySQL.');
+    }
+  });
+
   app.post('/api/workspace/:nik/slips/import-xml', async (req: Request, res: Response) => {
     try {
       const nik = normalizeNik(req.params.nik);

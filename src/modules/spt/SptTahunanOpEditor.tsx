@@ -77,9 +77,13 @@ export const SptTahunanOpEditor: React.FC<SptTahunanOpEditorProps> = ({
   const isReadOnly = taxReturn.status !== 'DRAFT';
   const toggleSection = (key: string) => setCollapsed((p) => ({ ...p, [key]: !p[key] }));
 
-  const bpa1Slips = workspace.slips.filter(
+  const exactYearBpa1Slips = workspace.slips.filter(
     (s) => s.slipType === 'BPA1' && s.status === 'ISSUED' && s.taxPeriodYear === taxReturn.taxYear
   );
+  const bpa1Slips =
+    exactYearBpa1Slips.length > 0
+      ? exactYearBpa1Slips
+      : workspace.slips.filter((s) => s.slipType === 'BPA1' && s.status === 'ISSUED');
 
   // Live OP calculation (UU HPP)
   const netoPekerjaan = Math.max(0, payload.penghasilanBrutoPekerjaan - payload.biayaJabatanPensiun);

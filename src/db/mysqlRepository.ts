@@ -708,6 +708,69 @@ export async function deleteSlip(nikKey: string, id: string): Promise<void> {
   await pool.execute(`DELETE FROM withholding_slips WHERE nik_key = ? AND id = ?`, [nikKey, id]);
 }
 
+export async function updateSlip(
+  nikKey: string,
+  id: string,
+  updates: Partial<WithholdingSlip>
+): Promise<WithholdingSlip | null> {
+  const pool = await ensureMysqlSchema();
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM withholding_slips WHERE nik_key = ? AND id = ? LIMIT 1`,
+    [nikKey, id]
+  );
+  if (rows.length === 0) return null;
+  const current = mapSlipRow(rows[0]);
+  const merged: WithholdingSlip = {
+    ...current,
+    ...updates,
+    id: current.id,
+  };
+  await pool.execute(
+    `UPDATE withholding_slips
+     SET recipient_nik_npwp = ?, recipient_name = ?, recipient_address = ?,
+         tax_period_month = ?, tax_period_year = ?, object_code = ?, object_name = ?,
+         ptkp_status = ?, gross_amount = ?, position_allowance = ?, pension_contribution = ?,
+         net_amount = ?, ptkp_amount = ?, pkp_amount = ?, rate_percent = ?, tax_withheld = ?,
+         status = ?
+     WHERE nik_key = ? AND id = ?`,
+    [
+      merged.recipientNikNpwp,
+      merged.recipientName,
+      merged.recipientAddress ?? null,
+      merged.taxPeriodMonth,
+      merged.taxPeriodYear,
+      merged.objectCode,
+      merged.objectName,
+      merged.ptkpStatus,
+      Math.round(merged.grossAmount || 0),
+      merged.positionAllowance !== undefined ? Math.round(merged.positionAllowance) : null,
+      merged.pensionContribution !== undefined ? Math.round(merged.pensionContribution) : null,
+      Math.round(merged.netAmount || 0),
+      merged.ptkpAmount !== undefined ? Math.round(merged.ptkpAmount) : null,
+      merged.pkpAmount !== undefined ? Math.round(merged.pkpAmount) : null,
+      Number(merged.ratePercent || 0),
+      Math.round(merged.taxWithheld || 0),
+      merged.status,
+      nikKey,
+      id,
+    ]
+  );
+  return merged;
+}
+
+export async function cancelSlips(nikKey: string, ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const pool = await ensureMysqlSchema();
+  const placeholders = ids.map(() => '?').join(',');
+  const [res]: any = await pool.execute(
+    `UPDATE withholding_slips
+     SET status = 'CANCELLED'
+     WHERE nik_key = ? AND status = 'ISSUED' AND id IN (${placeholders})`,
+    [nikKey, ...ids]
+  );
+  return Number(res?.affectedRows || 0);
+}
+
 export async function insertAsset(nikKey: string, item: OpAssetLiabilityFamily): Promise<void> {
   await withMysqlTransaction(async (conn) => {
     await insertAssetWithConn(conn, nikKey, item);

@@ -54,13 +54,17 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
   const periodCode = `${String(taxReturn.taxPeriodMonth).padStart(2, '0')}${taxReturn.taxYear}`;
   const periodLabel = `${MONTHS_ID[Math.max(0, taxReturn.taxPeriodMonth - 1)]} ${taxReturn.taxYear}`;
 
-  // Period invoices for display & posting
-  const periodInvoices = workspace.invoices.filter(
+  // Period invoices for display & posting (with fallback to all active invoices if period was selected differently)
+  const exactPeriodInvoices = workspace.invoices.filter(
     (i) =>
       i.taxPeriodMonth === taxReturn.taxPeriodMonth &&
       i.taxPeriodYear === taxReturn.taxYear &&
       i.status !== 'CANCELLED'
   );
+  const periodInvoices =
+    exactPeriodInvoices.length > 0
+      ? exactPeriodInvoices
+      : workspace.invoices.filter((i) => i.status !== 'CANCELLED');
   const exportInvoices = periodInvoices.filter((i) => i.direction === 'EXPORT' && i.status === 'APPROVED');
   const outputInvoices = periodInvoices.filter(
     (i) => i.direction === 'OUTPUT' && (i.status === 'APPROVED' || i.status === 'AMENDED')
@@ -609,6 +613,15 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                       </tr>
                       <tr>
                         <td className="px-4 py-1.5 text-slate-700">
+                          D. Perolehan BKP/JKP dari dalam negeri sebagai Pemungut PPN yang Pajak Masukannya dapat dikreditkan (dengan Faktur Pajak Kode 02 dan 03)
+                        </td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                        <td className="px-2 py-1">{renderAmountCell(0)}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-1.5 text-slate-700">
                           E. Kompensasi kelebihan Pajak Masukan Masa Pajak sebelumnya
                         </td>
                         <td className="px-2 py-1" />
@@ -631,7 +644,7 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                       </tr>
                       <tr>
                         <td className="px-4 py-1.5 text-slate-700">
-                          F. Pengurangan Pajak Masukan karena Nota Retur (Lampiran C)
+                          F. Hasil penghitungan kembali Pajak Masukan yang telah dikreditkan (Nota Retur: {formatRp(payload.returMasukanPpn)})
                         </td>
                         <td className="px-2 py-1" />
                         <td className="px-2 py-1" />
@@ -769,7 +782,7 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                               checked={payload.pilihanLebihBayar === 'KOMPENSASI'}
                               onChange={() => setPayload({ ...payload, pilihanLebihBayar: 'KOMPENSASI' })}
                             />
-                            <span>1. Dikompensasikan ke Masa Pajak berikutnya</span>
+                            <span>1. dikompensasikan</span>
                           </label>
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -779,8 +792,28 @@ export const SptMasaPpnEditor: React.FC<SptMasaPpnEditorProps> = ({
                               checked={payload.pilihanLebihBayar === 'RESTITUSI'}
                               onChange={() => setPayload({ ...payload, pilihanLebihBayar: 'RESTITUSI' })}
                             />
-                            <span>2. Dikembalikan melalui pengembalian pendahuluan / Restitusi</span>
+                            <span>2. dikembalikan melalui pengembalian pendahuluan</span>
                           </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="lebihBayarPpn"
+                              disabled={isReadOnly || kurangLebihBayar >= 0}
+                              readOnly
+                              checked={false}
+                            />
+                            <span>3. dikembalikan melalui pemeriksaan</span>
+                          </label>
+                          <div className="pt-2 space-y-1.5 border-t border-[#E2E8F0]">
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <span className="col-span-5 text-slate-600 text-[10.5px]">Pilih Rekening Bank</span>
+                              <input readOnly value="-" className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2 py-1 text-[10.5px]" />
+                            </div>
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <span className="col-span-5 text-slate-600 text-[10.5px]">Nomor Rekening</span>
+                              <input readOnly value="-" className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2 py-1 text-[10.5px]" />
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     </tbody>

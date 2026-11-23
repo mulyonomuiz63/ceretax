@@ -439,12 +439,14 @@ export const SptModule: React.FC<SptModuleProps> = ({
     if (accountMode === 'CORPORATE') {
       setSelectedTileId('ppn');
       setSelectedType('SPT_MASA_PPN');
-      setTaxYear(2025);
-      setTaxMonth(11);
+      const latestInv = workspace.invoices.find((i) => i.status !== 'CANCELLED');
+      setTaxYear(latestInv?.taxPeriodYear || 2025);
+      setTaxMonth(latestInv?.taxPeriodMonth || 1);
     } else {
       setSelectedTileId('pph_op');
       setSelectedType('SPT_TAHUNAN_OP');
-      setTaxYear(2025);
+      const latestBpa1 = workspace.slips.find((s) => s.slipType === 'BPA1' && s.status === 'ISSUED');
+      setTaxYear(latestBpa1?.taxPeriodYear || 2025);
       setTaxMonth(12);
     }
     setJenisPeriodeAnnual('TAHUNAN');
@@ -753,6 +755,36 @@ export const SptModule: React.FC<SptModuleProps> = ({
                             onClick={() => {
                               setSelectedTileId(tile.id);
                               setSelectedType(tile.returnType);
+                              if (tile.returnType === 'SPT_MASA_PPN') {
+                                const inv = workspace.invoices.find((i) => i.status !== 'CANCELLED');
+                                if (inv) {
+                                  setTaxYear(inv.taxPeriodYear);
+                                  setTaxMonth(inv.taxPeriodMonth);
+                                }
+                              } else if (tile.returnType === 'SPT_MASA_PPH21') {
+                                const sl = workspace.slips.find(
+                                  (s) =>
+                                    (s.slipType === 'BPMP' || s.slipType === 'BP21' || s.slipType === 'BPA1') &&
+                                    s.status !== 'CANCELLED'
+                                );
+                                if (sl) {
+                                  setTaxYear(sl.taxPeriodYear);
+                                  setTaxMonth(sl.taxPeriodMonth);
+                                }
+                              } else if (tile.returnType === 'SPT_MASA_UNIFIKASI') {
+                                const sl = workspace.slips.find(
+                                  (s) => s.slipType === 'BPPU_23' && s.status !== 'CANCELLED'
+                                );
+                                if (sl) {
+                                  setTaxYear(sl.taxPeriodYear);
+                                  setTaxMonth(sl.taxPeriodMonth);
+                                }
+                              } else if (tile.returnType === 'SPT_TAHUNAN_OP') {
+                                const bpa1 = workspace.slips.find(
+                                  (s) => s.slipType === 'BPA1' && s.status !== 'CANCELLED'
+                                );
+                                if (bpa1) setTaxYear(bpa1.taxPeriodYear);
+                              }
                             }}
                             className={`text-left px-3.5 py-3 rounded-[4px] border text-[11.5px] leading-snug transition cursor-pointer min-h-[58px] flex items-start ${
                               checked
