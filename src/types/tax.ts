@@ -99,6 +99,7 @@ export interface WithholdingSlip {
   pkpAmount?: number;
   ratePercent: number;
   taxWithheld: number;
+  decemberTaxWithheld?: number;
   status: SlipStatus;
   signedAt?: string;
   createdAt: string;

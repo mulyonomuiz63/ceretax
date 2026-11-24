@@ -213,7 +213,7 @@ const EXTRA_TOP_MENUS: Array<{
 ];
 
 const EFAKTUR_BREADCRUMB_MAP: Record<string, string> = {
-  dashboard: 'Dasbor e-Faktur',
+  dashboard: 'Dashboard e-Faktur',
   output: 'Pajak Keluaran',
   input: 'Pajak Masukan',
   retur_keluaran: 'Retur Pajak Keluaran',

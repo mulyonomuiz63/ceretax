@@ -238,6 +238,8 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const [monitoringOpen, setMonitoringOpen] = useState(false);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const isBpa = subTab === 'bpa1' || subTab === 'bpa2';
+  const isBpa2 = subTab === 'bpa2';
 
   // Reset detail views / modals when navigating or clicking menu
   useEffect(() => {
@@ -2360,14 +2362,33 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             />
                           )}
                         </th>
-                        <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky left-9 bg-[#FCD34D] z-10 w-16">
-                          Aksi
-                        </th>
-                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                          <span className="inline-flex items-center gap-1">
-                            Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
-                          </span>
-                        </th>
+                        {!isBpa && (
+                          <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky left-9 bg-[#FCD34D] z-10 w-16">
+                            Aksi
+                          </th>
+                        )}
+                        {isBpa ? (
+                          <>
+                            <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                              <span className="inline-flex items-center gap-1">
+                                {isBpa2 ? 'Masa Pajak Awal' : 'Masa Awal Periode Penghasilan'}{' '}
+                                <ArrowUpDown className="w-3 h-3 opacity-60" />
+                              </span>
+                            </th>
+                            <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                              <span className="inline-flex items-center gap-1">
+                                {isBpa2 ? 'Masa Pajak Akhir' : 'Masa Akhir Periode Penghasilan'}{' '}
+                                <ArrowUpDown className="w-3 h-3 opacity-60" />
+                              </span>
+                            </th>
+                          </>
+                        ) : (
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            <span className="inline-flex items-center gap-1">
+                              Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            </span>
+                          </th>
+                        )}
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                           <span className="inline-flex items-center gap-1">
                             Nomor Pemotongan <ArrowUpDown className="w-3 h-3 opacity-60" />
@@ -2395,7 +2416,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         </th>
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                           <span className="inline-flex items-center gap-1">
-                            Kode Objek Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            Kode Objek Pajak {!isBpa && <ArrowUpDown className="w-3 h-3 opacity-60" />}
                           </span>
                         </th>
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
@@ -2405,7 +2426,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         </th>
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                           <span className="inline-flex items-center gap-1">
-                            Nama <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            Nama {!isBpa && <ArrowUpDown className="w-3 h-3 opacity-60" />}
                           </span>
                         </th>
                         <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
@@ -2414,9 +2435,16 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
                           Pajak Penghasilan (Rp)
                         </th>
-                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                          Fasilitas Pajak
-                        </th>
+                        {isBpa && (
+                          <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                            Income Tax (Rp) For December/Last Period
+                          </th>
+                        )}
+                        {subTab !== 'bpa2' && (
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            Fasilitas Pajak
+                          </th>
+                        )}
                         {statusView === 'ISSUED' && (
                           <>
                             <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
@@ -2459,27 +2487,64 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                       {showFilters && (
                         <tr className="bg-white border-b border-[#E2E8F0]">
                           <th className="px-2 py-1.5 border-r border-slate-100 sticky left-0 bg-white z-10" />
-                          <th className="px-2 py-1.5 border-r border-slate-100 sticky left-9 bg-white z-10" />
-                          <th className="px-2 py-1.5 border-r border-slate-100">
-                            <div className="flex items-center gap-1">
-                              <select
-                                value={periodMonthFilter}
-                                onChange={(e) => {
-                                  setPeriodMonthFilter(e.target.value);
-                                  setPage(1);
-                                }}
-                                className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal"
-                              >
-                                <option value="ALL">Semua Masa</option>
-                                {MONTHS_ID.map((m, idx) => (
-                                  <option key={m} value={String(idx + 1)}>
-                                    {m}
-                                  </option>
-                                ))}
-                              </select>
-                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                            </div>
-                          </th>
+                          {!isBpa && (
+                            <th className="px-2 py-1.5 border-r border-slate-100 sticky left-9 bg-white z-10" />
+                          )}
+                          {isBpa ? (
+                            <>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <select className="w-full min-w-[155px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih {isBpa2 ? 'Masa Pajak Awal' : 'Masa Awal Periode Penghasilan'}</option>
+                                  {MONTHS_ID.map((m) => (
+                                    <option key={m} value={m}>
+                                      {m}
+                                    </option>
+                                  ))}
+                                </select>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <div className="flex items-center gap-1">
+                                  <select
+                                    value={periodMonthFilter}
+                                    onChange={(e) => {
+                                      setPeriodMonthFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[125px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal"
+                                  >
+                                    <option value="ALL">November 2026</option>
+                                    {MONTHS_ID.map((m, idx) => (
+                                      <option key={m} value={String(idx + 1)}>
+                                        {m} 2026
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                </div>
+                              </th>
+                            </>
+                          ) : (
+                            <th className="px-2 py-1.5 border-r border-slate-100">
+                              <div className="flex items-center gap-1">
+                                <select
+                                  value={periodMonthFilter}
+                                  onChange={(e) => {
+                                    setPeriodMonthFilter(e.target.value);
+                                    setPage(1);
+                                  }}
+                                  className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal"
+                                >
+                                  <option value="ALL">Semua Masa</option>
+                                  {MONTHS_ID.map((m, idx) => (
+                                    <option key={m} value={String(idx + 1)}>
+                                      {m}
+                                    </option>
+                                  ))}
+                                </select>
+                                <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                              </div>
+                            </th>
+                          )}
                           <th className="px-2 py-1.5 border-r border-slate-100">
                             <div className="flex items-center gap-1">
                               <input
@@ -2597,17 +2662,98 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                             </div>
                           </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
-                            <div className="flex items-center gap-1">
-                              <select className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                <option>Pilih Fasilitas Pajak</option>
-                                <option>Tanpa Fasilitas</option>
-                              </select>
-                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                            </div>
-                          </th>
+                          {isBpa && (
+                            <th className="px-2 py-1.5 border-r border-slate-100">
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  placeholder=""
+                                  className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                />
+                                <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                              </div>
+                            </th>
+                          )}
+                          {subTab !== 'bpa2' && (
+                            <th className="px-2 py-1.5 border-r border-slate-100">
+                              <div className="flex items-center gap-1">
+                                <select className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih Fasilitas Pajak</option>
+                                  <option>Tanpa Fasilitas</option>
+                                </select>
+                                <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                              </div>
+                            </th>
+                          )}
                           {statusView === 'ISSUED' && (
-                            <th colSpan={subTab === 'bpmp' ? 3 : subTab === 'bppu' ? 9 : 8} className="px-2 py-1.5" />
+                            isBpa ? (
+                              <>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                    <option>Pilih Dilaporkan Dalam SPT</option>
+                                    <option>True</option>
+                                    <option>False</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                    <option>Pilih Dalam Proses Keberatan</option>
+                                    <option>True</option>
+                                    <option>False</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                    <option>Pilih Selesai Proses Keberatan</option>
+                                    <option>True</option>
+                                    <option>False</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <select className="w-full min-w-[150px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                    <option>Pilih Keberatan tidak memenuhi persyaratan (Tolak Formal)</option>
+                                    <option>True</option>
+                                    <option>False</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <select className="w-full min-w-[160px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                    <option>Pilih Dalam Proses Reviu Pencabutan Permohonan Keberatan</option>
+                                    <option>True</option>
+                                    <option>False</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <select className="w-full min-w-[140px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                    <option>Pilih Pencabutan Keberatan Diterima</option>
+                                    <option>True</option>
+                                    <option>False</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-1.5 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                              </>
+                            ) : (
+                              <th colSpan={subTab === 'bpmp' ? 3 : subTab === 'bppu' ? 9 : 8} className="px-2 py-1.5" />
+                            )
                           )}
                         </tr>
                       )}
@@ -2644,7 +2790,12 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           const fasilitasVal = slip.taxFacility || 'Tanpa Fasilitas';
 
                           return (
-                            <tr key={slip.id} className="hover:bg-[#F8FAFC]">
+                            <tr
+                              key={slip.id}
+                              onDoubleClick={() => setDetailSlip(slip)}
+                              className="hover:bg-[#F8FAFC] cursor-pointer"
+                              title="Klik ganda untuk melihat detail Bukti Potong"
+                            >
                               <td className="px-2.5 py-2.5 text-center sticky left-0 bg-white">
                                 {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
                                   <input
@@ -2654,37 +2805,48 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   />
                                 )}
                               </td>
-                              <td className="px-3 py-2.5 whitespace-nowrap sticky left-9 bg-white">
-                                <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setDetailSlip(slip)}
-                                    className="text-slate-500 hover:text-[#1E2C5E] cursor-pointer transition p-0.5"
-                                    title="Lihat Detail Bukti Potong"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      slip.status === 'UNISSUED'
-                                        ? openEditForm(slip)
-                                        : setDetailSlip(slip)
-                                    }
-                                    className="text-slate-500 hover:text-sky-600 cursor-pointer transition p-0.5"
-                                    title={
-                                      slip.status === 'UNISSUED'
-                                        ? 'Edit Konsep Bukti Potong'
-                                        : 'Edit / Pembetulan'
-                                    }
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2.5 whitespace-nowrap">
-                                {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
-                              </td>
+                              {!isBpa && (
+                                <td className="px-3 py-2.5 whitespace-nowrap sticky left-9 bg-white">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setDetailSlip(slip)}
+                                      className="text-slate-500 hover:text-[#1E2C5E] cursor-pointer transition p-0.5"
+                                      title="Lihat Detail Bukti Potong"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        slip.status === 'UNISSUED'
+                                          ? openEditForm(slip)
+                                          : setDetailSlip(slip)
+                                      }
+                                      className="text-slate-500 hover:text-sky-600 cursor-pointer transition p-0.5"
+                                      title={
+                                        slip.status === 'UNISSUED'
+                                          ? 'Edit Konsep Bukti Potong'
+                                          : 'Edit / Pembetulan'
+                                      }
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              )}
+                              {isBpa ? (
+                                <>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">Januari</td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
+                                  </td>
+                                </>
+                              ) : (
+                                <td className="px-3 py-2.5 whitespace-nowrap">
+                                  {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
+                                </td>
+                              )}
                               <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
                                 {slip.status === 'UNISSUED' ? '' : slip.slipNumber}
                               </td>
@@ -2727,9 +2889,16 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
                                 {formatRp(slip.taxWithheld)}
                               </td>
-                              <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
-                                {fasilitasVal}
-                              </td>
+                              {isBpa && (
+                                <td className="px-3 py-2.5 text-right font-mono-num text-[#1E2C5E] whitespace-nowrap">
+                                  {formatRp(slip.decemberTaxWithheld ?? Math.round(slip.taxWithheld / 12))}
+                                </td>
+                              )}
+                              {subTab !== 'bpa2' && (
+                                <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
+                                  {fasilitasVal}
+                                </td>
+                              )}
                               {statusView === 'ISSUED' && (
                                 <>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">

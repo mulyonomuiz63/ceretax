@@ -64,7 +64,7 @@ const STATUS_BADGE: Record<TaxInvoice['status'], string> = {
 
 const EFAKTUR_SIDEBAR_GROUPS = [
   {
-    header: 'Dasbor e-Faktur',
+    header: 'Dashboard e-Faktur',
     items: [{ id: 'dashboard', label: 'Dashboard' }],
   },
   {
@@ -206,7 +206,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const activeTabTitle = useMemo(() => {
     switch (normalizedTab) {
       case 'dashboard':
-        return 'Dasbor e-Faktur';
+        return 'Dashboard e-Faktur';
       case 'output':
         return 'e-Faktur — Pajak Keluaran';
       case 'input':
@@ -538,10 +538,10 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
             /* DASBOR e-FAKTUR (Exact Match to Official Coretax Screenshot)  */
             /* ============================================================= */
             <div className="space-y-4">
-              {/* Top Bar: Dasbor e-Faktur + Month/Year Picker */}
+              {/* Top Bar: Dashboard e-Faktur + Month/Year Picker */}
               <div className="bg-white border border-[#E2E8F0] rounded-lg px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                 <h1 className="font-display font-bold text-[18px] text-[#1D2B53]">
-                  Dasbor e-Faktur
+                  Dashboard e-Faktur
                 </h1>
                 <div className="inline-flex items-center border border-slate-300 rounded-md overflow-hidden bg-white">
                   <input
@@ -558,105 +558,114 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
               {/* 2-Column Dashboard Cards */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {/* Card 1: Dasbor Faktur Pajak */}
-                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[300px] flex flex-col">
+                {/* Card 1: Dashboard Faktur Pajak */}
+                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[300px] flex flex-col min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <h2 className="font-display font-bold text-sm text-[#1D2B53]">
-                      Dasbor Faktur Pajak
+                      Dashboard Faktur Pajak
                     </h2>
                     <span className="text-[11px] text-slate-500 font-mono-num">
                       {MONTHS_ID[(dashMonth || 1) - 1]} {dashYear}
                     </span>
                   </div>
 
-                  <div className="flex-1 flex flex-col sm:flex-row gap-4 items-stretch justify-between">
-                    <div className="flex-1 flex flex-col justify-center">
-                      {periodInvoices.length === 0 ? (
-                        <div className="text-center py-10 text-xs text-slate-500 flex items-center justify-center gap-1.5">
-                          <Info className="w-4 h-4 text-[#F4C430]" />
-                          <span>Tidak Ada Data Tersedia!</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-[#F8FAFC] border border-slate-200 rounded-lg p-3">
-                              <div className="text-[11px] text-slate-500">Total Faktur Masa</div>
-                              <div className="text-xl font-extrabold text-[#1D2B53] font-mono-num mt-0.5">
-                                {periodInvoices.length}
-                              </div>
-                            </div>
-                            <div className="bg-[#F8FAFC] border border-slate-200 rounded-lg p-3">
-                              <div className="text-[11px] text-slate-500">Total PPN Keluaran</div>
-                              <div className="text-sm font-extrabold text-[#1D2B53] font-mono-num mt-1">
-                                {formatRp(
-                                  periodInvoices
-                                    .filter(
-                                      (i) => i.direction === 'OUTPUT' && i.status !== 'CANCELLED'
-                                    )
-                                    .reduce((s, i) => s + i.ppnTotal, 0)
-                                )}
-                              </div>
-                            </div>
+                  {periodInvoices.length === 0 ? (
+                    <div className="text-center py-12 text-xs text-slate-500 flex items-center justify-center gap-1.5">
+                      <Info className="w-4 h-4 text-[#F4C430]" />
+                      <span>Tidak Ada Data Tersedia!</span>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col justify-between space-y-4">
+                      {/* Top Metric Boxes - Full width across Card 1 with ample room */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="bg-[#F8FAFC] border border-slate-200 rounded-lg p-3 min-w-0">
+                          <div className="text-[11px] text-slate-500 font-medium truncate">Total Faktur Masa</div>
+                          <div className="text-xl font-extrabold text-[#1D2B53] font-mono-num mt-0.5 truncate">
+                            {periodInvoices.length}
                           </div>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-slate-200 rounded-lg p-3 min-w-0">
+                          <div className="text-[11px] text-slate-500 font-medium truncate">Total PPN Keluaran</div>
+                          <div
+                            className="text-[13px] sm:text-sm font-extrabold text-[#1D2B53] font-mono-num mt-1 whitespace-nowrap truncate"
+                            title={formatRp(
+                              periodInvoices
+                                .filter(
+                                  (i) => i.direction === 'OUTPUT' && i.status !== 'CANCELLED'
+                                )
+                                .reduce((s, i) => s + i.ppnTotal, 0)
+                            )}
+                          >
+                            {formatRp(
+                              periodInvoices
+                                .filter(
+                                  (i) => i.direction === 'OUTPUT' && i.status !== 'CANCELLED'
+                                )
+                                .reduce((s, i) => s + i.ppnTotal, 0)
+                            )}
+                          </div>
+                        </div>
+                      </div>
 
-                          <div className="space-y-2 pt-1">
-                            {(['APPROVED', 'DRAFT', 'AMENDED', 'CANCELLED'] as const).map((st) => {
-                              const count = statusCounts[st] || 0;
-                              const pct =
-                                periodInvoices.length > 0
-                                  ? Math.round((count / periodInvoices.length) * 100)
-                                  : 0;
-                              return (
-                                <div key={st} className="space-y-1">
-                                  <div className="flex items-center justify-between text-[11px]">
-                                    <span className="font-semibold text-slate-700">{st}</span>
-                                    <span className="font-mono-num text-slate-500">
-                                      {count} ({pct}%)
-                                    </span>
-                                  </div>
-                                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full ${
-                                        st === 'APPROVED'
-                                          ? 'bg-[#3B5998]'
-                                          : st === 'DRAFT'
-                                            ? 'bg-[#84CC16]'
-                                            : st === 'AMENDED'
-                                              ? 'bg-[#10B981]'
-                                              : 'bg-[#0EA5E9]'
-                                      }`}
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
+                      {/* Bottom Split: Status Progress Bars on Left + Status Legend on Right */}
+                      <div className="flex flex-col sm:flex-row gap-4 items-stretch justify-between">
+                        <div className="flex-1 space-y-2 pt-1 min-w-0">
+                          {(['APPROVED', 'DRAFT', 'AMENDED', 'CANCELLED'] as const).map((st) => {
+                            const count = statusCounts[st] || 0;
+                            const pct =
+                              periodInvoices.length > 0
+                                ? Math.round((count / periodInvoices.length) * 100)
+                                : 0;
+                            return (
+                              <div key={st} className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="font-semibold text-slate-700">{st}</span>
+                                  <span className="font-mono-num text-slate-500">
+                                    {count} ({pct}%)
+                                  </span>
                                 </div>
-                              );
-                            })}
-                          </div>
+                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      st === 'APPROVED'
+                                        ? 'bg-[#3B5998]'
+                                        : st === 'DRAFT'
+                                          ? 'bg-[#84CC16]'
+                                          : st === 'AMENDED'
+                                            ? 'bg-[#10B981]'
+                                            : 'bg-[#0EA5E9]'
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Right Status Legend Box (Matching Screenshot) */}
-                    <div className="w-full sm:w-[140px] shrink-0 bg-[#F8FAFC] border border-slate-200 rounded-md p-2.5">
-                      <div className="text-[11px] font-bold text-[#1D2B53] mb-2">Status</div>
-                      <ul className="space-y-1.5 text-[10px] text-slate-600">
-                        {DASHBOARD_STATUS_LEGEND.map((item) => (
-                          <li key={item.key} className="flex items-center gap-1.5 truncate">
-                            <span className={`w-2.5 h-2.5 rounded-[2px] shrink-0 ${item.color}`} />
-                            <span className="truncate" title={item.label}>
-                              {item.label}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                        {/* Right Status Legend Box (Matching Screenshot) */}
+                        <div className="w-full sm:w-[145px] shrink-0 bg-[#F8FAFC] border border-slate-200 rounded-md p-2.5">
+                          <div className="text-[11px] font-bold text-[#1D2B53] mb-2">Status</div>
+                          <ul className="space-y-1.5 text-[10px] text-slate-600">
+                            {DASHBOARD_STATUS_LEGEND.map((item) => (
+                              <li key={item.key} className="flex items-center gap-1.5 truncate">
+                                <span className={`w-2.5 h-2.5 rounded-[2px] shrink-0 ${item.color}`} />
+                                <span className="truncate" title={item.label}>
+                                  {item.label}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Card 2: Dasbor Pembayaran dan Pelaporan SPT Masa PPN */}
-                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[300px] flex flex-col">
+                {/* Card 2: Dashboard Pembayaran dan Pelaporan SPT Masa PPN */}
+                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[300px] flex flex-col min-w-0">
                   <h2 className="font-display font-bold text-sm text-[#1D2B53] mb-4">
-                    Dasbor Pembayaran dan Pelaporan SPT Masa PPN
+                    Dashboard Pembayaran dan Pelaporan SPT Masa PPN
                   </h2>
                   {periodPpnReturns.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center text-xs text-slate-500 gap-1.5">
@@ -696,10 +705,10 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Full-Width Card: Dasbor Pembayaran sebelum Pelaporan SPT Masa PPN */}
+              {/* Bottom Full-Width Card: Dashboard Pembayaran sebelum Pelaporan SPT Masa PPN */}
               <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[150px] flex flex-col">
                 <h2 className="font-display font-bold text-sm text-[#1D2B53] mb-3">
-                  Dasbor Pembayaran sebelum Pelaporan SPT Masa PPN
+                  Dashboard Pembayaran sebelum Pelaporan SPT Masa PPN
                 </h2>
                 {periodPpnBillings.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center text-xs text-slate-500 gap-1.5 py-6">
