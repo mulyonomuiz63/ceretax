@@ -565,6 +565,10 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   };
 
   const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) {
+      alert('Pilih bukti potong terlebih dahulu untuk dihapus.');
+      return;
+    }
     for (const id of selectedIds) {
       await onDeleteSlip(id);
     }
@@ -2088,10 +2092,14 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                     <button
                       type="button"
                       onClick={handleBulkDelete}
-                      className="inline-flex items-center gap-1.5 bg-[#D9534F] hover:bg-[#C9302C] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer shadow-xs"
+                      className={`inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-[6px] transition cursor-pointer shadow-xs ${
+                        selectedIds.length > 0
+                          ? 'bg-[#D9534F] hover:bg-[#C9302C] text-white'
+                          : 'bg-[#E2E8F0] hover:bg-[#CBD5E1] text-slate-600'
+                      }`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Hapus</span>
+                      <span>Hapus{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
                     </button>
 
                     <button
@@ -2103,10 +2111,14 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         }
                         setSignOpen(true);
                       }}
-                      className="inline-flex items-center gap-1.5 bg-[#2F7D4A] hover:bg-[#25633A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer shadow-xs"
+                      className={`inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-[6px] transition cursor-pointer shadow-xs ${
+                        selectedIds.length > 0
+                          ? 'bg-[#2F7D4A] hover:bg-[#25633A] text-white'
+                          : 'bg-[#E2E8F0] hover:bg-[#CBD5E1] text-slate-600'
+                      }`}
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>Terbitkan</span>
+                      <span>Terbitkan{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
                     </button>
                   </>
                 )}
@@ -2460,46 +2472,23 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               )}
                             </td>
                             <td className="px-3 py-2.5 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                {slip.status === 'UNISSUED' ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => openEditForm(slip)}
-                                      className="w-6 h-6 rounded-full border border-sky-400 bg-sky-50 hover:bg-sky-100 text-sky-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                                      title="Edit Konsep Bukti Potong"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => onDeleteSlip(slip.id)}
-                                      className="w-6 h-6 rounded-full border border-red-300 bg-red-50 hover:bg-red-100 text-red-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                                      title="Hapus Draft"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDetailSlip(slip)}
-                                      className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
-                                      title="Lihat Detail Bukti Potong"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDetailSlip(slip)}
-                                      className="w-6 h-6 rounded-full border border-sky-400 bg-sky-50 hover:bg-sky-100 text-sky-600 inline-flex items-center justify-center cursor-pointer transition"
-                                      title="Edit / Pembetulan"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </>
-                                )}
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setDetailSlip(slip)}
+                                  className="text-slate-500 hover:text-[#1E2C5E] cursor-pointer transition p-0.5"
+                                  title="Lihat Detail Bukti Potong"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => (slip.status === 'UNISSUED' ? openEditForm(slip) : setDetailSlip(slip))}
+                                  className="text-slate-500 hover:text-sky-600 cursor-pointer transition p-0.5"
+                                  title={slip.status === 'UNISSUED' ? 'Edit Konsep Bukti Potong' : 'Edit / Pembetulan'}
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </td>
                             <td className="px-3 py-2.5 whitespace-nowrap">

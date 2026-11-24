@@ -12,7 +12,36 @@ interface SptTahunanBadanEditorProps {
   onSubmit: (id: string, paymentMethod: 'DEPOSIT' | 'BILLING' | 'NONE') => Promise<void>;
 }
 
-type BadanTab = 'induk' | 'l1' | 'l2' | 'l3' | 'l11b';
+type BadanTab =
+  | 'induk'
+  | 'l1a'
+  | 'l2'
+  | 'l3'
+  | 'l4'
+  | 'l6'
+  | 'l7'
+  | 'l9'
+  | 'l10a'
+  | 'l10b'
+  | 'l10c'
+  | 'l11b'
+  | 'l13a';
+
+const BADAN_TABS: { id: BadanTab; label: string }[] = [
+  { id: 'induk', label: 'Induk' },
+  { id: 'l1a', label: 'L1-A' },
+  { id: 'l2', label: 'L2' },
+  { id: 'l3', label: 'L3' },
+  { id: 'l4', label: 'L4' },
+  { id: 'l6', label: 'L6' },
+  { id: 'l7', label: 'L7' },
+  { id: 'l9', label: 'L9' },
+  { id: 'l10a', label: 'L10-A' },
+  { id: 'l10b', label: 'L10-B' },
+  { id: 'l10c', label: 'L10-C' },
+  { id: 'l11b', label: 'L11-B' },
+  { id: 'l13a', label: 'L13-A' },
+];
 
 export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
   taxReturn,
@@ -29,9 +58,14 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
   const [signOpen, setSignOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sektorUsaha, setSektorUsaha] = useState('Perdagangan & Jasa Umum');
-  const [diauditKap, setDiauditKap] = useState(false);
+  const [radioAnswers, setRadioAnswers] = useState<Record<string, 'YA' | 'TIDAK'>>({});
   const [declarationChecked, setDeclarationChecked] = useState(true);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const handleRadio = (key: string, val: 'YA' | 'TIDAK') => {
+    if (taxReturn.status !== 'DRAFT') return;
+    setRadioAnswers((prev) => ({ ...prev, [key]: val }));
+  };
 
   // L11-B interactive fields (EBITDA & DER simulation)
   const [biayaBungaPinjaman, setBiayaBungaPinjaman] = useState(120_000_000);
@@ -128,22 +162,16 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
       </div>
 
       {/* Horizontal Coretax Tabs */}
-      <div className="px-5 pt-3 bg-[#F8FAFC] border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto">
-        {[
-          { id: 'induk' as BadanTab, label: 'Induk' },
-          { id: 'l1' as BadanTab, label: 'L1' },
-          { id: 'l2' as BadanTab, label: 'L2' },
-          { id: 'l3' as BadanTab, label: 'L3' },
-          { id: 'l11b' as BadanTab, label: 'L11-B' },
-        ].map((t) => (
+      <div className="px-5 pt-3 bg-white border-b border-slate-200 flex items-center gap-6 overflow-x-auto">
+        {BADAN_TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-[12px] font-bold rounded-t border-t border-x whitespace-nowrap cursor-pointer transition-colors ${
+            className={`pb-2.5 text-[13px] whitespace-nowrap cursor-pointer transition-colors ${
               tab === t.id
-                ? 'bg-white text-[#1E2C5E] border-slate-300 -mb-px border-t-2 border-t-[#F7CA36]'
-                : 'bg-[#EEF2F7] text-slate-600 border-transparent hover:bg-slate-200'
+                ? 'font-bold text-[#0284c7] border-b-2 border-[#0284c7]'
+                : 'font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent'
             }`}
           >
             {t.label}
@@ -290,20 +318,22 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                       <label className="inline-flex items-center gap-1.5 cursor-pointer">
                         <input
                           type="radio"
+                          name="diauditKap"
                           disabled={isReadOnly}
-                          checked={!diauditKap}
-                          onChange={() => setDiauditKap(false)}
-                          className="accent-[#1E2C5E]"
+                          checked={radioAnswers['diauditKap'] === 'TIDAK'}
+                          onChange={() => handleRadio('diauditKap', 'TIDAK')}
+                          className="accent-[#1E2C5E] cursor-pointer"
                         />
                         <span>Tidak</span>
                       </label>
                       <label className="inline-flex items-center gap-1.5 cursor-pointer">
                         <input
                           type="radio"
+                          name="diauditKap"
                           disabled={isReadOnly}
-                          checked={diauditKap}
-                          onChange={() => setDiauditKap(true)}
-                          className="accent-[#1E2C5E]"
+                          checked={radioAnswers['diauditKap'] === 'YA'}
+                          onChange={() => handleRadio('diauditKap', 'YA')}
+                          className="accent-[#1E2C5E] cursor-pointer"
                         />
                         <span>Ya</span>
                       </label>
@@ -322,18 +352,34 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               {!collapsed.secC && (
                 <div className="p-4 space-y-2 bg-white">
                   {[
-                    '1.a. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang dikenakan PPh bersifat final?',
-                    '2. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang tidak termasuk objek pajak?',
-                    '3. Apakah Wajib Pajak memiliki peredaran bruto tertentu yang dikenai PPh Final (PP 55/2022)?',
-                  ].map((q, idx) => (
-                    <div key={idx} className="flex flex-wrap items-center justify-between gap-2 py-1 border-b border-slate-100">
-                      <span className="text-slate-700">{q}</span>
+                    { id: 'c_1a', text: '1.a. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang dikenakan PPh bersifat final?' },
+                    { id: 'c_2', text: '2. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang tidak termasuk objek pajak?' },
+                    { id: 'c_3', text: '3. Apakah Wajib Pajak memiliki peredaran bruto tertentu yang dikenai PPh Final (PP 55/2022)?' },
+                  ].map((q) => (
+                    <div key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100">
+                      <span className="text-slate-700">{q.text}</span>
                       <div className="flex items-center gap-4">
-                        <label className="inline-flex items-center gap-1">
-                          <input type="radio" readOnly checked={false} /> <span>Ya</span>
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={q.id}
+                            disabled={isReadOnly}
+                            checked={radioAnswers[q.id] === 'YA'}
+                            onChange={() => handleRadio(q.id, 'YA')}
+                            className="accent-[#1E2C5E] cursor-pointer"
+                          />
+                          <span>Ya</span>
                         </label>
-                        <label className="inline-flex items-center gap-1">
-                          <input type="radio" readOnly checked /> <span>Tidak</span>
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={q.id}
+                            disabled={isReadOnly}
+                            checked={radioAnswers[q.id] === 'TIDAK'}
+                            onChange={() => handleRadio(q.id, 'TIDAK')}
+                            className="accent-[#1E2C5E] cursor-pointer"
+                          />
+                          <span>Tidak</span>
                         </label>
                       </div>
                     </div>
@@ -356,11 +402,27 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                       4. Apakah Wajib Pajak menggunakan tarif PPh Pasal 17 ayat (1) huruf b / Pasal 31E?
                     </label>
                     <div className="lg:col-span-4 flex items-center justify-end gap-4">
-                      <label className="inline-flex items-center gap-1">
-                        <input type="radio" readOnly checked /> <span>Ya</span>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="d_4"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['d_4'] === 'YA'}
+                          onChange={() => handleRadio('d_4', 'YA')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Ya</span>
                       </label>
-                      <label className="inline-flex items-center gap-1">
-                        <input type="radio" readOnly checked={false} /> <span>Tidak</span>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="d_4"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['d_4'] === 'TIDAK'}
+                          onChange={() => handleRadio('d_4', 'TIDAK')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Tidak</span>
                       </label>
                     </div>
                   </div>
@@ -595,11 +657,27 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                       20.a. Apakah Wajib Pajak merupakan Wajib Pajak tertentu yang harus menghitung angsuran PPh Pasal 25 secara berkala?
                     </label>
                     <div className="lg:col-span-4 flex items-center justify-end gap-4">
-                      <label className="inline-flex items-center gap-1">
-                        <input type="radio" readOnly checked={false} /> <span>Ya</span>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="g_20a"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['g_20a'] === 'YA'}
+                          onChange={() => handleRadio('g_20a', 'YA')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Ya</span>
                       </label>
-                      <label className="inline-flex items-center gap-1">
-                        <input type="radio" readOnly checked /> <span>Tidak</span>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="g_20a"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['g_20a'] === 'TIDAK'}
+                          onChange={() => handleRadio('g_20a', 'TIDAK')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Tidak</span>
                       </label>
                     </div>
                   </div>
@@ -624,25 +702,41 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               {!collapsed.secH && (
                 <div className="p-4 space-y-2 bg-white">
                   {[
-                    ['21.a. Apakah terdapat transaksi dengan pihak yang memiliki hubungan istimewa?', false],
-                    ['21.b. Apakah Wajib Pajak melakukan penyertaan modal pada perusahaan afiliasi (Lampiran L2)?', true],
-                    ['21.c. Apakah Wajib Pajak memiliki utang dari pemilik modal atau perusahaan afiliasi?', false],
-                    ['21.d. Apakah Wajib Pajak membebankan biaya pinjaman (Lampiran L11-B)?', true],
-                    ['21.e. Apakah Wajib Pajak melakukan transaksi penanaman modal atau fasilitas perpajakan?', false],
-                    ['21.f. Apakah Wajib Pajak memiliki sisa lebih yang digunakan untuk pembangunan sarana/prasarana?', false],
-                    ['21.g. Apakah Wajib Pajak membebankan biaya penyusutan dan/atau amortisasi fiskal?', true],
-                    ['21.h. Apakah Wajib Pajak membebankan biaya entertainment, promosi, atau penggantian natura?', true],
-                    ['21.i. Apakah Wajib Pajak menerima penghasilan dari luar negeri?', false],
-                    ['21.j. Apakah terdapat kelebihan PPh Pasal 21/26 yang diperhitungkan?', false],
-                  ].map(([q, yes], idx) => (
-                    <div key={idx} className="flex flex-wrap items-center justify-between gap-2 py-1 border-b border-slate-100">
-                      <span className="text-slate-700">{q as string}</span>
+                    { id: 'h_21a', text: '21.a. Apakah terdapat transaksi dengan pihak yang memiliki hubungan istimewa?' },
+                    { id: 'h_21b', text: '21.b. Apakah Wajib Pajak melakukan penyertaan modal pada perusahaan afiliasi (Lampiran L2)?' },
+                    { id: 'h_21c', text: '21.c. Apakah Wajib Pajak memiliki utang dari pemilik modal atau perusahaan afiliasi?' },
+                    { id: 'h_21d', text: '21.d. Apakah Wajib Pajak membebankan biaya pinjaman (Lampiran L11-B)?' },
+                    { id: 'h_21e', text: '21.e. Apakah Wajib Pajak melakukan transaksi penanaman modal atau fasilitas perpajakan?' },
+                    { id: 'h_21f', text: '21.f. Apakah Wajib Pajak memiliki sisa lebih yang digunakan untuk pembangunan sarana/prasarana?' },
+                    { id: 'h_21g', text: '21.g. Apakah Wajib Pajak membebankan biaya penyusutan dan/atau amortisasi fiskal?' },
+                    { id: 'h_21h', text: '21.h. Apakah Wajib Pajak membebankan biaya entertainment, promosi, atau penggantian natura?' },
+                    { id: 'h_21i', text: '21.i. Apakah Wajib Pajak menerima penghasilan dari luar negeri?' },
+                    { id: 'h_21j', text: '21.j. Apakah terdapat kelebihan PPh Pasal 21/26 yang diperhitungkan?' },
+                  ].map((item) => (
+                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100">
+                      <span className="text-slate-700">{item.text}</span>
                       <div className="flex items-center gap-4">
-                        <label className="inline-flex items-center gap-1">
-                          <input type="radio" readOnly checked={Boolean(yes)} /> <span>Ya</span>
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={item.id}
+                            disabled={isReadOnly}
+                            checked={radioAnswers[item.id] === 'YA'}
+                            onChange={() => handleRadio(item.id, 'YA')}
+                            className="accent-[#1E2C5E] cursor-pointer"
+                          />
+                          <span>Ya</span>
                         </label>
-                        <label className="inline-flex items-center gap-1">
-                          <input type="radio" readOnly checked={!yes} /> <span>Tidak</span>
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={item.id}
+                            disabled={isReadOnly}
+                            checked={radioAnswers[item.id] === 'TIDAK'}
+                            onChange={() => handleRadio(item.id, 'TIDAK')}
+                            className="accent-[#1E2C5E] cursor-pointer"
+                          />
+                          <span>Tidak</span>
                         </label>
                       </div>
                     </div>
@@ -724,8 +818,8 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
           </div>
         )}
 
-        {/* ==================== TAB: L1 LAPORAN KEUANGAN & REKONSILIASI ==================== */}
-        {tab === 'l1' && (
+        {/* ==================== TAB: L1-A LAPORAN KEUANGAN & REKONSILIASI ==================== */}
+        {tab === 'l1a' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="border border-slate-200 rounded overflow-hidden">
               <SectionBar id="l1Lk" title="L1-A. LAPORAN LABA RUGI & NERACA KOMERSIAL" />
@@ -1031,6 +1125,530 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
           </div>
         )}
 
+        {/* ==================== TAB: L4 PENGHASILAN FINAL & NON OBJEK ==================== */}
+        {tab === 'l4' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              PENGHASILAN YANG DIKENAKAN PPh FINAL DAN YANG TIDAK TERMASUK OBJEK PAJAK
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l4H" title="HEADER" />
+              {!collapsed.l4H && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l4A" title="BAGIAN A: PENGHASILAN YANG DIKENAKAN PPh BERSIFAT FINAL" />
+              {!collapsed.l4A && (
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">JENIS PENGHASILAN</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">DASAR PENGENAAN PAJAK (Rp)</th>
+                        <th className="px-3 py-2 text-center border-r border-[#E5B822]">TARIF (%)</th>
+                        <th className="px-3 py-2 text-right">PPh TERUTANG (Rp)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {[
+                        ['1', 'Bunga Deposito / Tabungan, Diskonto SBI, dan Surat Berharga Negara', 0, '20%', 0],
+                        ['2', 'Bunga / Diskonto Obligasi', 0, '10%', 0],
+                        ['3', 'Penjualan Saham di Bursa Efek', 0, '0.1%', 0],
+                        ['4', 'Pengalihan Hak atas Tanah dan/atau Bangunan', 0, '2.5%', 0],
+                        ['5', 'Persewaan Tanah dan/atau Bangunan', 0, '10%', 0],
+                        ['6', 'Usaha Jasa Konstruksi', 0, '1.75% - 4%', 0],
+                        ['7', 'Peredaran Bruto Tertentu (PP 55/2022 - UMKM)', 0, '0.5%', 0],
+                        ['8', 'Penghasilan Lainnya yang Dikenakan PPh Final', 0, '-', 0],
+                      ].map(([no, jenis, dpp, tarif, pph], i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 text-center font-mono-num">{no}</td>
+                          <td className="px-3 py-2 text-slate-700">{jenis}</td>
+                          <td className="px-3 py-2 text-right font-mono-num">{formatRp(Number(dpp))}</td>
+                          <td className="px-3 py-2 text-center font-mono-num">{tarif}</td>
+                          <td className="px-3 py-2 text-right font-mono-num font-semibold">{formatRp(Number(pph))}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-100 font-bold text-[#1E2C5E]">
+                        <td colSpan={2} className="px-3 py-2 text-right uppercase">JUMLAH BAGIAN A</td>
+                        <td className="px-3 py-2 text-right font-mono-num">{formatRp(0)}</td>
+                        <td className="px-3 py-2 text-center">-</td>
+                        <td className="px-3 py-2 text-right font-mono-num">{formatRp(0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l4B" title="BAGIAN B: PENGHASILAN YANG TIDAK TERMASUK OBJEK PAJAK" />
+              {!collapsed.l4B && (
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">SUMBER / JENIS PENGHASILAN</th>
+                        <th className="px-3 py-2 text-right">JUMLAH BRUTO (Rp)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {[
+                        ['1', 'Bantuan atau Sumbangan dan Zakat yang Memenuhi Syarat'],
+                        ['2', 'Harta Hibahan yang Diterima'],
+                        ['3', 'Dividen atau Bagian Laba yang Diterima PT dari Penyertaan Modal Dalam Negeri (UU HPP)'],
+                        ['4', 'Iuran dan Penghasilan Tertentu yang Diterima Dana Pensiun'],
+                        ['5', 'Bagian Laba yang Diterima Anggota CV, Firma, Kongsi, Persekutuan'],
+                        ['6', 'Sisa Lebih yang Diterima Badan atau Lembaga Nirlaba Pendidikan/Litbang'],
+                        ['7', 'Penghasilan Lainnya yang Tidak Termasuk Objek Pajak'],
+                      ].map(([no, jenis], i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 text-center font-mono-num">{no}</td>
+                          <td className="px-3 py-2 text-slate-700">{jenis}</td>
+                          <td className="px-3 py-2 text-right font-mono-num">{formatRp(0)}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-100 font-bold text-[#1E2C5E]">
+                        <td colSpan={2} className="px-3 py-2 text-right uppercase">JUMLAH BAGIAN B</td>
+                        <td className="px-3 py-2 text-right font-mono-num">{formatRp(0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: L6 FASILITAS PENANAMAN MODAL ==================== */}
+        {tab === 'l6' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              DAFTAR FASILITAS PENANAMAN MODAL DAN INSENTIF PERPAJAKAN
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l6H" title="HEADER" />
+              {!collapsed.l6H && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l6A" title="RINCIAN FASILITAS PENANAMAN MODAL YANG DIMANFAATKAN" />
+              {!collapsed.l6A && (
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NOMOR &amp; TANGGAL SK FASILITAS</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">JENIS FASILITAS</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">NILAI REALISASI INVESTASI (Rp)</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">NILAI FASILITAS TAHUN BERJALAN (Rp)</th>
+                        <th className="px-3 py-2 text-center">TAHUN KE-</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
+                          Tidak ada fasilitas perpajakan yang dimanfaatkan pada Tahun Pajak ini.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: L7 KOMPENSASI KERUGIAN FISKAL ==================== */}
+        {tab === 'l7' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              KOMPENSASI KERUGIAN FISKAL
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l7H" title="HEADER" />
+              {!collapsed.l7H && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l7A" title="RINCIAN KOMPENSASI KERUGIAN FISKAL (5 TAHUN PAJAK SEBELUMNYA)" />
+              {!collapsed.l7A && (
+                <div className="p-4 bg-white overflow-x-auto space-y-3">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-center border-r border-[#E5B822]">TAHUN PAJAK</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">RUGI FISKAL (Rp)</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">TELAH DIKOMPENSASI S.D. TAHUN LALU (Rp)</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">SISA RUGI FISKAL (Rp)</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">DIKOMPENSASI TAHUN INI (Rp)</th>
+                        <th className="px-3 py-2 text-right">SISA RUGI YANG MASIH DAPAT DIKOMPENSASIKAN (Rp)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {[1, 2, 3, 4, 5].map((idx) => {
+                        const yr = taxReturn.taxYear - (6 - idx);
+                        const isLastYear = idx === 5;
+                        const kompensasi = isLastYear ? calc.kompensasiKerugian : 0;
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="px-3 py-2 text-center font-mono-num">{idx}</td>
+                            <td className="px-3 py-2 text-center font-mono-num font-semibold">{yr}</td>
+                            <td className="px-3 py-2 text-right font-mono-num">{formatRp(kompensasi)}</td>
+                            <td className="px-3 py-2 text-right font-mono-num">{formatRp(0)}</td>
+                            <td className="px-3 py-2 text-right font-mono-num">{formatRp(kompensasi)}</td>
+                            <td className="px-3 py-2 text-right font-mono-num font-semibold text-[#1E2C5E]">{formatRp(kompensasi)}</td>
+                            <td className="px-3 py-2 text-right font-mono-num">{formatRp(0)}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="bg-slate-100 font-bold text-[#1E2C5E]">
+                        <td colSpan={5} className="px-3 py-2 text-right uppercase">TOTAL KERUGIAN FISKAL YANG DIKOMPENSASIKAN (INDUK D.9)</td>
+                        <td className="px-3 py-2 text-right font-mono-num font-extrabold text-[#1E2C5E]">{formatRp(calc.kompensasiKerugian)}</td>
+                        <td className="px-3 py-2 text-right font-mono-num">{formatRp(0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: L9 ANGSURAN PPh PASAL 25 ==================== */}
+        {tab === 'l9' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              PENGHITUNGAN ANGSURAN PPh PASAL 25 TAHUN BERJALAN
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l9H" title="HEADER" />
+              {!collapsed.l9H && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden max-w-3xl">
+              <SectionBar id="l9A" title="RINCIAN DASAR PENGHITUNGAN ANGSURAN BULANAN" />
+              {!collapsed.l9A && (
+                <div className="p-4 space-y-2.5 bg-white">
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">1. Penghasilan Neto Fiskal (Lampiran L1-A)</span>
+                    <input readOnly value={formatRp(calc.penghasilanNetoFiskal)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">2. Penghasilan Tidak Teratur</span>
+                    <input readOnly value={formatRp(0)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">3. Penghasilan Neto Teratur (1 - 2)</span>
+                    <input readOnly value={formatRp(calc.penghasilanNetoFiskal)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">4. Kompensasi Kerugian Fiskal</span>
+                    <input readOnly value={formatRp(calc.kompensasiKerugian)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 font-semibold text-[#1E2C5E]">5. Penghasilan Kena Pajak Teratur (3 - 4)</span>
+                    <input readOnly value={formatRp(calc.pkpDibulatkan)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num font-semibold" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 font-semibold text-[#1E2C5E]">6. PPh Terutang atas Penghasilan Teratur</span>
+                    <input readOnly value={formatRp(calc.totalPphTerutang)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num font-semibold text-[#1E2C5E]" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 text-slate-700">7. Kredit Pajak Dipotong/Dipungut Pihak Lain (PPh 22, 23, 24)</span>
+                    <input readOnly value={formatRp(calc.kreditPph22 + calc.kreditPph23 + calc.kreditPph24)} className="col-span-4 text-right border border-slate-200 bg-slate-100 rounded px-2.5 py-1 font-mono-num" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2 pt-2 border-t border-slate-200">
+                    <span className="col-span-8 font-bold text-[#1E2C5E]">8. Dasar Penghitungan Angsuran PPh Pasal 25 (6 - 7)</span>
+                    <input readOnly value={formatRp(Math.max(0, calc.totalPphTerutang - calc.kreditPph22 - calc.kreditPph23 - calc.kreditPph24))} className="col-span-4 text-right border border-slate-300 bg-slate-100 rounded px-2.5 py-1 font-mono-num font-bold text-[#1E2C5E]" />
+                  </div>
+                  <div className="grid grid-cols-12 items-center gap-2">
+                    <span className="col-span-8 font-extrabold text-[#1E2C5E]">9. Besarnya Angsuran PPh Pasal 25 yang Harus Dibayar Sendiri Setiap Bulan (8 / 12)</span>
+                    <input readOnly value={formatRp(Math.max(0, Math.round((calc.totalPphTerutang - calc.kreditPph22 - calc.kreditPph23 - calc.kreditPph24) / 12)))} className="col-span-4 text-right border border-[#F7CA36] bg-[#FEF9E7] rounded px-2.5 py-1.5 font-mono-num font-extrabold text-[#1E2C5E]" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: L10-A BIAYA PROMOSI, ENTERTAINMENT & NATURA ==================== */}
+        {tab === 'l10a' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              DAFTAR NOMINATIF BIAYA PROMOSI, ENTERTAINMENT DAN PENGGANTIAN/IMBALAN DALAM BENTUK NATURA/KENIKMATAN
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l10aH" title="HEADER" />
+              {!collapsed.l10aH && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l10aPromosi" title="I. DAFTAR NOMINATIF BIAYA PROMOSI DAN PENJUALAN (PMK-02/PMK.03/2010)" />
+              {!collapsed.l10aPromosi && (
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NAMA PENERIMA</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NPWP / NIK</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">ALAMAT</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">BENTUK &amp; JENIS BIAYA</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">JUMLAH BIAYA (Rp)</th>
+                        <th className="px-3 py-2 text-left">KETERANGAN</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
+                          Tidak ada data biaya promosi nominatif.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l10aNatura" title="II. DAFTAR NOMINATIF BIAYA NATURA DAN/ATAU KENIKMATAN (PMK-66/2023)" />
+              {!collapsed.l10aNatura && (
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NAMA PENERIMA / PEGAWAI</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NPWP / NIK</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">JENIS NATURA / KENIKMATAN</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">NILAI (Rp)</th>
+                        <th className="px-3 py-2 text-center">KLASIFIKASI FISKAL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
+                          Tidak ada data biaya natura nominatif.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: L10-B PIUTANG TAK TERTAGIH ==================== */}
+        {tab === 'l10b' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              DAFTAR PIUTANG YANG NYATA-NYATA TIDAK DAPAT DITAGIH
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l10bH" title="HEADER" />
+              {!collapsed.l10bH && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l10bA" title="RINCIAN DAFTAR PIUTANG YANG NYATA-NYATA TIDAT DAPAT DITAGIH (PMK-207/PMK.010/2015)" />
+              {!collapsed.l10bA && (
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NAMA DEBITUR</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NPWP / NIK</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">ALAMAT DEBITUR</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">JUMLAH PIUTANG (Rp)</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">BUKTI PENYERAHAN PERKARA KE PN / BUPLN / PERJANJIAN</th>
+                        <th className="px-3 py-2 text-center">STATUS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
+                          Tidak ada daftar piutang nyata-nyata tidak dapat ditagih.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: L10-C PENYUSUTAN & AMORTISASI FISKAL ==================== */}
+        {tab === 'l10c' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              DAFTAR PENYUSUTAN DAN AMORTISASI FISKAL
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l10cH" title="HEADER" />
+              {!collapsed.l10cH && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l10cA" title="I. HARTA BERWUJUD (PENYUSUTAN FISKAL)" />
+              {!collapsed.l10cA && (
+                <div className="p-4 bg-white overflow-x-auto space-y-3">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">KELOMPOK HARTA</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NAMA / JENIS HARTA</th>
+                        <th className="px-3 py-2 text-center border-r border-[#E5B822]">BULAN/TAHUN PEROLEHAN</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">HARGA PEROLEHAN (Rp)</th>
+                        <th className="px-3 py-2 text-center border-r border-[#E5B822]">METODE FISKAL</th>
+                        <th className="px-3 py-2 text-center border-r border-[#E5B822]">TARIF</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">PENYUSUTAN FISKAL TAHUN INI (Rp)</th>
+                        <th className="px-3 py-2 text-right">NILAI SISA BUKU FISKAL (Rp)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {[
+                        ['1', 'Kelompok 1 (Masa 4 Th)', 'Peralatan Kantor, Komputer, Printer', '01-2023', 85_000_000, 'Garis Lurus', '25%', 21_250_000, 42_500_000],
+                        ['2', 'Kelompok 2 (Masa 8 Th)', 'Kendaraan Operasional, Truk, Mesin Ringan', '03-2022', 320_000_000, 'Garis Lurus', '12.5%', 40_000_000, 200_000_000],
+                        ['3', 'Bangunan Permanen (Masa 20 Th)', 'Gedung Kantor & Gudang Pabrik', '01-2020', 1_250_000_000, 'Garis Lurus', '5%', 62_500_000, 937_500_000],
+                      ].map(([no, kel, nama, perolehan, harga, metode, tarif, susut, nsb], i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 text-center font-mono-num">{no}</td>
+                          <td className="px-3 py-2 font-semibold text-[#1E2C5E]">{kel}</td>
+                          <td className="px-3 py-2 text-slate-700">{nama}</td>
+                          <td className="px-3 py-2 text-center font-mono-num">{perolehan}</td>
+                          <td className="px-3 py-2 text-right font-mono-num">{formatRp(Number(harga))}</td>
+                          <td className="px-3 py-2 text-center">{metode}</td>
+                          <td className="px-3 py-2 text-center font-mono-num">{tarif}</td>
+                          <td className="px-3 py-2 text-right font-mono-num font-semibold text-[#1E2C5E]">{formatRp(Number(susut))}</td>
+                          <td className="px-3 py-2 text-right font-mono-num">{formatRp(Number(nsb))}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-100 font-bold text-[#1E2C5E]">
+                        <td colSpan={7} className="px-3 py-2 text-right uppercase">JUMLAH PENYUSUTAN FISKAL HARTA BERWUJUD</td>
+                        <td className="px-3 py-2 text-right font-mono-num font-extrabold text-[#1E2C5E]">{formatRp(123_750_000)}</td>
+                        <td className="px-3 py-2 text-right font-mono-num">{formatRp(1_180_000_000)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ==================== TAB: L11-B BIAYA PINJAMAN (EBITDA & DER) ==================== */}
         {tab === 'l11b' && (
           <div className="space-y-4">
@@ -1118,6 +1736,62 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     <span>Rasio DER (Utang : Modal)</span>
                     <span className="font-mono-num">{derRatio.toFixed(2)} : 1</span>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: L13-A TRANSAKSI HUBUNGAN ISTIMEWA ==================== */}
+        {tab === 'l13a' && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-[14px] text-[#1E2C5E] uppercase">
+              DAFTAR TRANSAKSI DENGAN PIHAK YANG MEMILIKI HUBUNGAN ISTIMEWA (TRANSFER PRICING)
+            </h3>
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l13aH" title="HEADER" />
+              {!collapsed.l13aH && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tahun Pajak</label>
+                    <input readOnly value={taxReturn.taxYear} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">NPWP</label>
+                    <input readOnly value={activeTaxpayer.nikNpwp} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-mono-num" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nama</label>
+                    <input readOnly value={activeTaxpayer.name} className="w-full border border-slate-200 bg-slate-100 rounded px-2.5 py-1.5 font-semibold" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded overflow-hidden">
+              <SectionBar id="l13aA" title="RINCIAN TRANSAKSI DENGAN PIHAK YANG MEMILIKI HUBUNGAN ISTIMEWA (PMK-172/2023)" />
+              {!collapsed.l13aA && (
+                <div className="p-4 bg-white overflow-x-auto">
+                  <table className="w-full border border-slate-300 border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                        <th className="px-3 py-2 text-center w-12 border-r border-[#E5B822]">NO</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">NAMA PIHAK AFILIASI</th>
+                        <th className="px-3 py-2 text-center border-r border-[#E5B822]">KODE NEGARA</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">HUBUNGAN ISTIMEWA</th>
+                        <th className="px-3 py-2 text-left border-r border-[#E5B822]">JENIS TRANSAKSI</th>
+                        <th className="px-3 py-2 text-right border-r border-[#E5B822]">NILAI TRANSAKSI (Rp)</th>
+                        <th className="px-3 py-2 text-left">METODE PENENTUAN HARGA TRANSFER (TP METHOD)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
+                          Tidak ada transaksi afiliasi yang dilaporkan.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
