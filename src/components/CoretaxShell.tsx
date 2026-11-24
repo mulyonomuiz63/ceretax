@@ -616,11 +616,13 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     ...(activeNavMeta.groups ? activeNavMeta.groups.flatMap((g) => g.items) : []),
   ];
   const activeSubMeta: NavItemDef | null =
-    activeModule === 'efaktur' && activeSubTab && EFAKTUR_BREADCRUMB_MAP[activeSubTab]
-      ? { id: activeSubTab, label: EFAKTUR_BREADCRUMB_MAP[activeSubTab] }
-      : activeModule === 'portal' && activeSubTab === 'ikhtisar'
-        ? { id: 'ikhtisar', label: 'Beranda' }
-        : allActiveItems.find((i) => i.id === activeSubTab) || activeNavMeta.items[0] || null;
+    activeSubTab === 'empty' || !activeSubTab
+      ? null
+      : activeModule === 'efaktur' && activeSubTab && EFAKTUR_BREADCRUMB_MAP[activeSubTab]
+        ? { id: activeSubTab, label: EFAKTUR_BREADCRUMB_MAP[activeSubTab] }
+        : activeModule === 'portal' && activeSubTab === 'ikhtisar'
+          ? { id: 'ikhtisar', label: 'Beranda' }
+          : allActiveItems.find((i) => i.id === activeSubTab) || null;
 
   return (
     <div
@@ -1158,11 +1160,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       type="button"
                       onClick={() => {
                         setLeftCollapsed(false);
-                        if (item.key === 'ebupot') {
-                          onNavigate('ebupot', 'empty');
-                        } else {
-                          onNavigate(item.key, item.items[0]?.id);
-                        }
+                        onNavigate(item.key, 'empty');
                         setOpenDropdown(null);
                         setNavPopoverAnchor(null);
                       }}
@@ -1744,11 +1742,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   key={item.key}
                   type="button"
                   onClick={() => {
-                    if (item.key === 'ebupot') {
-                      onNavigate('ebupot', 'empty');
-                    } else {
-                      onNavigate(item.key, item.items[0]?.id);
-                    }
+                    onNavigate(item.key, 'empty');
                     if (item.items.length > 0) {
                       setMobileMenuOpen(true);
                     } else {

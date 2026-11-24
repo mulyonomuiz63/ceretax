@@ -11,6 +11,8 @@ import {
   WorkspaceState,
 } from './types/tax.ts';
 import { LoginPage } from './components/LoginPage.tsx';
+import { LogoutPage } from './components/LogoutPage.tsx';
+import { SubMenuPrompt } from './components/SubMenuPrompt.tsx';
 import { CoretaxShell, MainNavKey } from './components/CoretaxShell.tsx';
 import { DocumentPrintModal, PrintablePayload } from './components/DocumentPrintModal.tsx';
 import { ExamDrawer } from './components/ExamDrawer.tsx';
@@ -22,6 +24,15 @@ import { EBupotModule } from './modules/EBupotModule.tsx';
 import { SptModule } from './modules/SptModule.tsx';
 import { PembayaranModule } from './modules/PembayaranModule.tsx';
 import { BukuBesarModule } from './modules/BukuBesarModule.tsx';
+
+const MODULE_INFO: Record<MainNavKey, { name: string; count: number }> = {
+  portal: { name: 'Portal Saya', count: 18 },
+  efaktur: { name: 'e-Faktur', count: 5 },
+  ebupot: { name: 'eBupot', count: 11 },
+  spt: { name: 'Surat Pemberitahuan (SPT)', count: 4 },
+  pembayaran: { name: 'Pembayaran', count: 7 },
+  bukubesar: { name: 'Buku Besar', count: 3 },
+};
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -73,6 +84,8 @@ function CoretaxSimulatorApp() {
   const [printDoc, setPrintDoc] = useState<PrintablePayload | null>(null);
   const [examOpen, setExamOpen] = useState(false);
   const [toastNotif, setToastNotif] = useState<NotificationItem | null>(null);
+  const [isLoggedOut, setIsLoggedOut] = useState(false);
+  const lastActivityRef = useRef<number>(Date.now());
   const [navHistory, setNavHistory] = useState<{
     entries: Array<{
       module: MainNavKey;
@@ -202,6 +215,7 @@ function CoretaxSimulatorApp() {
         return;
       }
       setWorkspace(data.workspace);
+      setIsLoggedOut(false);
       setAccountMode('INDIVIDUAL');
       setActiveModule('portal');
       setActiveSubTab('ikhtisar');
@@ -342,6 +356,46 @@ function CoretaxSimulatorApp() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [workspace?.nikKey, navHistory.entries]);
 
+  const handleLogout = useCallback(() => {
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {}
+    setWorkspace(null);
+    setIsLoggedOut(true);
+  }, []);
+
+  // 10-Minute Inactivity Auto-Logout Tracker
+  // If no user activity for 10 minutes, automatically logs out.
+  // Any activity (mousemove, mousedown, keydown, touchstart, scroll, click) resets the duration back to zero.
+  useEffect(() => {
+    if (!workspace) return;
+
+    lastActivityRef.current = Date.now();
+
+    const recordActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    activityEvents.forEach((evt) => {
+      window.addEventListener(evt, recordActivity, { passive: true });
+    });
+
+    const checkInterval = window.setInterval(() => {
+      const elapsed = Date.now() - lastActivityRef.current;
+      if (elapsed >= 10 * 60 * 1000) {
+        handleLogout();
+      }
+    }, 2000);
+
+    return () => {
+      activityEvents.forEach((evt) => {
+        window.removeEventListener(evt, recordActivity);
+      });
+      window.clearInterval(checkInterval);
+    };
+  }, [workspace, handleLogout]);
+
   const handleNavigate = (module: MainNavKey, subTab?: string) => {
     setNavResetKey((k) => k + 1);
     if (module !== activeModule) {
@@ -351,15 +405,7 @@ function CoretaxSimulatorApp() {
     if (subTab) {
       setActiveSubTab(subTab);
     } else {
-      const defaults: Record<MainNavKey, string> = {
-        portal: 'dokumen',
-        efaktur: 'dashboard',
-        ebupot: 'bppu',
-        spt: 'konsep',
-        pembayaran: 'pemindahbukuan',
-        bukubesar: 'ringkasan',
-      };
-      setActiveSubTab(defaults[module]);
+      setActiveSubTab('empty');
     }
   };
 
@@ -378,6 +424,16 @@ function CoretaxSimulatorApp() {
   const globalLoadingVisible = bootLoading || loginLoading || navLoading;
 
   if (!workspace) {
+    if (isLoggedOut) {
+      return (
+        <LogoutPage
+          onGoToLogin={() => setIsLoggedOut(false)}
+          language={language}
+          onLanguageChange={setLanguage}
+        />
+      );
+    }
+
     return (
       <>
         <LoadingOverlay
@@ -418,14 +474,16 @@ function CoretaxSimulatorApp() {
         onOpenExamDrawer={() => setExamOpen(true)}
         language={language}
         onLanguageChange={setLanguage}
-        onLogout={() => {
-          try {
-            sessionStorage.removeItem(SESSION_KEY);
-          } catch {}
-          setWorkspace(null);
-        }}
+        onLogout={handleLogout}
       >
-        {activeModule === 'portal' && (
+        {activeSubTab === 'empty' ? (
+          <SubMenuPrompt
+            moduleName={MODULE_INFO[activeModule]?.name || activeModule}
+            subMenuCount={MODULE_INFO[activeModule]?.count || 0}
+          />
+        ) : (
+          <>
+            {activeModule === 'portal' && (
           <PortalSayaModule
             subTab={activeSubTab}
             onChangeSubTab={setActiveSubTab}
@@ -590,6 +648,8 @@ function CoretaxSimulatorApp() {
 
         {activeModule === 'bukubesar' && (
           <BukuBesarModule workspace={workspace} activeTaxpayer={activeTaxpayer} />
+        )}
+          </>
         )}
       </CoretaxShell>
 

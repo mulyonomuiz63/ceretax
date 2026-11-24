@@ -2345,10 +2345,10 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
             <div className="px-5 pb-4">
               <div className="border border-[#E2E8F0] rounded-[8px] overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[11.5px] border-collapse">
+                  <table className="w-full text-[11px] border-collapse">
                     <thead>
                       <tr className="bg-[#FCD34D] text-[#1E293B] font-bold border-b border-[#EAB308]/40">
-                        <th className="px-2.5 py-2.5 w-9 text-center border-r border-white/50">
+                        <th className="px-2.5 py-2.5 w-9 text-center border-r border-white/50 sticky left-0 bg-[#FCD34D] z-10">
                           {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
                             <input
                               type="checkbox"
@@ -2360,7 +2360,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             />
                           )}
                         </th>
-                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky left-9 bg-[#FCD34D] z-10 w-16">
                           Aksi
                         </th>
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
@@ -2376,9 +2376,21 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                           Status
                         </th>
+                        {subTab !== 'bpmp' && (
+                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                            <span className="inline-flex items-center gap-1">
+                              Status Tanda Tangan Elektronik <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            </span>
+                          </th>
+                        )}
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                           <span className="inline-flex items-center gap-1">
-                            NIK / NPWP &amp; Penerima <ArrowUpDown className="w-3 h-3 opacity-60" />
+                            NITKU/Nomor Identitas Sub Unit Organisasi <ArrowUpDown className="w-3 h-3 opacity-60" />
+                          </span>
+                        </th>
+                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                          <span className="inline-flex items-center gap-1">
+                            Jenis Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
                           </span>
                         </th>
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
@@ -2386,39 +2398,89 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             Kode Objek Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
                           </span>
                         </th>
-                        <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                          Penghasilan Bruto
+                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                          <span className="inline-flex items-center gap-1">
+                            Nomor Identitas WP <ArrowUpDown className="w-3 h-3 opacity-60" />
+                          </span>
+                        </th>
+                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                          <span className="inline-flex items-center gap-1">
+                            Nama <ArrowUpDown className="w-3 h-3 opacity-60" />
+                          </span>
                         </th>
                         <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                          Tarif
+                          Dasar Pengenaan Pajak (Rp)
                         </th>
-                        <th className="px-3 py-2.5 text-right whitespace-nowrap">
-                          PPh Dipotong
+                        <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                          Pajak Penghasilan (Rp)
                         </th>
+                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                          Fasilitas Pajak
+                        </th>
+                        {statusView === 'ISSUED' && (
+                          <>
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Dilaporkan Dalam SPT
+                            </th>
+                            {subTab !== 'bpmp' && (
+                              <>
+                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  Dalam Proses Keberatan
+                                </th>
+                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  Selesai Proses Keberatan
+                                </th>
+                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  Keberatan tidak memenuhi persyaratan (Tolak Formal)
+                                </th>
+                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  Dalam Proses Reviu Pencabutan Permohonan Keberatan
+                                </th>
+                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  Pencabutan Keberatan Diterima
+                                </th>
+                              </>
+                            )}
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              SPT Telah/Sedang Diperiksa
+                            </th>
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              SPT Dalam Penanganan Hukum
+                            </th>
+                            {subTab === 'bppu' && (
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap">
+                                Sedang Dalam Proses Pengembalian
+                              </th>
+                            )}
+                          </>
+                        )}
                       </tr>
 
                       {showFilters && (
                         <tr className="bg-white border-b border-[#E2E8F0]">
-                          <th className="px-2 py-2 border-r border-slate-100" />
-                          <th className="px-2 py-2 border-r border-slate-100" />
-                          <th className="px-2 py-2 border-r border-slate-100">
-                            <select
-                              value={periodMonthFilter}
-                              onChange={(e) => {
-                                setPeriodMonthFilter(e.target.value);
-                                setPage(1);
-                              }}
-                              className="w-full min-w-[95px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal"
-                            >
-                              <option value="ALL">Semua Masa</option>
-                              {MONTHS_ID.map((m, idx) => (
-                                <option key={m} value={String(idx + 1)}>
-                                  {m}
-                                </option>
-                              ))}
-                            </select>
+                          <th className="px-2 py-1.5 border-r border-slate-100 sticky left-0 bg-white z-10" />
+                          <th className="px-2 py-1.5 border-r border-slate-100 sticky left-9 bg-white z-10" />
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={periodMonthFilter}
+                                onChange={(e) => {
+                                  setPeriodMonthFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal"
+                              >
+                                <option value="ALL">Semua Masa</option>
+                                {MONTHS_ID.map((m, idx) => (
+                                  <option key={m} value={String(idx + 1)}>
+                                    {m}
+                                  </option>
+                                ))}
+                              </select>
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
                           </th>
-                          <th className="px-2 py-2 border-r border-slate-100">
+                          <th className="px-2 py-1.5 border-r border-slate-100">
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
@@ -2427,130 +2489,287 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   setNumFilter(e.target.value);
                                   setPage(1);
                                 }}
-                                placeholder="Nomor..."
-                                className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal"
+                                placeholder=""
+                                className="w-full min-w-[100px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
                               />
                               <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                             </div>
                           </th>
-                          <th className="px-2 py-2 border-r border-slate-100" />
-                          <th className="px-2 py-2 border-r border-slate-100">
-                            <input
-                              type="text"
-                              value={recipientFilter}
-                              onChange={(e) => {
-                                setRecipientFilter(e.target.value);
-                                setPage(1);
-                              }}
-                              placeholder="NIK / Nama..."
-                              className="w-full min-w-[125px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal"
-                            />
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <select className="w-full min-w-[95px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                <option>Pilih Status</option>
+                                <option>Disimpan Tidak Valid</option>
+                                <option>Normal</option>
+                              </select>
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
                           </th>
-                          <th className="px-2 py-2 border-r border-slate-100">
-                            <input
-                              type="text"
-                              value={objCodeFilter}
-                              onChange={(e) => {
-                                setObjCodeFilter(e.target.value);
-                                setPage(1);
-                              }}
-                              placeholder="Kode Objek..."
-                              className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal"
-                            />
+                          {subTab !== 'bpmp' && (
+                            <th className="px-2 py-1.5 border-r border-slate-100">
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  placeholder=""
+                                  className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                />
+                                <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                              </div>
+                            </th>
+                          )}
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder=""
+                                className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                              />
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
                           </th>
-                          <th colSpan={3} className="px-2 py-2" />
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder=""
+                                className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                              />
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
+                          </th>
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={objCodeFilter}
+                                onChange={(e) => {
+                                  setObjCodeFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                placeholder=""
+                                className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                              />
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
+                          </th>
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={recipientFilter}
+                                onChange={(e) => {
+                                  setRecipientFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                placeholder=""
+                                className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                              />
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
+                          </th>
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder=""
+                                className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                              />
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
+                          </th>
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder=""
+                                className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                              />
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
+                          </th>
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder=""
+                                className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                              />
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
+                          </th>
+                          <th className="px-2 py-1.5 border-r border-slate-100">
+                            <div className="flex items-center gap-1">
+                              <select className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                <option>Pilih Fasilitas Pajak</option>
+                                <option>Tanpa Fasilitas</option>
+                              </select>
+                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                            </div>
+                          </th>
+                          {statusView === 'ISSUED' && (
+                            <th colSpan={subTab === 'bpmp' ? 3 : subTab === 'bppu' ? 9 : 8} className="px-2 py-1.5" />
+                          )}
                         </tr>
                       )}
                     </thead>
                     <tbody className="divide-y divide-[#EEF2F6] bg-white">
                       {paginatedSlips.length === 0 ? (
                         <tr>
-                          <td colSpan={10} className="px-4 py-8 text-left text-slate-500">
+                          <td colSpan={24} className="px-4 py-8 text-left text-slate-500">
                             Tidak ada data yang ditemukan.
                           </td>
                         </tr>
                       ) : (
-                        paginatedSlips.map((slip) => (
-                          <tr key={slip.id} className="hover:bg-[#F8FAFC]">
-                            <td className="px-2.5 py-2.5 text-center">
-                              {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
-                                <input
-                                  type="checkbox"
-                                  checked={selectedIds.includes(slip.id)}
-                                  onChange={() => toggleSelect(slip.id)}
-                                />
+                        paginatedSlips.map((slip) => {
+                          const isIssued = slip.status === 'ISSUED';
+                          const statusText =
+                            slip.status === 'UNISSUED'
+                              ? 'Disimpan Tidak Valid'
+                              : slip.status === 'CANCELLED'
+                                ? 'Dibatalkan'
+                                : 'Normal';
+                          const tteStatus = isIssued ? 'Done' : '';
+                          const nitkuVal =
+                            slip.nitku ||
+                            (subTab === 'bpmp'
+                              ? '0753620525008000000000'
+                              : '0905774188403000000000');
+                          const jenisPajakVal =
+                            slip.taxType ||
+                            (subTab === 'bppu'
+                              ? 'Pasal 23'
+                              : subTab === 'bp21' || subTab === 'bpmp'
+                                ? 'Pasal 21'
+                                : 'Pasal 23');
+                          const fasilitasVal = slip.taxFacility || 'Tanpa Fasilitas';
+
+                          return (
+                            <tr key={slip.id} className="hover:bg-[#F8FAFC]">
+                              <td className="px-2.5 py-2.5 text-center sticky left-0 bg-white">
+                                {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedIds.includes(slip.id)}
+                                    onChange={() => toggleSelect(slip.id)}
+                                  />
+                                )}
+                              </td>
+                              <td className="px-3 py-2.5 whitespace-nowrap sticky left-9 bg-white">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setDetailSlip(slip)}
+                                    className="text-slate-500 hover:text-[#1E2C5E] cursor-pointer transition p-0.5"
+                                    title="Lihat Detail Bukti Potong"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      slip.status === 'UNISSUED'
+                                        ? openEditForm(slip)
+                                        : setDetailSlip(slip)
+                                    }
+                                    className="text-slate-500 hover:text-sky-600 cursor-pointer transition p-0.5"
+                                    title={
+                                      slip.status === 'UNISSUED'
+                                        ? 'Edit Konsep Bukti Potong'
+                                        : 'Edit / Pembetulan'
+                                    }
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 whitespace-nowrap">
+                                {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
+                              </td>
+                              <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                {slip.status === 'UNISSUED' ? '' : slip.slipNumber}
+                              </td>
+                              <td className="px-3 py-2.5 whitespace-nowrap">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                    isIssued
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : slip.status === 'CANCELLED'
+                                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                                  }`}
+                                >
+                                  {statusText}
+                                </span>
+                              </td>
+                              {subTab !== 'bpmp' && (
+                                <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
+                                  {tteStatus}
+                                </td>
                               )}
-                            </td>
-                            <td className="px-3 py-2.5 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setDetailSlip(slip)}
-                                  className="text-slate-500 hover:text-[#1E2C5E] cursor-pointer transition p-0.5"
-                                  title="Lihat Detail Bukti Potong"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => (slip.status === 'UNISSUED' ? openEditForm(slip) : setDetailSlip(slip))}
-                                  className="text-slate-500 hover:text-sky-600 cursor-pointer transition p-0.5"
-                                  title={slip.status === 'UNISSUED' ? 'Edit Konsep Bukti Potong' : 'Edit / Pembetulan'}
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 whitespace-nowrap">
-                              {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
-                            </td>
-                            <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
-                              {slip.slipNumber}
-                            </td>
-                            <td className="px-3 py-2.5 whitespace-nowrap">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                  slip.status === 'ISSUED'
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : slip.status === 'CANCELLED'
-                                      ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                      : 'bg-amber-50 text-amber-800 border-amber-200'
-                                }`}
-                              >
-                                {slip.status === 'ISSUED'
-                                  ? 'Normal'
-                                  : slip.status === 'CANCELLED'
-                                    ? 'Dibatalkan'
-                                    : 'Belum Terbit'}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5">
-                              <div className="font-semibold text-slate-800 whitespace-nowrap">
-                                {slip.recipientName}
-                              </div>
-                              <div className="text-[10px] font-mono-num text-slate-500">
-                                {slip.recipientNikNpwp}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5">
-                              <div className="font-mono-num font-semibold text-[#1E2C5E]">
+                              <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                {nitkuVal}
+                              </td>
+                              <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
+                                {jenisPajakVal}
+                              </td>
+                              <td className="px-3 py-2.5 font-mono-num text-[#1E2C5E] whitespace-nowrap font-semibold">
                                 {slip.objectCode}
-                              </div>
-                              <div className="text-[10px] text-slate-500 max-w-[180px] truncate">
-                                {slip.objectName}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
-                              {formatRp(slip.grossAmount)}
-                            </td>
-                            <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
-                              {slip.ratePercent}%
-                            </td>
-                            <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
-                              {formatRp(slip.taxWithheld)}
-                            </td>
-                          </tr>
-                        ))
+                              </td>
+                              <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                {slip.recipientNikNpwp}
+                              </td>
+                              <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
+                                {slip.recipientName}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono-num text-slate-800 whitespace-nowrap">
+                                {formatRp(slip.grossAmount)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                {formatRp(slip.taxWithheld)}
+                              </td>
+                              <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
+                                {fasilitasVal}
+                              </td>
+                              {statusView === 'ISSUED' && (
+                                <>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.reportedInSpt ? 'True' : 'False'}
+                                  </td>
+                                  {subTab !== 'bpmp' && (
+                                    <>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.inObjectionProcess ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.objectionCompleted ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.objectionRejectedFormal ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.inObjectionRevocationReview ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.objectionRevocationAccepted ? 'True' : 'False'}
+                                      </td>
+                                    </>
+                                  )}
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.sptExamined ? 'True' : 'False'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.sptLegalHandling ? 'True' : 'False'}
+                                  </td>
+                                  {subTab === 'bppu' && (
+                                    <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                      {slip.inRefundProcess ? 'True' : 'False'}
+                                    </td>
+                                  )}
+                                </>
+                              )}
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>

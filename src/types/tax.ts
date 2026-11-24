@@ -102,6 +102,18 @@ export interface WithholdingSlip {
   status: SlipStatus;
   signedAt?: string;
   createdAt: string;
+  nitku?: string;
+  taxType?: string;
+  taxFacility?: string;
+  reportedInSpt?: boolean;
+  inObjectionProcess?: boolean;
+  objectionCompleted?: boolean;
+  objectionRejectedFormal?: boolean;
+  inObjectionRevocationReview?: boolean;
+  objectionRevocationAccepted?: boolean;
+  sptExamined?: boolean;
+  sptLegalHandling?: boolean;
+  inRefundProcess?: boolean;
 }
 
 export interface OpAssetLiabilityFamily {
