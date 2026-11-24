@@ -146,7 +146,7 @@ export function createSeedWorkspace(nikRaw: string): WorkspaceState {
     phone: '0812-8800-2025',
     kppName: 'KPP Pratama Jakarta Setiabudi Dua',
     passphraseHint: '123456',
-    depositBalance: 25_000_000,
+    depositBalance: demoMatch ? 25_000_000 : 0,
     isDemo: Boolean(demoMatch),
     linkedCorporateId: corpId,
   };
@@ -165,7 +165,7 @@ export function createSeedWorkspace(nikRaw: string): WorkspaceState {
     phone: '021-5550-2025',
     kppName: 'KPP Madya Jakarta Selatan I',
     passphraseHint: '123456',
-    depositBalance: cleanNik === '3273022405950002' ? 200_000_000 : 150_000_000,
+    depositBalance: demoMatch ? (cleanNik === '3273022405950002' ? 200_000_000 : 150_000_000) : 0,
     isDemo: Boolean(demoMatch),
   };
 
@@ -745,16 +745,30 @@ export function createSeedWorkspace(nikRaw: string): WorkspaceState {
     },
   ];
 
+  const isDemoAccount = Boolean(demoMatch);
+
   return {
     nikKey: cleanNik,
     individualTaxpayer,
     corporateTaxpayer,
-    invoices,
-    slips,
+    invoices: isDemoAccount ? invoices : [],
+    slips: isDemoAccount ? slips : [],
     returns: [],
-    assets,
+    assets: isDemoAccount ? assets : [],
     billings: [],
-    notifications,
+    notifications: isDemoAccount
+      ? notifications
+      : [
+          {
+            id: `notif-welcome-${cleanNik.slice(-4)}`,
+            taxpayerId: indId,
+            title: 'Selamat Datang di Simulasi Coretax DJP',
+            message: `Akun simulasi Anda atas nama ${indName} telah aktif. Silakan mulai pengisian dan transaksi dari awal sesuai dengan modul atau instruksi ujian.`,
+            category: 'SYSTEM' as const,
+            isRead: false,
+            createdAt: nowIso,
+          },
+        ],
     examEvaluations: {},
   };
 }
