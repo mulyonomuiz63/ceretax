@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -37,6 +37,7 @@ import {
 
 interface EBupotModuleProps {
   subTab: string;
+  resetKey?: number;
   onChangeSubTab: (tab: string) => void;
   workspace: WorkspaceState;
   activeTaxpayer: Taxpayer;
@@ -213,6 +214,7 @@ const SUBTAB_CONFIG: Record<
 
 export const EBupotModule: React.FC<EBupotModuleProps> = ({
   subTab,
+  resetKey,
   onChangeSubTab,
   workspace,
   activeTaxpayer,
@@ -236,6 +238,14 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const [monitoringOpen, setMonitoringOpen] = useState(false);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+
+  // Reset detail views / modals when navigating or clicking menu
+  useEffect(() => {
+    setDetailSlip(null);
+    setCreateOpen(false);
+    setEditingSlip(null);
+    setMonitoringOpen(false);
+  }, [resetKey, subTab]);
 
   // Bukti Potong Saya filters (matches image_1c836f06.png)
   const [mySlipTypeFilter, setMySlipTypeFilter] = useState<string>('ALL');

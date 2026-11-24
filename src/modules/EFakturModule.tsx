@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -42,6 +42,7 @@ import {
 
 interface EFakturModuleProps {
   subTab: string;
+  resetKey?: number;
   onChangeSubTab: (tab: string) => void;
   workspace: WorkspaceState;
   activeTaxpayer: Taxpayer;
@@ -100,6 +101,7 @@ const DASHBOARD_STATUS_LEGEND = [
 
 export const EFakturModule: React.FC<EFakturModuleProps> = ({
   subTab,
+  resetKey,
   onChangeSubTab,
   workspace,
   activeTaxpayer,
@@ -142,6 +144,17 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [returnNoteNumber, setReturnNoteNumber] = useState('NR-2025-001');
   const [amendTarget, setAmendTarget] = useState<TaxInvoice | null>(null);
   const [amendDpp, setAmendDpp] = useState(0);
+
+  // Reset detail modals / views when navigating or clicking menu
+  useEffect(() => {
+    setCreateModalOpen(false);
+    setAddTxModalOpen(false);
+    setSignTarget(null);
+    setBulkSignTargets([]);
+    setReturnTarget(null);
+    setAmendTarget(null);
+    setMonitoringOpen(false);
+  }, [resetKey, subTab]);
 
   // Inline Coretax Output Invoice Edit state
   const [editCollapsed, setEditCollapsed] = useState<Record<string, boolean>>({});

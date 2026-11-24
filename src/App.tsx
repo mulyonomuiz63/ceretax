@@ -68,6 +68,7 @@ function CoretaxSimulatorApp() {
   const [bootLoading, setBootLoading] = useState(true);
   const [navLoading, setNavLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Memuat Portal KelasBrevet...');
+  const [navResetKey, setNavResetKey] = useState(0);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [printDoc, setPrintDoc] = useState<PrintablePayload | null>(null);
   const [examOpen, setExamOpen] = useState(false);
@@ -342,6 +343,7 @@ function CoretaxSimulatorApp() {
   }, [workspace?.nikKey, navHistory.entries]);
 
   const handleNavigate = (module: MainNavKey, subTab?: string) => {
+    setNavResetKey((k) => k + 1);
     if (module !== activeModule) {
       triggerTransitionLoading('Memuat modul layanan KelasBrevet...');
     }
@@ -352,7 +354,7 @@ function CoretaxSimulatorApp() {
       const defaults: Record<MainNavKey, string> = {
         portal: 'dokumen',
         efaktur: 'dashboard',
-        ebupot: 'bukti_potong_saya',
+        ebupot: 'bppu',
         spt: 'konsep',
         pembayaran: 'pemindahbukuan',
         bukubesar: 'ringkasan',
@@ -445,6 +447,7 @@ function CoretaxSimulatorApp() {
         {activeModule === 'efaktur' && (
           <EFakturModule
             subTab={activeSubTab}
+            resetKey={navResetKey}
             onChangeSubTab={setActiveSubTab}
             workspace={workspace}
             activeTaxpayer={activeTaxpayer}
@@ -469,6 +472,7 @@ function CoretaxSimulatorApp() {
         {activeModule === 'ebupot' && (
           <EBupotModule
             subTab={activeSubTab}
+            resetKey={navResetKey}
             onChangeSubTab={setActiveSubTab}
             workspace={workspace}
             activeTaxpayer={activeTaxpayer}
@@ -517,6 +521,7 @@ function CoretaxSimulatorApp() {
         {activeModule === 'spt' && (
           <SptModule
             subTab={activeSubTab}
+            resetKey={navResetKey}
             onChangeSubTab={setActiveSubTab}
             workspace={workspace}
             activeTaxpayer={activeTaxpayer}
@@ -563,6 +568,7 @@ function CoretaxSimulatorApp() {
         {activeModule === 'pembayaran' && (
           <PembayaranModule
             subTab={activeSubTab}
+            resetKey={navResetKey}
             onChangeSubTab={setActiveSubTab}
             workspace={workspace}
             activeTaxpayer={activeTaxpayer}

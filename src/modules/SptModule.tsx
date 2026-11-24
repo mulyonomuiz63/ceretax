@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpDown,
   Check,
@@ -39,6 +39,7 @@ import { SptTahunanBadanEditor } from './spt/SptTahunanBadanEditor.tsx';
 
 interface SptModuleProps {
   subTab: string;
+  resetKey?: number;
   onChangeSubTab: (tab: string) => void;
   workspace: WorkspaceState;
   activeTaxpayer: Taxpayer;
@@ -262,6 +263,7 @@ const STEP1_INDIVIDUAL_OPTIONS: Step1TileOption[] = [
 
 export const SptModule: React.FC<SptModuleProps> = ({
   subTab,
+  resetKey,
   onChangeSubTab,
   workspace,
   activeTaxpayer,
@@ -278,6 +280,12 @@ export const SptModule: React.FC<SptModuleProps> = ({
 
   // Authentic inline 3-step "Buat Konsep SPT" creation state
   const [creatingConcept, setCreatingConcept] = useState(false);
+
+  // Return to initial SPT list view whenever user clicks SPT in the navbar or changes subtab
+  useEffect(() => {
+    setEditingReturnId(null);
+    setCreatingConcept(false);
+  }, [resetKey, subTab]);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [selectedTileId, setSelectedTileId] = useState<string>(
     accountMode === 'CORPORATE' ? 'ppn' : 'pph_op'

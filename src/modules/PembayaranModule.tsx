@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpDown,
   CheckCircle2,
@@ -21,6 +21,7 @@ import {
 
 interface PembayaranModuleProps {
   subTab: string;
+  resetKey?: number;
   onChangeSubTab: (tab: string) => void;
   workspace: WorkspaceState;
   activeTaxpayer: Taxpayer;
@@ -59,6 +60,7 @@ const KAP_OPTIONS = [
 
 export const PembayaranModule: React.FC<PembayaranModuleProps> = ({
   subTab,
+  resetKey,
   onChangeSubTab,
   workspace,
   activeTaxpayer,
@@ -77,6 +79,10 @@ export const PembayaranModule: React.FC<PembayaranModuleProps> = ({
   const [pbkItems, setPbkItems] = useState<PbkDraftItem[]>([]);
   const [selectedPbkIds, setSelectedPbkIds] = useState<string[]>([]);
   const [pbkModalOpen, setPbkModalOpen] = useState(false);
+
+  useEffect(() => {
+    setPbkModalOpen(false);
+  }, [resetKey, subTab]);
   const [pbkSource, setPbkSource] = useState('Deposit Pajak (KAP 411618)');
   const [pbkKap, setPbkKap] = useState('411211');
   const [pbkKjs, setPbkKjs] = useState('100');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Plus, Save, Send, Settings, Trash2 } from 'lucide-react';
 import { SptTahunanBadanPayload, TaxReturn, Taxpayer } from '../../types/tax.ts';
 import { calculatePphBadan, formatRp } from '../../utils/taxCalc.ts';
@@ -66,6 +66,77 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
     if (taxReturn.status !== 'DRAFT') return;
     setRadioAnswers((prev) => ({ ...prev, [key]: val }));
   };
+
+  // Dynamic Tabs: Initially only 'Induk'. Lampiran only appears if user selects 'YA' on its question.
+  const visibleTabs = useMemo(() => {
+    const tabs: { id: BadanTab; label: string }[] = [{ id: 'induk', label: 'Induk' }];
+
+    // L1-A: D.4
+    if (radioAnswers['d_4'] === 'YA') {
+      tabs.push({ id: 'l1a', label: 'L1-A' });
+    }
+    // L2: H.21b
+    if (radioAnswers['h_21b'] === 'YA') {
+      tabs.push({ id: 'l2', label: 'L2' });
+    }
+    // L3: E.13, H.21i, or H.21j
+    if (
+      radioAnswers['e_13'] === 'YA' ||
+      radioAnswers['h_21i'] === 'YA' ||
+      radioAnswers['h_21j'] === 'YA'
+    ) {
+      tabs.push({ id: 'l3', label: 'L3' });
+    }
+    // L4: C.1a, C.2, C.3, or H.21f
+    if (
+      radioAnswers['c_1a'] === 'YA' ||
+      radioAnswers['c_2'] === 'YA' ||
+      radioAnswers['c_3'] === 'YA' ||
+      radioAnswers['h_21f'] === 'YA'
+    ) {
+      tabs.push({ id: 'l4', label: 'L4' });
+    }
+    // L6: H.21e
+    if (radioAnswers['h_21e'] === 'YA') {
+      tabs.push({ id: 'l6', label: 'L6' });
+    }
+    // L7: D.9
+    if (radioAnswers['d_9'] === 'YA') {
+      tabs.push({ id: 'l7', label: 'L7' });
+    }
+    // L9: G.20a
+    if (radioAnswers['g_20a'] === 'YA') {
+      tabs.push({ id: 'l9', label: 'L9' });
+    }
+    // L10-A: H.21h
+    if (radioAnswers['h_21h'] === 'YA') {
+      tabs.push({ id: 'l10a', label: 'L10-A' });
+    }
+    // L10-B: H.21k
+    if (radioAnswers['h_21k'] === 'YA') {
+      tabs.push({ id: 'l10b', label: 'L10-B' });
+    }
+    // L10-C: H.21g
+    if (radioAnswers['h_21g'] === 'YA') {
+      tabs.push({ id: 'l10c', label: 'L10-C' });
+    }
+    // L11-B: H.21d
+    if (radioAnswers['h_21d'] === 'YA') {
+      tabs.push({ id: 'l11b', label: 'L11-B' });
+    }
+    // L13-A: H.21a or H.21c
+    if (radioAnswers['h_21a'] === 'YA' || radioAnswers['h_21c'] === 'YA') {
+      tabs.push({ id: 'l13a', label: 'L13-A' });
+    }
+
+    return tabs;
+  }, [radioAnswers]);
+
+  useEffect(() => {
+    if (tab !== 'induk' && !visibleTabs.some((t) => t.id === tab)) {
+      setTab('induk');
+    }
+  }, [visibleTabs, tab]);
 
   // L11-B interactive fields (EBITDA & DER simulation)
   const [biayaBungaPinjaman, setBiayaBungaPinjaman] = useState(120_000_000);
@@ -161,9 +232,9 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
         </span>
       </div>
 
-      {/* Horizontal Coretax Tabs */}
+      {/* Horizontal Coretax Tabs (Dynamic: Induk always, Lampiran appears if answered YA) */}
       <div className="px-5 pt-3 bg-white border-b border-slate-200 flex items-center gap-6 overflow-x-auto">
-        {BADAN_TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -352,9 +423,9 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               {!collapsed.secC && (
                 <div className="p-4 space-y-2 bg-white">
                   {[
-                    { id: 'c_1a', text: '1.a. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang dikenakan PPh bersifat final?' },
-                    { id: 'c_2', text: '2. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang tidak termasuk objek pajak?' },
-                    { id: 'c_3', text: '3. Apakah Wajib Pajak memiliki peredaran bruto tertentu yang dikenai PPh Final (PP 55/2022)?' },
+                    { id: 'c_1a', text: '1.a. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang dikenakan PPh bersifat final (Lampiran L4)?' },
+                    { id: 'c_2', text: '2. Apakah Wajib Pajak menerima atau memperoleh penghasilan yang tidak termasuk objek pajak (Lampiran L4)?' },
+                    { id: 'c_3', text: '3. Apakah Wajib Pajak memiliki peredaran bruto tertentu yang dikenai PPh Final PP 55/2022 (Lampiran L4)?' },
                   ].map((q) => (
                     <div key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100">
                       <span className="text-slate-700">{q.text}</span>
@@ -399,7 +470,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                 <div className="p-4 space-y-2.5 bg-white">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 text-slate-700">
-                      4. Apakah Wajib Pajak menggunakan tarif PPh Pasal 17 ayat (1) huruf b / Pasal 31E?
+                      4. Apakah Wajib Pajak menggunakan tarif PPh Pasal 17 ayat (1) huruf b / Pasal 31E (Lampiran L1-A)?
                     </label>
                     <div className="lg:col-span-4 flex items-center justify-end gap-4">
                       <label className="inline-flex items-center gap-1.5 cursor-pointer">
@@ -427,7 +498,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     </div>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
-                    <label className="lg:col-span-8 text-slate-700">5. Peredaran Usaha / Bruto Komersial (Lampiran L1)</label>
+                    <label className="lg:col-span-8 text-slate-700">5. Peredaran Usaha / Bruto Komersial (Lampiran L1-A)</label>
                     <input
                       type="text"
                       readOnly
@@ -437,7 +508,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 font-semibold text-[#1E2C5E]">
-                      6. Penghasilan Neto Fiskal Sebelum Fasilitas Pajak (Lampiran L1)
+                      6. Penghasilan Neto Fiskal Sebelum Fasilitas Pajak (Lampiran L1-A)
                     </label>
                     <input
                       type="text"
@@ -465,15 +536,46 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                     />
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
-                    <label className="lg:col-span-8 text-slate-700">9. Kompensasi Kerugian Fiskal Tahun Sebelumnya</label>
-                    <input
-                      type="number"
-                      disabled={isReadOnly}
-                      value={calc.kompensasiKerugian}
-                      onChange={(e) => updateField('kompensasiKerugian', Number(e.target.value) || 0)}
-                      className="lg:col-span-4 text-right border border-slate-300 rounded px-2.5 py-1.5 font-mono-num"
-                    />
+                    <label className="lg:col-span-8 text-slate-700">
+                      9. Apakah Wajib Pajak memperhitungkan kompensasi kerugian fiskal tahun sebelumnya (Lampiran L7)?
+                    </label>
+                    <div className="lg:col-span-4 flex items-center justify-end gap-4">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="d_9"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['d_9'] === 'YA'}
+                          onChange={() => handleRadio('d_9', 'YA')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Ya</span>
+                      </label>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="d_9"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['d_9'] === 'TIDAK'}
+                          onChange={() => handleRadio('d_9', 'TIDAK')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Tidak</span>
+                      </label>
+                    </div>
                   </div>
+                  {radioAnswers['d_9'] === 'YA' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center pl-4 border-l-2 border-[#1E2C5E]">
+                      <label className="lg:col-span-8 text-slate-600 text-[11px]">Nilai Kompensasi Kerugian Fiskal (Rp)</label>
+                      <input
+                        type="number"
+                        disabled={isReadOnly}
+                        value={calc.kompensasiKerugian}
+                        onChange={(e) => updateField('kompensasiKerugian', Number(e.target.value) || 0)}
+                        className="lg:col-span-4 text-right border border-slate-300 rounded px-2.5 py-1.5 font-mono-num"
+                      />
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 font-bold text-[#1E2C5E]">
                       10. Penghasilan Kena Pajak (8 - 9)
@@ -516,6 +618,35 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               />
               {!collapsed.secE && (
                 <div className="p-4 space-y-2.5 bg-white">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center pb-2 border-b border-slate-100">
+                    <label className="lg:col-span-8 text-slate-700">
+                      13. Apakah Wajib Pajak memperhitungkan Kredit Pajak PPh Pasal 22, 23, atau 24 (Lampiran L3)?
+                    </label>
+                    <div className="lg:col-span-4 flex items-center justify-end gap-4">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="e_13"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['e_13'] === 'YA'}
+                          onChange={() => handleRadio('e_13', 'YA')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Ya</span>
+                      </label>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="e_13"
+                          disabled={isReadOnly}
+                          checked={radioAnswers['e_13'] === 'TIDAK'}
+                          onChange={() => handleRadio('e_13', 'TIDAK')}
+                          className="accent-[#1E2C5E] cursor-pointer"
+                        />
+                        <span>Tidak</span>
+                      </label>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 text-slate-700">
                       13.a. Kredit Pajak Dalam Negeri (PPh Pasal 22 &amp; Pasal 23 — Lampiran L3)
@@ -654,7 +785,7 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
                 <div className="p-4 space-y-2.5 bg-white">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
                     <label className="lg:col-span-8 text-slate-700">
-                      20.a. Apakah Wajib Pajak merupakan Wajib Pajak tertentu yang harus menghitung angsuran PPh Pasal 25 secara berkala?
+                      20.a. Apakah Wajib Pajak merupakan Wajib Pajak tertentu yang harus menghitung angsuran PPh Pasal 25 secara berkala (Lampiran L9)?
                     </label>
                     <div className="lg:col-span-4 flex items-center justify-end gap-4">
                       <label className="inline-flex items-center gap-1.5 cursor-pointer">
@@ -702,16 +833,17 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
               {!collapsed.secH && (
                 <div className="p-4 space-y-2 bg-white">
                   {[
-                    { id: 'h_21a', text: '21.a. Apakah terdapat transaksi dengan pihak yang memiliki hubungan istimewa?' },
-                    { id: 'h_21b', text: '21.b. Apakah Wajib Pajak melakukan penyertaan modal pada perusahaan afiliasi (Lampiran L2)?' },
-                    { id: 'h_21c', text: '21.c. Apakah Wajib Pajak memiliki utang dari pemilik modal atau perusahaan afiliasi?' },
+                    { id: 'h_21a', text: '21.a. Apakah terdapat transaksi dengan pihak yang memiliki hubungan istimewa (Lampiran L13-A)?' },
+                    { id: 'h_21b', text: '21.b. Apakah Wajib Pajak melakukan penyertaan modal pada perusahaan afiliasi serta memiliki susunan pengurus/pemegang saham (Lampiran L2)?' },
+                    { id: 'h_21c', text: '21.c. Apakah Wajib Pajak memiliki utang dari pemilik modal atau perusahaan afiliasi (Lampiran L13-A)?' },
                     { id: 'h_21d', text: '21.d. Apakah Wajib Pajak membebankan biaya pinjaman (Lampiran L11-B)?' },
-                    { id: 'h_21e', text: '21.e. Apakah Wajib Pajak melakukan transaksi penanaman modal atau fasilitas perpajakan?' },
-                    { id: 'h_21f', text: '21.f. Apakah Wajib Pajak memiliki sisa lebih yang digunakan untuk pembangunan sarana/prasarana?' },
-                    { id: 'h_21g', text: '21.g. Apakah Wajib Pajak membebankan biaya penyusutan dan/atau amortisasi fiskal?' },
-                    { id: 'h_21h', text: '21.h. Apakah Wajib Pajak membebankan biaya entertainment, promosi, atau penggantian natura?' },
-                    { id: 'h_21i', text: '21.i. Apakah Wajib Pajak menerima penghasilan dari luar negeri?' },
-                    { id: 'h_21j', text: '21.j. Apakah terdapat kelebihan PPh Pasal 21/26 yang diperhitungkan?' },
+                    { id: 'h_21e', text: '21.e. Apakah Wajib Pajak melakukan transaksi penanaman modal atau fasilitas perpajakan (Lampiran L6)?' },
+                    { id: 'h_21f', text: '21.f. Apakah Wajib Pajak memiliki sisa lebih yang digunakan untuk pembangunan sarana/prasarana (Lampiran L4)?' },
+                    { id: 'h_21g', text: '21.g. Apakah Wajib Pajak membebankan biaya penyusutan dan/atau amortisasi fiskal (Lampiran L10-C)?' },
+                    { id: 'h_21h', text: '21.h. Apakah Wajib Pajak membebankan biaya entertainment, promosi, atau penggantian natura (Lampiran L10-A)?' },
+                    { id: 'h_21i', text: '21.i. Apakah Wajib Pajak menerima penghasilan dari luar negeri (Lampiran L3)?' },
+                    { id: 'h_21j', text: '21.j. Apakah terdapat kelebihan PPh Pasal 21/26 yang diperhitungkan (Lampiran L3)?' },
+                    { id: 'h_21k', text: '21.k. Apakah Wajib Pajak membebankan kerugian piutang yang nyata-nyata tidak dapat ditagih (Lampiran L10-B)?' },
                   ].map((item) => (
                     <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100">
                       <span className="text-slate-700">{item.text}</span>

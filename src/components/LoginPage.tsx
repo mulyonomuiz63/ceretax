@@ -94,7 +94,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
 
     if (!humanVerified) {
-      setHumanVerified(true);
+      setLocalError(
+        isId
+          ? 'Silakan centang verifikasi "Saya bukan robot" terlebih dahulu.'
+          : 'Please check the "I am not a robot" verification first.'
+      );
+      return;
     }
 
     await onLoginNik(cleanedNik, password.trim() || undefined);
@@ -738,20 +743,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setHumanVerified((prev) => !prev)}
+                      onClick={() => {
+                        setHumanVerified((prev) => {
+                          const next = !prev;
+                          if (next && localError) setLocalError(null);
+                          return next;
+                        });
+                      }}
                       className={`w-full max-w-[275px] rounded-[10px] border px-4 py-3.5 flex items-center gap-3 text-left transition cursor-pointer ${
-                        darkTheme
-                          ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
-                          : 'bg-white border-[#DCE1EB] hover:border-[#B6C2D9]'
+                        !humanVerified && localError
+                          ? 'border-red-400 ring-2 ring-red-200 bg-red-50/40'
+                          : darkTheme
+                            ? 'bg-slate-800/80 border-slate-700 hover:border-slate-500'
+                            : 'bg-white border-[#DCE1EB] hover:border-[#B6C2D9]'
                       }`}
                     >
                       <span
                         className={`w-5 h-5 rounded-[4px] border flex items-center justify-center shrink-0 transition ${
                           humanVerified
                             ? 'bg-[#1E2C5E] border-[#1E2C5E] text-white'
-                            : darkTheme
-                              ? 'border-slate-500 bg-slate-900'
-                              : 'border-[#94A3B8] bg-white'
+                            : !humanVerified && localError
+                              ? 'border-red-400 bg-white'
+                              : darkTheme
+                                ? 'border-slate-500 bg-slate-900'
+                                : 'border-[#94A3B8] bg-white'
                         }`}
                       >
                         {humanVerified && <Check className="w-3.5 h-3.5 stroke-[3]" />}
