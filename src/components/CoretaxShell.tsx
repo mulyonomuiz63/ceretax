@@ -563,28 +563,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
         )}
       </div>
 
-      {/* Impersonation Slim Ribbon when acting as Corporate PKP */}
-      {accountMode === 'CORPORATE' && (
-        <div className="relative z-30 bg-[#1D4ED8] text-white text-xs px-4 sm:px-6 py-1.5 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-3.5 h-3.5 text-[#F4C430] shrink-0" />
-            <span>
-              <strong>Impersonating (Wajib Pajak Badan / PKP):</strong>{' '}
-              <span className="font-bold">{corporateTaxpayer.name}</span>
-              <span className="mx-1.5 opacity-60">·</span>
-              <span className="font-mono-num">{corporateTaxpayer.nikNpwp}</span>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => onSwitchAccountMode('INDIVIDUAL')}
-            className="text-[11px] font-semibold bg-white/15 hover:bg-white/25 px-3 py-0.5 rounded-full border border-white/30 transition cursor-pointer"
-          >
-            Kembali ke Akun Utama ({individualTaxpayer.name})
-          </button>
-        </div>
-      )}
-
       {/* ===================================================================== */}
       {/* PERMANENTLY STICKY 2-ROW WHITE HEADER CARD (EXACT CORETAX DJP)        */}
       {/* ===================================================================== */}
