@@ -185,23 +185,21 @@ export const LogoutPage: React.FC<LogoutPageProps> = ({
                 Sesi Anda telah diakhiri dengan aman
               </p>
 
-              {/* Large Yellow Logout / Exit Door Icon */}
+              {/* Official Coretax Yellow Logout / Exit Icon (Matching user reference 100%) */}
               <div className="flex justify-center my-8">
-                <div className="w-24 h-24 rounded-full bg-[#FEF9E7] flex items-center justify-center">
-                  <svg
-                    className="w-12 h-12 text-[#F59E0B]"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                    <polyline points="10 17 5 12 10 7" />
-                    <line x1="15" y1="12" x2="3" y2="12" />
-                  </svg>
-                </div>
+                <svg
+                  className="w-14 h-14 text-[#FFC70F]"
+                  viewBox="0 0 54 55"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M 19.5 17.5 C 19.5 9 26.5 3 37 3 C 46 3 52 9.5 52 18.5 L 52 36.5 C 52 45.5 46 52 37 52 C 26.5 52 19.5 46 19.5 37.5" />
+                  <polyline points="11.5 18 2.5 27.5 11.5 37" />
+                  <line x1="37" y1="27.5" x2="2.5" y2="27.5" />
+                </svg>
               </div>
 
               <p className="text-xs text-slate-600 text-center mb-6 leading-relaxed">

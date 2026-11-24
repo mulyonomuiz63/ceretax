@@ -334,6 +334,8 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
     const targetStatus = statusView === 'INVALID' ? 'CANCELLED' : statusView;
     return workspace.slips.filter((s) => {
       if (s.slipType !== currentSlipType || s.status !== targetStatus) return false;
+      if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
+      if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
       if (periodMonthFilter !== 'ALL' && String(s.taxPeriodMonth) !== periodMonthFilter) return false;
       if (numFilter.trim() && !s.slipNumber.toLowerCase().includes(numFilter.trim().toLowerCase()))
         return false;
@@ -354,6 +356,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   }, [
     workspace.slips,
     currentSlipType,
+    subTab,
     statusView,
     periodMonthFilter,
     numFilter,
@@ -364,15 +367,24 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const paginatedSlips = visibleSlips.slice((page - 1) * pageSize, page * pageSize);
   const paginatedMySlips = mySlips.slice((page - 1) * pageSize, page * pageSize);
 
-  const unissuedCount = workspace.slips.filter(
-    (s) => s.slipType === currentSlipType && s.status === 'UNISSUED'
-  ).length;
-  const issuedCount = workspace.slips.filter(
-    (s) => s.slipType === currentSlipType && s.status === 'ISSUED'
-  ).length;
-  const invalidCount = workspace.slips.filter(
-    (s) => s.slipType === currentSlipType && s.status === 'CANCELLED'
-  ).length;
+  const unissuedCount = workspace.slips.filter((s) => {
+    if (s.slipType !== currentSlipType || s.status !== 'UNISSUED') return false;
+    if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
+    if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
+    return true;
+  }).length;
+  const issuedCount = workspace.slips.filter((s) => {
+    if (s.slipType !== currentSlipType || s.status !== 'ISSUED') return false;
+    if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
+    if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
+    return true;
+  }).length;
+  const invalidCount = workspace.slips.filter((s) => {
+    if (s.slipType !== currentSlipType || s.status !== 'CANCELLED') return false;
+    if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
+    if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
+    return true;
+  }).length;
 
   // Live calculation preview for create modal (100% preserves Modul 3 TER / Psl 17 / PPh 23)
   const computeSlipValues = () => {
@@ -2455,41 +2467,32 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             Fasilitas Pajak
                           </th>
                         )}
-                        {statusView === 'ISSUED' && (
+                        {statusView === 'ISSUED' && isBpa && (
                           <>
                             <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
                               Dilaporkan Dalam SPT
                             </th>
-                            {subTab !== 'bpmp' && (
-                              <>
-                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                  Dalam Proses Keberatan
-                                </th>
-                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                  Selesai Proses Keberatan
-                                </th>
-                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                  Keberatan tidak memenuhi persyaratan (Tolak Formal)
-                                </th>
-                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                  Dalam Proses Reviu Pencabutan Permohonan Keberatan
-                                </th>
-                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                  Pencabutan Keberatan Diterima
-                                </th>
-                              </>
-                            )}
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Dalam Proses Keberatan
+                            </th>
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Selesai Proses Keberatan
+                            </th>
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Keberatan tidak memenuhi persyaratan (Tolak Formal)
+                            </th>
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Dalam Proses Reviu Pencabutan Permohonan Keberatan
+                            </th>
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Pencabutan Keberatan Diterima
+                            </th>
                             <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
                               SPT Telah/Sedang Diperiksa
                             </th>
                             <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
                               SPT Dalam Penanganan Hukum
                             </th>
-                            {subTab === 'bppu' && (
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap">
-                                Sedang Dalam Proses Pengembalian
-                              </th>
-                            )}
                           </>
                         )}
                       </tr>
@@ -2695,75 +2698,71 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               </div>
                             </th>
                           )}
-                          {statusView === 'ISSUED' && (
-                            isBpa ? (
-                              <>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                    <option>Pilih Dilaporkan Dalam SPT</option>
-                                    <option>True</option>
-                                    <option>False</option>
-                                  </select>
-                                </th>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                    <option>Pilih Dalam Proses Keberatan</option>
-                                    <option>True</option>
-                                    <option>False</option>
-                                  </select>
-                                </th>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                    <option>Pilih Selesai Proses Keberatan</option>
-                                    <option>True</option>
-                                    <option>False</option>
-                                  </select>
-                                </th>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <select className="w-full min-w-[150px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                    <option>Pilih Keberatan tidak memenuhi persyaratan (Tolak Formal)</option>
-                                    <option>True</option>
-                                    <option>False</option>
-                                  </select>
-                                </th>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <select className="w-full min-w-[160px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                    <option>Pilih Dalam Proses Reviu Pencabutan Permohonan Keberatan</option>
-                                    <option>True</option>
-                                    <option>False</option>
-                                  </select>
-                                </th>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <select className="w-full min-w-[140px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                    <option>Pilih Pencabutan Keberatan Diterima</option>
-                                    <option>True</option>
-                                    <option>False</option>
-                                  </select>
-                                </th>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="text"
-                                      placeholder=""
-                                      className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                                    />
-                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                                  </div>
-                                </th>
-                                <th className="px-2 py-1.5 border-r border-slate-100">
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="text"
-                                      placeholder=""
-                                      className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                                    />
-                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                                  </div>
-                                </th>
-                              </>
-                            ) : (
-                              <th colSpan={subTab === 'bpmp' ? 3 : subTab === 'bppu' ? 9 : 8} className="px-2 py-1.5" />
-                            )
+                          {statusView === 'ISSUED' && isBpa && (
+                            <>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih Dilaporkan Dalam SPT</option>
+                                  <option>True</option>
+                                  <option>False</option>
+                                </select>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih Dalam Proses Keberatan</option>
+                                  <option>True</option>
+                                  <option>False</option>
+                                </select>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih Selesai Proses Keberatan</option>
+                                  <option>True</option>
+                                  <option>False</option>
+                                </select>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <select className="w-full min-w-[150px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih Keberatan tidak memenuhi persyaratan (Tolak Formal)</option>
+                                  <option>True</option>
+                                  <option>False</option>
+                                </select>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <select className="w-full min-w-[160px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih Dalam Proses Reviu Pencabutan Permohonan Keberatan</option>
+                                  <option>True</option>
+                                  <option>False</option>
+                                </select>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <select className="w-full min-w-[140px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
+                                  <option>Pilih Pencabutan Keberatan Diterima</option>
+                                  <option>True</option>
+                                  <option>False</option>
+                                </select>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder=""
+                                    className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                  />
+                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                </div>
+                              </th>
+                              <th className="px-2 py-1.5 border-r border-slate-100">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder=""
+                                    className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                  />
+                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                </div>
+                              </th>
+                            </>
                           )}
                         </tr>
                       )}
@@ -2771,7 +2770,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                     <tbody className="divide-y divide-[#EEF2F6] bg-white">
                       {paginatedSlips.length === 0 ? (
                         <tr>
-                          <td colSpan={24} className="px-4 py-8 text-left text-slate-500">
+                          <td colSpan={isBpa ? (statusView === 'ISSUED' ? 22 : 14) : subTab === 'bpmp' ? 13 : 14} className="px-4 py-8 text-left text-slate-500">
                             Tidak ada data yang ditemukan.
                           </td>
                         </tr>
@@ -2917,41 +2916,32 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   {fasilitasVal}
                                 </td>
                               )}
-                              {statusView === 'ISSUED' && (
+                              {statusView === 'ISSUED' && isBpa && (
                                 <>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
                                     {slip.reportedInSpt ? 'True' : 'False'}
                                   </td>
-                                  {subTab !== 'bpmp' && (
-                                    <>
-                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                        {slip.inObjectionProcess ? 'True' : 'False'}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                        {slip.objectionCompleted ? 'True' : 'False'}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                        {slip.objectionRejectedFormal ? 'True' : 'False'}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                        {slip.inObjectionRevocationReview ? 'True' : 'False'}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                        {slip.objectionRevocationAccepted ? 'True' : 'False'}
-                                      </td>
-                                    </>
-                                  )}
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.inObjectionProcess ? 'True' : 'False'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.objectionCompleted ? 'True' : 'False'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.objectionRejectedFormal ? 'True' : 'False'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.inObjectionRevocationReview ? 'True' : 'False'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                    {slip.objectionRevocationAccepted ? 'True' : 'False'}
+                                  </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
                                     {slip.sptExamined ? 'True' : 'False'}
                                   </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
                                     {slip.sptLegalHandling ? 'True' : 'False'}
                                   </td>
-                                  {subTab === 'bppu' && (
-                                    <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                      {slip.inRefundProcess ? 'True' : 'False'}
-                                    </td>
-                                  )}
                                 </>
                               )}
                             </tr>

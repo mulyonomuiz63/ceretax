@@ -1562,13 +1562,34 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 Tahun Pengkreditan
                               </th>
                               <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                                Jumlah DPP (Rp)
+                                Harga Jual/Penggantian/DPP
                               </th>
                               <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                                Jumlah PPN (Rp)
+                                DPP Nilai Lain/DPP
                               </th>
-                              <th className="px-3 py-2.5 text-right whitespace-nowrap">
-                                Jumlah PPnBM (Rp)
+                              <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                                PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                                PPnBM
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Perekam
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Referensi
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                Nomor SP2D
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                Valid
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                Dilaporkan
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap">
+                                Dilaporkan oleh Penjual
                               </th>
                             </>
                           ) : (
@@ -1767,6 +1788,13 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2" />
                               </>
                             ) : (
@@ -1874,7 +1902,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       <tbody className="divide-y divide-[#EEF2F6] bg-white">
                         {paginatedInvoices.length === 0 ? (
                           <tr>
-                            <td colSpan={normalizedTab === 'input' ? 15 : 13} className="px-4 py-8 text-left text-slate-500">
+                            <td colSpan={normalizedTab === 'input' ? 22 : 13} className="px-4 py-8 text-left text-slate-500">
                               Tidak ada data yang ditemukan.
                             </td>
                           </tr>
@@ -1964,11 +1992,34 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
                                     {formatRp(inv.dppTotal)}
                                   </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppOtherValue || Math.round(inv.dppTotal * (11 / 12)))}
+                                  </td>
                                   <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
                                     {formatRp(inv.ppnTotal)}
                                   </td>
                                   <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
                                     0
+                                  </td>
+                                  <td className="px-3 py-2.5 text-left text-slate-800 whitespace-nowrap font-medium">
+                                    {inv.creatorName || workspace.corporateTaxpayer.representativeName || 'BAYU TRI RAHARDJO'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-left text-slate-700 whitespace-nowrap font-mono-num">
+                                    {inv.referenceCode || 'Invoice No. 244/INV/MTI/XI/2026'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center text-slate-500 whitespace-nowrap">
+                                    -
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-300">
+                                      VALID
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center text-slate-700 font-semibold whitespace-nowrap">
+                                    NO
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center text-slate-700 font-semibold whitespace-nowrap">
+                                    NO
                                   </td>
                                 </>
                               ) : (
