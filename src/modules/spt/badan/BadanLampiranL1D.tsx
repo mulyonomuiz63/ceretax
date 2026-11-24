@@ -15,15 +15,15 @@ export const BadanLampiranL1D: React.FC<BadanLampiranL1DProps> = ({
 }) => {
   // Laba Rugi Jasa rows matching Gambar 1
   const [incomeRows, setIncomeRows] = useState([
-    { code: '4001', name: 'Pendapatan Jasa', komersial: 235_875_397, nonObjek: 0, final: 0, tidakFinal: 235_875_397, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 235_875_397 },
+    { code: '4001', name: 'Pendapatan Jasa', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '4014', name: 'Penyesuaian Penjualan', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5000', name: 'Biaya Pokok Jasa', komersial: 141_761_114, nonObjek: 0, final: 0, tidakFinal: 141_761_114, koreksiPositif: 32_000_000, koreksiNegatif: 0, kodeFiskal: 'FPO-12', nilaiFiskal: 109_761_114 },
-    { code: '4000', name: 'Laba Kotor', isSubtotal: true, komersial: 94_114_283, nonObjek: 0, final: 0, tidakFinal: 94_114_283, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 126_114_283 },
+    { code: '5000', name: 'Biaya Pokok Jasa', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4000', name: 'Laba Kotor', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '4199', name: 'Pendapatan Usaha Lainnya', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
   ]);
 
   const [expenseRows, setExpenseRows] = useState([
-    { code: '5211', name: 'Gaji, Tunjangan, Bonus, Honorarium, THR, dsb', komersial: 126_000_000, nonObjek: 0, final: 0, tidakFinal: 126_000_000, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 126_000_000 },
+    { code: '5211', name: 'Gaji, Tunjangan, Bonus, Honorarium, THR, dsb', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5212', name: 'Beban Imbalan Kerja Lainnya', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5213', name: 'Beban Transportasi', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5214', name: 'Beban Penyusutan dan Amortisasi', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
@@ -35,8 +35,8 @@ export const BadanLampiranL1D: React.FC<BadanLampiranL1DProps> = ({
     { code: '5220', name: 'Beban Pemasaran atau Promosi', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5221', name: 'Beban Entertainment', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5499', name: 'Beban Usaha Lainnya', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5400', name: 'Jumlah Beban Usaha', isSubtotal: true, komersial: 126_000_000, nonObjek: 0, final: 0, tidakFinal: 126_000_000, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 126_000_000 },
-    { code: '4500', name: 'Laba (Rugi) Usaha', isSubtotal: true, komersial: -31_885_717, nonObjek: 0, final: 0, tidakFinal: -31_885_717, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 114_283 },
+    { code: '5400', name: 'Jumlah Beban Usaha', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4500', name: 'Laba (Rugi) Usaha', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
   ]);
 
   const [nonOperatingRows, setNonOperatingRows] = useState([
@@ -48,10 +48,10 @@ export const BadanLampiranL1D: React.FC<BadanLampiranL1DProps> = ({
     { code: '5405', name: 'Kerugian Penjualan Aset selain Persediaan', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5409', name: 'Sumbangan', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5421', name: 'Kerugian Selisih Kurs', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5599', name: 'Beban Non Usaha Lainnya', komersial: 3_729_934, nonObjek: 0, final: 0, tidakFinal: 3_729_934, koreksiPositif: 3_729_934, koreksiNegatif: 0, kodeFiskal: 'FPO-12', nilaiFiskal: 0 },
-    { code: '5500', name: 'Jumlah Beban Non Usaha', isSubtotal: true, komersial: 3_729_934, nonObjek: 0, final: 0, tidakFinal: 3_729_934, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '4700', name: 'Laba (Rugi) Non Usaha', isSubtotal: true, komersial: -3_729_934, nonObjek: 0, final: 0, tidakFinal: -3_729_934, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '4800', name: 'Laba (Rugi) Sebelum Pajak', isSubtotal: true, komersial: -35_615_651, nonObjek: 0, final: 0, tidakFinal: -35_615_651, koreksiPositif: 35_729_934, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 114_283 },
+    { code: '5599', name: 'Beban Non Usaha Lainnya', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '5500', name: 'Jumlah Beban Non Usaha', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4700', name: 'Laba (Rugi) Non Usaha', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4800', name: 'Laba (Rugi) Sebelum Pajak', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
   ]);
 
   return (

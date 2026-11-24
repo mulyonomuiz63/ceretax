@@ -28,7 +28,7 @@ import {
   Taxpayer,
   WorkspaceState,
 } from '../types/tax.ts';
-import { createDefaultBadanPayload } from '../data/seedData.ts';
+import { createEmptyBadanPayload } from '../data/seedData.ts';
 import { MONTHS_ID, PTKP_VALUES } from '../utils/taxCalc.ts';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
 import { downloadSptIndukPdf, downloadBpePdf } from '../utils/sptIndukPdfGenerator.ts';
@@ -538,7 +538,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
           postedSlipIds: [],
         } as SptTahunanOpPayload;
       } else {
-        payload = createDefaultBadanPayload();
+        payload = createEmptyBadanPayload();
       }
 
       await onCreateReturn({

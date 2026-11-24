@@ -15,30 +15,7 @@ export const BadanLampiranL2: React.FC<BadanLampiranL2Props> = ({
   isReadOnly = false,
 }) => {
   // Section A: Pemegang Saham / Pengurus
-  const [shareholders, setShareholders] = useState([
-    {
-      id: '1',
-      nama: 'MULYONO',
-      alamat: 'Jl. Merdeka No. 45, Jakarta Pusat',
-      negara: 'Indonesia',
-      npwpNik: '3171012345670001',
-      jabatan: 'Direktur Utama',
-      modalNilai: 6_000_000,
-      modalPersen: 60,
-      dividen: 0,
-    },
-    {
-      id: '2',
-      nama: 'SITI AMINAH',
-      alamat: 'Jl. Sudirman No. 12, Jakarta Selatan',
-      negara: 'Indonesia',
-      npwpNik: '3171019876540002',
-      jabatan: 'Komisaris',
-      modalNilai: 4_000_000,
-      modalPersen: 40,
-      dividen: 0,
-    },
-  ]);
+  const [shareholders, setShareholders] = useState<any[]>([]);
 
   // Section B: Penyertaan Modal Afiliasi
   const [affiliates, setAffiliates] = useState<any[]>([]);

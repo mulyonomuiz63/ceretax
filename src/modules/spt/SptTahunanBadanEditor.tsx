@@ -169,8 +169,8 @@ export const SptTahunanBadanEditor: React.FC<SptTahunanBadanEditorProps> = ({
   }, [visibleTabs, tab]);
 
   // L11-B interactive fields (EBITDA & DER simulation)
-  const [biayaBungaPinjaman, setBiayaBungaPinjaman] = useState(120_000_000);
-  const [bebanPenyusutanAmortisasi, setBebanPenyusutanAmortisasi] = useState(185_000_000);
+  const [biayaBungaPinjaman, setBiayaBungaPinjaman] = useState(0);
+  const [bebanPenyusutanAmortisasi, setBebanPenyusutanAmortisasi] = useState(0);
 
   // L2 Pengurus & Pemegang Saham
   const [newPengurus, setNewPengurus] = useState({ nama: '', npwp: '', jabatan: 'Direktur', sahamPersen: 0 });

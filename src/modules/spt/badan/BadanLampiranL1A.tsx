@@ -17,21 +17,21 @@ export const BadanLampiranL1A: React.FC<BadanLampiranL1AProps> = ({
   const [salesRows, setSalesRows] = useState([
     { code: '4002', name: 'Domestic', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '4003', name: 'Export', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '4004', name: 'Gross Sales', isSubtotal: true, komersial: 271_026_364, nonObjek: 0, final: 0, tidakFinal: 271_026_364, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 271_026_364 },
+    { code: '4004', name: 'Gross Sales', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '4011', name: 'Return', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '4012', name: 'Sales Discount', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '4013', name: 'Sales Adjustment', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '4020', name: 'Net Sales', isSubtotal: true, komersial: 271_026_364, nonObjek: 0, final: 0, tidakFinal: 271_026_364, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 271_026_364 },
+    { code: '4020', name: 'Net Sales', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
   ]);
 
   const [cogsRows, setCogsRows] = useState([
-    { code: '5001', name: 'Purchase of materials/merchandise', komersial: 66_110_000, nonObjek: 0, final: 0, tidakFinal: 66_110_000, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 66_110_000 },
+    { code: '5001', name: 'Purchase of materials/merchandise', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5003', name: 'Freight expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5007', name: 'Other expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5008', name: 'Beginning Inventory', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5009', name: 'Less Ending Inventory', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5020', name: 'Total of COGS (Cost of Goods Sold)', isSubtotal: true, komersial: 66_110_000, nonObjek: 0, final: 0, tidakFinal: 66_110_000, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 66_110_000 },
-    { code: '4300', name: 'Gross Profit', isSubtotal: true, komersial: 204_916_364, nonObjek: 0, final: 0, tidakFinal: 204_916_364, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 204_916_364 },
+    { code: '5020', name: 'Total of COGS (Cost of Goods Sold)', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4300', name: 'Gross Profit', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '4199', name: 'Other Income', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
   ]);
 
@@ -39,7 +39,7 @@ export const BadanLampiranL1A: React.FC<BadanLampiranL1AProps> = ({
     { code: '5211', name: 'Salaries, Wages, Bonuses, Gratification expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5212', name: 'Other Employee Benefit', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5213', name: 'Transportation expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5214', name: 'Depreciation and Amortization expenses', komersial: 4_900_000, nonObjek: 0, final: 0, tidakFinal: 4_900_000, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 4_900_000 },
+    { code: '5214', name: 'Depreciation and Amortization expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5215', name: 'Rental expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5216', name: 'Interest expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5217', name: 'Expenses related to services', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
@@ -48,9 +48,9 @@ export const BadanLampiranL1A: React.FC<BadanLampiranL1AProps> = ({
     { code: '5220', name: 'Marketing/promotion expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5221', name: 'Entertainment expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5222', name: 'General and Administration expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5399', name: 'Other operating expenses', komersial: 213_847_548, nonObjek: 0, final: 0, tidakFinal: 213_847_548, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 213_847_548 },
-    { code: '5400', name: 'Total Operating expenses', isSubtotal: true, komersial: 218_747_550, nonObjek: 0, final: 0, tidakFinal: 218_747_550, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 218_747_550 },
-    { code: '4500', name: 'Operating Profit (Loss)', isSubtotal: true, komersial: -13_831_186, nonObjek: 0, final: 0, tidakFinal: -13_831_186, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 114_283 },
+    { code: '5399', name: 'Other operating expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '5400', name: 'Total Operating expenses', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4500', name: 'Operating Profit (Loss)', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
   ]);
 
   const [nonOperatingRows, setNonOperatingRows] = useState([
@@ -62,10 +62,10 @@ export const BadanLampiranL1A: React.FC<BadanLampiranL1AProps> = ({
     { code: '5405', name: 'Loss on Sales of Asset Other Than Inventories', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5409', name: 'Donation', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
     { code: '5421', name: 'Foreign Exchange Loss', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5499', name: 'Other non-operating expenses', komersial: 1_358_182, nonObjek: 0, final: 0, tidakFinal: 1_358_182, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '5500', name: 'Total non-operating expenses', isSubtotal: true, komersial: 1_358_182, nonObjek: 0, final: 0, tidakFinal: 1_358_182, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '4700', name: 'Non-operating Profit (Loss)', isSubtotal: true, komersial: -1_358_182, nonObjek: 0, final: 0, tidakFinal: -1_358_182, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
-    { code: '4800', name: 'Laba (Rugi) Sebelum Pajak', isSubtotal: true, komersial: -15_189_368, nonObjek: 0, final: 0, tidakFinal: -15_189_368, koreksiPositif: 15_303_651, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 114_283 },
+    { code: '5499', name: 'Other non-operating expenses', komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '5500', name: 'Total non-operating expenses', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4700', name: 'Non-operating Profit (Loss)', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
+    { code: '4800', name: 'Laba (Rugi) Sebelum Pajak', isSubtotal: true, komersial: 0, nonObjek: 0, final: 0, tidakFinal: 0, koreksiPositif: 0, koreksiNegatif: 0, kodeFiskal: '', nilaiFiskal: 0 },
   ]);
 
   return (

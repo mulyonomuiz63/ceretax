@@ -764,13 +764,42 @@ export function createSeedWorkspace(nikRaw: string): WorkspaceState {
             taxpayerId: indId,
             title: 'Selamat Datang di Simulasi Coretax DJP',
             message: `Akun simulasi Anda atas nama ${indName} telah aktif. Silakan mulai pengisian dan transaksi dari awal sesuai dengan modul atau instruksi ujian.`,
-            category: 'SYSTEM' as const,
+            category: 'EXAM' as const,
             isRead: false,
             createdAt: nowIso,
           },
         ],
     examEvaluations: {},
   };
+}
+
+export function createEmptyBadanPayload(): SptTahunanBadanPayload {
+  return calculatePphBadan({
+    pembukuanDiaudit: false,
+    namaKap: '',
+    peredaranBruto: 0,
+    hpp: 0,
+    biayaUsaha: 0,
+    penghasilanLainKomersial: 0,
+    biayaLainKomersial: 0,
+    koreksiPositifNatura: 0,
+    koreksiPositifSanksiPajak: 0,
+    koreksiPositifJamuanNonNominatif: 0,
+    koreksiPositifPenyisihanPiutang: 0,
+    koreksiPositifLainnya: 0,
+    koreksiNegatifPenghasilanFinal: 0,
+    koreksiNegatifPenyusutanFiskal: 0,
+    koreksiNegatifLainnya: 0,
+    kompensasiKerugian: 0,
+    kreditPph22: 0,
+    kreditPph23: 0,
+    kreditPph24: 0,
+    angsuranPph25: 0,
+    totalAset: 0,
+    totalKewajiban: 0,
+    totalEkuitas: 0,
+    pengurus: [],
+  });
 }
 
 export function createDefaultBadanPayload(): SptTahunanBadanPayload {

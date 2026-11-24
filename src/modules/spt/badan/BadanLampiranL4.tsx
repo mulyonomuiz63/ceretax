@@ -17,8 +17,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
   // Final tax rows matching Gambar 4 exactly
   const [finalTaxRows, setFinalTaxRows] = useState([
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '28-405-01',
       objekPajak: 'Transaksi Penjualan Saham Milik Perusahaan Modal Ventura Tidak di Bursa Efek',
       dpp: 0,
@@ -26,8 +26,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       pphTerutang: 0,
     },
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '28-409-08',
       objekPajak: 'Jasa Konstruksi Berupa Jasa Pelaksanaan Konstruksi (Dengan Kualifikasi Usaha)',
       dpp: 0,
@@ -35,8 +35,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       pphTerutang: 0,
     },
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '28-410-02',
       objekPajak: 'Imbalan yang Dibayarkan/Terutang Kepada Perusahaan Pelayaran Dalam Negeri',
       dpp: 0,
@@ -44,8 +44,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       pphTerutang: 0,
     },
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '28-409-11',
       objekPajak: 'Jasa Konstruksi Berupa Jasa Pelaksanaan Konstruksi (Kualifikasi Usaha Menengah dan Besar)',
       dpp: 0,
@@ -53,8 +53,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       pphTerutang: 0,
     },
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '22-401-02',
       objekPajak: 'Penjualan BBM oleh Badan Usaha Selain Pertamina atau Anak Perusahaan Pertamina Kepada SPBU/Agen/Penyalur (Final)',
       dpp: 0,
@@ -62,8 +62,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       pphTerutang: 0,
     },
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '28-417-01',
       objekPajak: 'Imbalan yang Dibayarkan/Terutang Kepada Perusahaan Pelayaran dan/atau Penerbangan Luar Negeri Sehubungan dengan Pengangkutan Orang dan/atau Barang (Selain Berdasarkan Perjanjian Charter)',
       dpp: 0,
@@ -71,8 +71,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       pphTerutang: 0,
     },
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '28-416-01',
       objekPajak: 'Revaluasi atau Penilaian Kembali Aset Tetap',
       dpp: 0,
@@ -80,8 +80,8 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       pphTerutang: 0,
     },
     {
-      npwp: '270414544083000',
-      nama: 'GOCHIDA META SOLUSITAMA',
+      npwp: activeTaxpayer.nikNpwp,
+      nama: activeTaxpayer.name,
       kodeObjek: '28-409-13',
       objekPajak: 'Jasa Konstruksi Berupa Jasa Pengawasan Konstruksi (Dengan Kualifikasi Usaha)',
       dpp: 0,
@@ -96,7 +96,7 @@ export const BadanLampiranL4: React.FC<BadanLampiranL4Props> = ({
       id: '1',
       kode: 'NT-01',
       jenis: 'Dividen atau Bagian Laba dari Penyertaan Modal Dalam Negeri',
-      sumber: 'PT MITRA ANUGERAH',
+      sumber: '',
       bruto: 0,
     },
   ]);

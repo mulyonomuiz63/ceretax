@@ -143,7 +143,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [signTarget, setSignTarget] = useState<TaxInvoice | null>(null);
   const [returnTarget, setReturnTarget] = useState<TaxInvoice | null>(null);
   const [returnAmount, setReturnAmount] = useState(0);
-  const [returnNoteNumber, setReturnNoteNumber] = useState('NR-2025-001');
+  const [returnNoteNumber, setReturnNoteNumber] = useState('');
   const [amendTarget, setAmendTarget] = useState<TaxInvoice | null>(null);
   const [amendDpp, setAmendDpp] = useState(0);
 
@@ -164,25 +164,23 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [isFinalPayment, setIsFinalPayment] = useState(false);
   const [txCode, setTxCode] = useState('04');
   const [invoiceDate, setInvoiceDate] = useState('2025-01-22');
-  const [referenceCode, setReferenceCode] = useState(
-    `INV/BN/2025/01/00${workspace.invoices.length + 1}`
-  );
+  const [referenceCode, setReferenceCode] = useState('');
   const [buyerIdType, setBuyerIdType] = useState<'NPWP' | 'PASPOR' | 'NIK' | 'LAINNYA'>('NPWP');
-  const [counterpartyNpwp, setCounterpartyNpwp] = useState('0811223344556000');
-  const [counterpartyName, setCounterpartyName] = useState('PT MITRA NIAGA SEJAHTERA');
-  const [buyerAddress, setBuyerAddress] = useState('Jl. Jend. Sudirman Kav. 45, Jakarta Selatan');
-  const [buyerEmail, setBuyerEmail] = useState('tax@mitraniaga.co.id');
+  const [counterpartyNpwp, setCounterpartyNpwp] = useState('');
+  const [counterpartyName, setCounterpartyName] = useState('');
+  const [buyerAddress, setBuyerAddress] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
   const [buyerCountry, setBuyerCountry] = useState('Indonesia (IDN)');
   const [draftItems, setDraftItems] = useState<TaxInvoiceItem[]>([]);
   const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
 
   // Add Transaction modal state
   const [txItemType, setTxItemType] = useState<'GOODS' | 'SERVICES'>('GOODS');
-  const [itemCode, setItemCode] = useState('847130');
-  const [itemName, setItemName] = useState('Komputer Jinjing / Laptop & Perangkat IT');
+  const [itemCode, setItemCode] = useState('');
+  const [itemName, setItemName] = useState('');
   const [txUnit, setTxUnit] = useState('Unit');
-  const [unitPrice, setUnitPrice] = useState(12_000_000);
-  const [quantity, setQuantity] = useState(5);
+  const [unitPrice, setUnitPrice] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const [discount, setDiscount] = useState(0);
   const [isLuxury, setIsLuxury] = useState(false);
   const [txPpnbmRate, setTxPpnbmRate] = useState(0);
@@ -322,31 +320,14 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   }, [periodInvoices]);
 
   const handleOpenInvoiceEditor = () => {
-    setReferenceCode(`INV/BN/2025/01/00${workspace.invoices.length + 1}`);
-    const isExport = normalizedTab === 'dok_lain_keluaran';
-    const defaultCalc = isExport
-      ? { dpp: 60_000_000, dppOtherValue: 60_000_000, ppn: 0 }
-      : calculatePpnLine(12_000_000, 5, 0, false);
-    setDraftItems([
-      {
-        id: `item-${Date.now()}`,
-        itemType: 'GOODS',
-        itemCode: '847130',
-        itemName: 'Komputer Jinjing / Laptop & Perangkat IT',
-        unit: 'Unit',
-        unitPrice: 12_000_000,
-        quantity: 5,
-        discount: 0,
-        isLuxury: false,
-        dpp: defaultCalc.dpp,
-        dppOtherValue: defaultCalc.dppOtherValue,
-        ppn: defaultCalc.ppn,
-        ppnbm: 0,
-      },
-    ]);
+    setReferenceCode('');
+    setCounterpartyNpwp('');
+    setCounterpartyName('');
+    setBuyerAddress('');
+    setBuyerEmail('');
+    setDraftItems([]);
     setSelectedDraftItemIds([]);
     setCreateModalOpen(true);
-    setFakturSuccessToast('Berhasil membuat Faktur Pajak Keluaran baru!');
   };
 
   const handleAddTransactionLine = (e: React.FormEvent) => {

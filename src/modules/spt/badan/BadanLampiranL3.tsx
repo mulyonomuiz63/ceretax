@@ -15,28 +15,7 @@ export const BadanLampiranL3: React.FC<BadanLampiranL3Props> = ({
   isReadOnly = false,
 }) => {
   const [foreignIncomes, setForeignIncomes] = useState<any[]>([]);
-  const [withheldIncomes, setWithheldIncomes] = useState([
-    {
-      id: '1',
-      namaPemotong: 'PT MITRA SEJAHTERA ABADI',
-      npwpPemotong: '0123456789012000',
-      jenisPajak: 'PPh Pasal 23',
-      dpp: 150_000_000,
-      pph: 3_000_000,
-      buktiNomor: 'BP-23/2024/11/001',
-      buktiTanggal: '2024-11-15',
-    },
-    {
-      id: '2',
-      namaPemotong: 'PT NUSANTARA LOGISTIK',
-      npwpPemotong: '0234567890123000',
-      jenisPajak: 'PPh Pasal 23',
-      dpp: 75_000_000,
-      pph: 1_500_000,
-      buktiNomor: 'BP-23/2024/10/012',
-      buktiTanggal: '2024-10-20',
-    },
-  ]);
+  const [withheldIncomes, setWithheldIncomes] = useState<any[]>([]);
 
   const totalDpp = withheldIncomes.reduce((acc, r) => acc + r.dpp, 0);
   const totalPph = withheldIncomes.reduce((acc, r) => acc + r.pph, 0);

@@ -13,8 +13,8 @@ export const BadanLampiranL8: React.FC<BadanLampiranL8Props> = ({
   activeTaxpayer,
   isReadOnly = false,
 }) => {
-  const [omzetBruto, setOmzetBruto] = useState(235_875_397);
-  const [pkpFasilitas, setPkpFasilitas] = useState(114_000);
+  const [omzetBruto, setOmzetBruto] = useState(0);
+  const [pkpFasilitas, setPkpFasilitas] = useState(0);
   const [pkpNonFasilitas, setPkpNonFasilitas] = useState(0);
 
   // Fasilitas Pasal 31E: tarif 50% x 22% = 11%

@@ -60,19 +60,19 @@ export const SptTahunanOpEditor: React.FC<SptTahunanOpEditorProps> = ({
   const [newRecType, setNewRecType] = useState<'ASSET' | 'LIABILITY' | 'FAMILY'>('ASSET');
   const [newCode, setNewCode] = useState('0102');
   const [newDesc, setNewDesc] = useState('Tabungan (Bank/Lembaga Keuangan)');
-  const [newAccountNo, setNewAccountNo] = useState('1234567890');
-  const [newBankName, setNewBankName] = useState('PT BANK CENTRAL ASIA TBK');
+  const [newAccountNo, setNewAccountNo] = useState('');
+  const [newBankName, setNewBankName] = useState('');
   const [newLocation, setNewLocation] = useState('Indonesia');
   const [newYear, setNewYear] = useState(taxReturn.taxYear);
-  const [newAmount, setNewAmount] = useState(50_000_000);
+  const [newAmount, setNewAmount] = useState(0);
   const [newRel, setNewRel] = useState('Harta Pribadi');
 
   // Quick Add L-2 record
   const [newFinalJenis, setNewFinalJenis] = useState('Bunga Deposito / Tabungan Bank (20%)');
-  const [newFinalDpp, setNewFinalDpp] = useState(12_000_000);
-  const [newFinalPph, setNewFinalPph] = useState(2_400_000);
+  const [newFinalDpp, setNewFinalDpp] = useState(0);
+  const [newFinalPph, setNewFinalPph] = useState(0);
   const [newNonObjJenis, setNewNonObjJenis] = useState('Hibah / Bantuan Keluarga Sedarah');
-  const [newNonObjAmt, setNewNonObjAmt] = useState(25_000_000);
+  const [newNonObjAmt, setNewNonObjAmt] = useState(0);
 
   const isReadOnly = taxReturn.status !== 'DRAFT';
   const toggleSection = (key: string) => setCollapsed((p) => ({ ...p, [key]: !p[key] }));

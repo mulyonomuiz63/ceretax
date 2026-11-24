@@ -16,16 +16,16 @@ export const BadanLampiranL1C: React.FC<BadanLampiranL1CProps> = ({
   // Balance sheet values state (pre-seeded with realistic figures)
   const [values, setValues] = useState<Record<string, number>>({
     // Aset Lancar
-    '1101': 550_149_856, // Kas dan Setara Kas
+    '1101': 0, // Kas dan Setara Kas
     '1102': 0, // Piutang Usaha - Pihak Ketiga
     '1103': 0, // Piutang Usaha - Hubungan Istimewa
     '1104': 0, // Piutang Lainnya - Pihak Ketiga
     '1105': 0, // Piutang Lainnya - Hubungan Istimewa
     '1106': 0, // Aset Kontrak
     '1107': 0, // Cadangan Kerugian Penurunan Nilai
-    '1401': 27_052, // Persediaan
+    '1401': 0, // Persediaan
     '1402': 0, // Pajak Dibayar di Muka
-    '1403': -1_608, // Biaya Dibayar di Muka
+    '1403': 0, // Biaya Dibayar di Muka
     '1405': 0, // Uang Muka
     '1406': 0, // Aset Lancar Lainnya
 
@@ -58,7 +58,7 @@ export const BadanLampiranL1C: React.FC<BadanLampiranL1CProps> = ({
     '2193': 0, // Beban yang Masih Harus Dibayar
     '2201': 0, // Utang Bank Jangka Pendek
     '2202': 0, // Utang Jangka Panjang Jatuh Tempo dalam Satu Tahun
-    '2203': 1_391_907_658, // Pendapatan Diterima di Muka
+    '2203': 0, // Pendapatan Diterima di Muka
     '2216': 0, // Liabilitas Jangka Pendek Lainnya
 
     // Liabilitas Jangka Panjang
@@ -71,7 +71,7 @@ export const BadanLampiranL1C: React.FC<BadanLampiranL1CProps> = ({
     '2998': 0, // Liabilitas Jangka Panjang Lainnya
 
     // Ekuitas
-    '3102': 10_000_000, // Modal Saham
+    '3102': 0, // Modal Saham
     '3120': 0, // Tambahan Modal Disetor
     '3200': 0, // Laba Ditahan
     '3217': 0, // Pendapatan Komprehensif Lainnya

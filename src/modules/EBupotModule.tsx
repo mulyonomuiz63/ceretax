@@ -273,13 +273,13 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
 
   // Create inline form state (Coretax e-Bupot PDF fields)
   const [formCollapsed, setFormCollapsed] = useState<Record<string, boolean>>({});
-  const [recipientNik, setRecipientNik] = useState('3174051908920005');
-  const [recipientName, setRecipientName] = useState('ANDI WIJAYA');
-  const [recipientPosition, setRecipientPosition] = useState('Staff Operasional');
+  const [recipientNik, setRecipientNik] = useState('');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientPosition, setRecipientPosition] = useState('');
   const [month, setMonth] = useState(1);
   const [year, setYear] = useState(2025);
   const [ptkp, setPtkp] = useState<PtkpStatus>('TK/0');
-  const [grossAmount, setGrossAmount] = useState(20_000_000);
+  const [grossAmount, setGrossAmount] = useState(0);
   const [pph23Code, setPph23Code] = useState('24-104-29');
   const [bpmpObjectCode, setBpmpObjectCode] = useState('21-100-01');
   const [bp21ObjectCode, setBp21ObjectCode] = useState('21-100-07');
@@ -287,8 +287,8 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const [taxFacility, setTaxFacility] = useState<string>('N/A');
   const [paymentIp, setPaymentIp] = useState<string>('N/A');
   const [refDocType, setRefDocType] = useState('CommercialInvoice');
-  const [refDocNumber, setRefDocNumber] = useState('DOC/2025/01/001');
-  const [refDocDate, setRefDocDate] = useState('2025-01-25');
+  const [refDocNumber, setRefDocNumber] = useState('');
+  const [refDocDate, setRefDocDate] = useState('');
   const [submitBanner, setSubmitBanner] = useState<string | null>(null);
 
   const activeConfig = SUBTAB_CONFIG[subTab] || SUBTAB_CONFIG.bppu;
@@ -2118,6 +2118,12 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                       type="button"
                       onClick={() => {
                         setEditingSlip(null);
+                        setRecipientNik('');
+                        setRecipientName('');
+                        setRecipientPosition('');
+                        setGrossAmount(0);
+                        setRefDocNumber('');
+                        setRefDocDate('');
                         setCreateOpen(true);
                       }}
                       className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"

@@ -70,8 +70,8 @@ export const PembayaranModule: React.FC<PembayaranModuleProps> = ({
 }) => {
   const [kapIdx, setKapIdx] = useState(0);
   const [periodLabel, setPeriodLabel] = useState('Masa Januari 2025');
-  const [amount, setAmount] = useState(10_000_000);
-  const [depositTopUp, setDepositTopUp] = useState(50_000_000);
+  const [amount, setAmount] = useState(0);
+  const [depositTopUp, setDepositTopUp] = useState(0);
   const [payingId, setPayingId] = useState<string | null>(null);
 
   // Pemindahbukuan (Pbk) state — matches image_34293372.png
@@ -87,7 +87,7 @@ export const PembayaranModule: React.FC<PembayaranModuleProps> = ({
   const [pbkKap, setPbkKap] = useState('411211');
   const [pbkKjs, setPbkKjs] = useState('100');
   const [pbkPeriod, setPbkPeriod] = useState('Januari 2025');
-  const [pbkAmount, setPbkAmount] = useState(5_000_000);
+  const [pbkAmount, setPbkAmount] = useState(0);
   const [pbkFilter, setPbkFilter] = useState('');
 
   // Billing list filters & pagination
