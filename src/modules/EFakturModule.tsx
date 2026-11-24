@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Download,
   Edit3,
   Eye,
   FileText,
@@ -17,6 +18,7 @@ import {
   Layers,
   Plus,
   RotateCcw,
+  Search,
   ShieldCheck,
   Trash2,
   Upload,
@@ -32,6 +34,7 @@ import {
   ITEM_CODES_CATALOG,
   MONTHS_ID,
 } from '../utils/taxCalc.ts';
+import { GOODS_CODES, SERVICES_CODES } from '../data/efakturCodes.ts';
 import { SignModal } from '../components/SignModal.tsx';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
 import { downloadFakturPajakPdf } from '../utils/fakturPajakPdfGenerator.ts';
@@ -184,6 +187,10 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [discount, setDiscount] = useState(0);
   const [isLuxury, setIsLuxury] = useState(false);
   const [txPpnbmRate, setTxPpnbmRate] = useState(0);
+  const [txCodeDropdownOpen, setTxCodeDropdownOpen] = useState(false);
+  const [txCodeSearchQuery, setTxCodeSearchQuery] = useState('');
+  const [isOtherValue, setIsOtherValue] = useState(false);
+  const [ppnRatePercent, setPpnRatePercent] = useState(12);
 
   const isReturTab =
     normalizedTab === 'retur_keluaran' ||
@@ -330,31 +337,62 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setCreateModalOpen(true);
   };
 
+  const activeCatalogCodes = txItemType === 'GOODS' ? GOODS_CODES : SERVICES_CODES;
+  const filteredCatalogCodes = useMemo(() => {
+    const q = txCodeSearchQuery.trim().toLowerCase();
+    if (!q) return activeCatalogCodes;
+    return activeCatalogCodes.filter(
+      (c) => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
+    );
+  }, [activeCatalogCodes, txCodeSearchQuery]);
+
+  const formatCoretaxDec = (val: number): string => {
+    return Number(val || 0).toLocaleString('id-ID', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const modalTotalPrice = Math.max(0, unitPrice * quantity);
+  const modalDpp = Math.max(0, modalTotalPrice - discount);
+  const modalDppOther = isOtherValue ? Math.round((11 / 12) * modalDpp) : modalDpp;
+  const isExportDoc = normalizedTab === 'dok_lain_keluaran';
+  const modalPpn = isExportDoc
+    ? 0
+    : Math.round((isOtherValue ? modalDppOther : modalDpp) * (ppnRatePercent / 100));
+  const modalPpnbm = Math.round((modalDpp * txPpnbmRate) / 100);
+
+  const handleOpenAddTxModal = () => {
+    setItemCode('');
+    setItemName('');
+    setTxUnit('Unit');
+    setQuantity(1);
+    setUnitPrice(0);
+    setDiscount(0);
+    setIsOtherValue(false);
+    setPpnRatePercent(12);
+    setTxPpnbmRate(0);
+    setTxCodeDropdownOpen(false);
+    setTxCodeSearchQuery('');
+    setAddTxModalOpen(true);
+  };
+
   const handleAddTransactionLine = (e: React.FormEvent) => {
     e.preventDefault();
-    const isExport = normalizedTab === 'dok_lain_keluaran';
-    const calc = isExport
-      ? {
-          dpp: Math.max(0, unitPrice * quantity - discount),
-          dppOtherValue: Math.max(0, unitPrice * quantity - discount),
-          ppn: 0,
-        }
-      : calculatePpnLine(unitPrice, quantity, discount, isLuxury);
-    const ppnbm = Math.round((calc.dpp * txPpnbmRate) / 100);
     const nextItem: TaxInvoiceItem = {
       id: `item-${Date.now()}-${Math.floor(Math.random() * 999)}`,
       itemType: txItemType,
-      itemCode,
-      itemName,
+      itemCode: itemCode || (txItemType === 'GOODS' ? '000000' : '000000'),
+      itemName: itemName || (txItemType === 'GOODS' ? 'Barang' : 'Jasa'),
       unit: txUnit || 'Unit',
       unitPrice,
       quantity,
       discount,
-      isLuxury,
-      dpp: calc.dpp,
-      dppOtherValue: calc.dppOtherValue,
-      ppn: calc.ppn,
-      ppnbm,
+      isLuxury: txPpnbmRate > 0,
+      dpp: modalDpp,
+      dppOtherValue: modalDppOther,
+      ppn: modalPpn,
+      ppnbm: modalPpnbm,
     };
     setDraftItems((prev) => [...prev, nextItem]);
     setAddTxModalOpen(false);
@@ -1015,7 +1053,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setAddTxModalOpen(true)}
+                            onClick={handleOpenAddTxModal}
                             className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs px-3.5 py-2 rounded-[6px] cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5 text-[#F7CA36]" />
@@ -2256,9 +2294,9 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       {/* Authentic Coretax Add Transaction Modal (2-Column: Detail Barang/Jasa & PPN dan PPnBM) */}
       {addTxModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-md shadow-2xl border border-slate-300 w-full max-w-3xl overflow-hidden my-6">
-            <div className="bg-white px-5 py-3.5 flex items-center justify-between border-b border-slate-200">
-              <h3 className="font-display font-bold text-[15px] text-[#1E2C5E]">Add Transaction</h3>
+          <div className="bg-white rounded-[4px] shadow-2xl border border-slate-300 w-full max-w-4xl overflow-visible my-6">
+            <div className="bg-white px-6 py-3.5 flex items-center justify-between border-b border-slate-200">
+              <h3 className="font-sans font-bold text-[14.5px] text-[#1E2C5E]">Add Transaction</h3>
               <button
                 type="button"
                 onClick={() => setAddTxModalOpen(false)}
@@ -2268,229 +2306,286 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleAddTransactionLine} className="p-5 space-y-4 text-[12px]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleAddTransactionLine} className="p-6 space-y-4 text-[12px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Left Column: Barang / Jasa Details */}
-                <div className="space-y-3">
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Tipe</label>
-                    <div className="flex items-center gap-5">
-                      <label className="inline-flex items-center gap-1.5 cursor-pointer font-medium">
-                        <input
-                          type="radio"
-                          checked={txItemType === 'GOODS'}
-                          onChange={() => setTxItemType('GOODS')}
-                          className="accent-[#1E2C5E]"
-                        />
-                        <span>Barang</span>
-                      </label>
-                      <label className="inline-flex items-center gap-1.5 cursor-pointer font-medium">
-                        <input
-                          type="radio"
-                          checked={txItemType === 'SERVICES'}
-                          onChange={() => setTxItemType('SERVICES')}
-                          className="accent-[#1E2C5E]"
-                        />
-                        <span>Jasa</span>
-                      </label>
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">Tipe</label>
+                      <div className="flex items-center gap-6">
+                        <label className="inline-flex items-center gap-2 cursor-pointer text-slate-800 text-[12px]">
+                          <input
+                            type="radio"
+                            name="itemType"
+                            checked={txItemType === 'GOODS'}
+                            onChange={() => {
+                              setTxItemType('GOODS');
+                              setItemCode('');
+                              setItemName('');
+                              setTxCodeSearchQuery('');
+                            }}
+                            className="accent-[#0088FF] w-4 h-4 cursor-pointer"
+                          />
+                          <span>Barang</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2 cursor-pointer text-slate-800 text-[12px]">
+                          <input
+                            type="radio"
+                            name="itemType"
+                            checked={txItemType === 'SERVICES'}
+                            onChange={() => {
+                              setTxItemType('SERVICES');
+                              setItemCode('');
+                              setItemName('');
+                              setTxCodeSearchQuery('');
+                            }}
+                            className="accent-[#0088FF] w-4 h-4 cursor-pointer"
+                          />
+                          <span>Jasa</span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block font-semibold text-slate-700">Kode</label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          downloadCsvFile(
-                            'Daftar_Kode_Barang_Jasa_Coretax.csv',
-                            ['Kode', 'Tipe', 'Nama Barang/Jasa'],
-                            ITEM_CODES_CATALOG.map((it) => [it.code, it.type, it.name])
-                          )
-                        }
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-[#1E2C5E] text-white text-[10.5px] font-semibold cursor-pointer"
-                      >
-                        <span>Unduh Kode</span>
-                      </button>
-                    </div>
-                    <select
-                      value={itemCode}
-                      onChange={(e) => {
-                        setItemCode(e.target.value);
-                        const found = ITEM_CODES_CATALOG.find((c) => c.code === e.target.value);
-                        if (found) {
-                          setItemName(found.name);
-                          setTxItemType(found.type);
-                        }
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const isGoods = txItemType === 'GOODS';
+                        downloadCsvFile(
+                          isGoods ? 'Daftar_Kode_Barang_Coretax.csv' : 'Daftar_Kode_Jasa_Coretax.csv',
+                          ['Kode', 'Tipe', 'Nama Barang/Jasa'],
+                          (isGoods ? GOODS_CODES : SERVICES_CODES).map((it) => [it.code, it.type, it.name])
+                        );
                       }}
-                      className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] bg-[#1D2B53] hover:bg-[#152048] text-white text-[11px] font-semibold cursor-pointer shadow-sm"
                     >
-                      {ITEM_CODES_CATALOG.map((it) => (
-                        <option key={it.code} value={it.code}>
-                          {it.code} — {it.name}
-                        </option>
-                      ))}
-                    </select>
+                      <span>Unduh Kode</span>
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+
+                  {/* Kode Combobox with Real-Time Search */}
+                  <div className="relative">
+                    <label className="block text-slate-700 font-normal mb-1">Kode</label>
+                    <div
+                      onClick={() => setTxCodeDropdownOpen(!txCodeDropdownOpen)}
+                      className={`w-full border ${
+                        txCodeDropdownOpen ? 'border-sky-500 ring-1 ring-sky-400' : 'border-slate-300'
+                      } rounded-[3px] bg-white px-3 py-2 text-[12px] flex items-center justify-between cursor-pointer`}
+                    >
+                      <span className={itemCode ? 'text-slate-800 font-medium' : 'text-slate-400'}>
+                        {itemCode ? `${itemCode} - ${itemName}` : 'Pilih kode'}
+                      </span>
+                      <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
+                    </div>
+
+                    {txCodeDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-[3px] shadow-2xl z-50 overflow-hidden">
+                        <div className="p-2 border-b border-slate-200 relative">
+                          <input
+                            type="text"
+                            autoFocus
+                            placeholder=""
+                            value={txCodeSearchQuery}
+                            onChange={(e) => setTxCodeSearchQuery(e.target.value)}
+                            className="w-full border border-sky-400 rounded-[3px] px-3 py-1.5 pr-8 text-[12px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                          />
+                          <Search className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                        <div className="max-h-56 overflow-y-auto">
+                          {filteredCatalogCodes.length > 0 ? (
+                            filteredCatalogCodes.map((c) => (
+                              <div
+                                key={c.code}
+                                onClick={() => {
+                                  setItemCode(c.code);
+                                  setItemName(c.name);
+                                  setTxCodeDropdownOpen(false);
+                                  setTxCodeSearchQuery('');
+                                }}
+                                className={`px-3 py-2 text-[11.5px] cursor-pointer hover:bg-sky-50 hover:text-sky-900 border-b border-slate-100 last:border-0 ${
+                                  itemCode === c.code ? 'bg-sky-100 text-sky-900 font-semibold' : 'text-slate-700'
+                                }`}
+                              >
+                                {c.code} - {c.name}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-4 text-center text-xs text-slate-400">
+                              Tidak ada kode yang sesuai
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label className="block text-slate-700 font-normal mb-1">
                       Nama <span className="text-rose-600">*</span>
                     </label>
                     <input
                       type="text"
                       value={itemName}
                       onChange={(e) => setItemName(e.target.value)}
-                      className="w-full border border-slate-300 rounded px-3 py-1.5"
+                      placeholder="Nama barang atau jasa"
+                      className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 bg-white"
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5">
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">
+                      <label className="block text-slate-700 font-normal mb-1">
                         Satuan <span className="text-rose-600">*</span>
                       </label>
                       <input
                         type="text"
                         value={txUnit}
                         onChange={(e) => setTxUnit(e.target.value)}
-                        className="w-full border border-slate-300 rounded px-3 py-1.5"
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 bg-white"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">KUANTITAS</label>
+                      <label className="block text-slate-700 font-normal mb-1">KUANTITAS</label>
                       <input
                         type="number"
                         min={1}
                         value={quantity}
                         onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-                        className="w-full text-right border border-slate-300 rounded px-3 py-1.5 font-mono-num"
+                        className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
                         required
                       />
                     </div>
                   </div>
+
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Harga Satuan (Rp)</label>
+                    <label className="block text-slate-700 font-normal mb-1">Harga Satuan</label>
                     <input
                       type="number"
                       min={0}
                       value={unitPrice}
                       onChange={(e) => setUnitPrice(Number(e.target.value) || 0)}
-                      className="w-full text-right border border-slate-300 rounded px-3 py-1.5 font-mono-num"
-                      required
+                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Total Harga</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formatRp(unitPrice * quantity)}
-                        className="w-full text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Potongan Harga</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={discount}
-                        onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                        className="w-full text-right border border-slate-300 rounded px-3 py-1.5 font-mono-num"
-                      />
-                    </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-normal mb-1">Total Harga</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatCoretaxDec(modalTotalPrice)}
+                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-normal mb-1">Potongan harga</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={discount}
+                      onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
+                    />
                   </div>
                 </div>
 
                 {/* Right Column: PPN dan PPnBM */}
-                <div className="space-y-3 bg-[#F8FAFC] border border-slate-200 rounded p-4">
-                  <div className="font-bold text-[#1E2C5E] pb-1.5 border-b border-slate-200">
+                <div className="space-y-3.5">
+                  <div className="text-[12.5px] font-semibold text-slate-800 pb-1">
                     PPN dan PPnBM
                   </div>
+
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">DPP (Rp)</label>
+                    <label className="block text-slate-700 font-normal mb-1">DPP</label>
                     <input
                       type="text"
                       readOnly
-                      value={formatRp(previewCalc.dpp)}
-                      className="w-full text-right border border-slate-200 bg-white rounded px-3 py-1.5 font-mono-num font-semibold"
+                      value={formatCoretaxDec(modalDpp)}
+                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
                     />
                   </div>
-                  {normalizedTab !== 'dok_lain_keluaran' && (
-                    <div className="space-y-1.5">
-                      <label className="inline-flex items-center gap-2 cursor-pointer font-semibold text-[#1E2C5E]">
-                        <input
-                          type="checkbox"
-                          checked={!isLuxury}
-                          onChange={(e) => setIsLuxury(!e.target.checked)}
-                          className="accent-[#1E2C5E]"
-                        />
-                        <span>DPP Nilai Lain / DPP (11/12 — PMK 131/2024)</span>
-                      </label>
+
+                  <div className="space-y-1">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-slate-700 text-[12px]">
                       <input
-                        type="text"
-                        readOnly
-                        value={formatRp(previewCalc.dppOtherValue)}
-                        className="w-full text-right border border-slate-200 bg-white rounded px-3 py-1.5 font-mono-num font-bold text-[#1E2C5E]"
+                        type="checkbox"
+                        checked={isOtherValue}
+                        onChange={(e) => setIsOtherValue(e.target.checked)}
+                        className="accent-[#0088FF] w-4 h-4 rounded cursor-pointer"
                       />
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Tarif PPN (%)</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={normalizedTab === 'dok_lain_keluaran' ? '0%' : '12%'}
-                        className="w-full text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">PPN (Rp)</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formatRp(previewCalc.ppn)}
-                        className="w-full text-right border border-emerald-200 bg-emerald-50 rounded px-3 py-1.5 font-mono-num font-extrabold text-emerald-800"
-                      />
-                    </div>
+                      <span>DPP Nilai Lain/DPP</span>
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatCoretaxDec(isOtherValue ? modalDppOther : 0)}
+                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5 pt-1 border-t border-slate-200">
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Tarif PPnBM (%)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={200}
-                        value={txPpnbmRate}
-                        onChange={(e) => setTxPpnbmRate(Number(e.target.value) || 0)}
-                        className="w-full text-right border border-slate-300 bg-white rounded px-3 py-1.5 font-mono-num"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">PPnBM (Rp)</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formatRp(Math.round((previewCalc.dpp * txPpnbmRate) / 100))}
-                        className="w-full text-right border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
-                      />
-                    </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-normal mb-1">Tarif PPN</label>
+                    <select
+                      value={ppnRatePercent}
+                      onChange={(e) => setPpnRatePercent(Number(e.target.value))}
+                      className="w-full border border-slate-300 rounded-[3px] bg-white px-3 py-1.5 text-[12px] text-slate-800 cursor-pointer"
+                    >
+                      <option value={12}>12%</option>
+                      <option value={11}>11%</option>
+                      <option value={0}>0%</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-normal mb-1">PPN</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatCoretaxDec(modalPpn)}
+                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-normal mb-1">Tarif PPnBM (%)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={200}
+                      value={txPpnbmRate}
+                      onChange={(e) => setTxPpnbmRate(Number(e.target.value) || 0)}
+                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-normal mb-1">PPnBM</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatCoretaxDec(modalPpnbm)}
+                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              {/* Bottom buttons matching screenshot */}
+              <div className="flex justify-end items-center gap-2 pt-4 border-t border-slate-200 mt-6">
                 <button
                   type="button"
                   onClick={() => setAddTxModalOpen(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-[6px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="px-5 py-1.5 bg-[#38BDF8] hover:bg-[#0EA5E9] text-white text-[12.5px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold rounded-[6px] cursor-pointer"
+                  className="px-5 py-1.5 bg-[#0088FF] hover:bg-[#0070D2] text-white text-[12.5px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
                 >
                   Simpan
                 </button>

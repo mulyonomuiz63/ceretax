@@ -331,17 +331,9 @@ export const FAKTUR_TRANSACTION_CODES = [
   { code: '09', label: '09 - Penyerahan Aktiva Pasal 16D' },
 ];
 
-export const ITEM_CODES_CATALOG = [
-  { code: '000000', name: 'Barang/Jasa Umum Lainnya', type: 'GOODS' as const },
-  { code: '847130', name: 'Komputer Jinjing / Laptop & Perangkat IT', type: 'GOODS' as const },
-  { code: '851762', name: 'Perangkat Jaringan & Server Korporasi', type: 'GOODS' as const },
-  { code: '940330', name: 'Furnitur & Perlengkapan Kantor', type: 'GOODS' as const },
-  { code: '870323', name: 'Kendaraan Bermotor Penumpang (BKP Mewah)', type: 'GOODS' as const },
-  { code: '160100', name: 'Jasa Konsultasi Manajemen & Perpajakan', type: 'SERVICES' as const },
-  { code: '160200', name: 'Jasa Pengembangan Perangkat Lunak & IT', type: 'SERVICES' as const },
-  { code: '160400', name: 'Jasa Perawatan & Pemeliharaan Peralatan', type: 'SERVICES' as const },
-  { code: '160700', name: 'Jasa Pelatihan & Pendidikan Profesional', type: 'SERVICES' as const },
-];
+import { ALL_ITEM_CODES, GOODS_CODES, SERVICES_CODES } from '../data/efakturCodes.ts';
+export { ALL_ITEM_CODES, GOODS_CODES, SERVICES_CODES };
+export const ITEM_CODES_CATALOG = ALL_ITEM_CODES;
 
 export const PPH23_OBJECT_CODES = [
   { code: '24-104-29', name: 'Jasa Konsultan / Manajemen', rate: 2 },
