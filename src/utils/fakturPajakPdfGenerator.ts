@@ -104,7 +104,7 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
   // Buyer
   const buyerName = invoice.counterpartyName || 'BANK CENTRAL ASIA';
   const buyerAddress =
-    invoice.counterpartyAddress ||
+    (invoice as any).counterpartyAddress ||
     'MENARA BCA, GRAND INDONESIA , RT 000, RW 000, MENTENG, MENTENG, KOTA ADM. JAKARTA PUSAT, DKI JAKARTA 10310 #0013084496091000000000';
   const buyerNpwp = invoice.counterpartyNpwp || '0013084496091000';
 

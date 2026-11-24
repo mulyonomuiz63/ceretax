@@ -140,7 +140,7 @@ export function downloadBuktiPotongPdf(slip: WithholdingSlip, issuer?: Taxpayer)
   const isBppu = slip.slipType === 'BPPU_23';
   const isBpmp = slip.slipType === 'BPMP';
   const isBpa1 = slip.slipType === 'BPA1';
-  const isBpa2 = slip.slipType === 'BPA2';
+  const isBpa2 = (slip.slipType as string) === 'BPA2';
 
   // Badge text
   const badgeText = isBp21
@@ -233,7 +233,7 @@ export function downloadBuktiPotongPdf(slip: WithholdingSlip, issuer?: Taxpayer)
   const periodStr = `${periodMonthStr}-${slip.taxPeriodYear || 2026}`;
   const slipNum = slip.slipNumber || '260739SFA';
   const sifatPemotongan = 'TIDAK FINAL';
-  const statusBp = slip.status === 'REVOKED' ? 'DIBATALKAN' : 'NORMAL';
+  const statusBp = slip.status === 'CANCELLED' || (slip.status as string) === 'REVOKED' ? 'DIBATALKAN' : 'NORMAL';
 
   const colWidths = [
     contentWidth * 0.25,

@@ -1058,7 +1058,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    const targetReturn = paginatedReturns[0] || (returns && returns[0]);
+                    const targetReturn = paginatedReturns[0] || workspace.returns[0];
                     if (targetReturn) {
                       downloadSptIndukPdf(targetReturn, activeTaxpayer);
                     } else {

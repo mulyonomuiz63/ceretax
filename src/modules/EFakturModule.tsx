@@ -2002,7 +2002,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                     0
                                   </td>
                                   <td className="px-3 py-2.5 text-left text-slate-800 whitespace-nowrap font-medium">
-                                    {inv.creatorName || workspace.corporateTaxpayer.representativeName || 'BAYU TRI RAHARDJO'}
+                                    {(inv as any).creatorName || (workspace.corporateTaxpayer as any).representativeName || workspace.individualTaxpayer.name || 'BAYU TRI RAHARDJO'}
                                   </td>
                                   <td className="px-3 py-2.5 text-left text-slate-700 whitespace-nowrap font-mono-num">
                                     {inv.referenceCode || 'Invoice No. 244/INV/MTI/XI/2026'}
@@ -2206,7 +2206,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                     0
                                   </td>
                                   <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
-                                    {workspace.corporateTaxpayer.representativeName || 'ARIEF BASYARI'}
+                                    {(workspace.corporateTaxpayer as any).representativeName || workspace.individualTaxpayer.name || 'ARIEF BASYARI'}
                                   </td>
                                   <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-slate-600">
                                     {inv.referenceCode || '-'}

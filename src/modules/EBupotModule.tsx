@@ -9,6 +9,7 @@ import {
   Edit3,
   Eye,
   FileCode2,
+  FileText,
   Filter,
   Info,
   Layers,

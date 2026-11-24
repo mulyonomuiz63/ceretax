@@ -485,7 +485,7 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                         <td className="px-3 py-2 text-center font-mono-num text-slate-700">{ddMmYyyy}</td>
                         {!isPph21 && (
                           <td className="px-3 py-2 text-slate-700 font-medium">
-                            {s.slipType === 'BPPU_23' ? 'Pasal 23' : s.slipType === 'BPNR' ? 'Pasal 26' : 'Pasal 23'}
+                            {s.slipType === 'BPPU_23' ? 'Pasal 23' : (s.slipType as string) === 'BPNR' ? 'Pasal 26' : 'Pasal 23'}
                           </td>
                         )}
                         <td className="px-3 py-2 font-mono-num text-slate-700">{s.objectCode}</td>
