@@ -126,7 +126,13 @@ function CoretaxSimulatorApp() {
           setWorkspace(ws);
           const restoredMode = saved.accountMode || 'INDIVIDUAL';
           const restoredMod = saved.activeModule || 'portal';
-          const restoredSub = saved.activeSubTab || 'ikhtisar';
+          let restoredSub = saved.activeSubTab || 'ikhtisar';
+          if (restoredMod === 'efaktur' && (!restoredSub || restoredSub === 'empty')) {
+            restoredSub = 'dashboard';
+          }
+          if (restoredMod === 'bukubesar' && (!restoredSub || restoredSub === 'empty')) {
+            restoredSub = 'ringkasan';
+          }
           setAccountMode(restoredMode);
           setActiveModule(restoredMod);
           setActiveSubTab(restoredSub);
@@ -402,10 +408,16 @@ function CoretaxSimulatorApp() {
       triggerTransitionLoading('Memuat modul layanan KelasBrevet...');
     }
     setActiveModule(module);
-    if (subTab) {
+    if (subTab && subTab !== 'empty') {
       setActiveSubTab(subTab);
     } else {
-      setActiveSubTab('empty');
+      if (module === 'efaktur') {
+        setActiveSubTab('dashboard');
+      } else if (module === 'bukubesar') {
+        setActiveSubTab('ringkasan');
+      } else {
+        setActiveSubTab('empty');
+      }
     }
   };
 
@@ -476,7 +488,7 @@ function CoretaxSimulatorApp() {
         onLanguageChange={setLanguage}
         onLogout={handleLogout}
       >
-        {activeSubTab === 'empty' ? (
+        {activeSubTab === 'empty' && activeModule !== 'efaktur' && activeModule !== 'bukubesar' ? (
           <SubMenuPrompt
             moduleName={MODULE_INFO[activeModule]?.name || activeModule}
             subMenuCount={MODULE_INFO[activeModule]?.count || 0}
@@ -504,7 +516,7 @@ function CoretaxSimulatorApp() {
 
         {activeModule === 'efaktur' && (
           <EFakturModule
-            subTab={activeSubTab}
+            subTab={activeSubTab === 'empty' ? 'dashboard' : activeSubTab}
             resetKey={navResetKey}
             onChangeSubTab={setActiveSubTab}
             workspace={workspace}

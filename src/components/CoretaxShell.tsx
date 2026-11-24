@@ -1160,7 +1160,13 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       type="button"
                       onClick={() => {
                         setLeftCollapsed(false);
-                        onNavigate(item.key, 'empty');
+                        if (item.key === 'efaktur') {
+                          onNavigate('efaktur', 'dashboard');
+                        } else if (item.key === 'bukubesar') {
+                          onNavigate('bukubesar', 'ringkasan');
+                        } else {
+                          onNavigate(item.key, 'empty');
+                        }
                         setOpenDropdown(null);
                         setNavPopoverAnchor(null);
                       }}
@@ -1561,6 +1567,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </button>
               <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
               {!activeSubMeta ||
+              activeModule === 'efaktur' ||
+              activeModule === 'bukubesar' ||
               (activeSubMeta.breadcrumbLabel || activeSubMeta.label) ===
                 activeNavMeta.sidebarLabel ? (
                 <span
@@ -1742,11 +1750,19 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   key={item.key}
                   type="button"
                   onClick={() => {
-                    onNavigate(item.key, 'empty');
-                    if (item.items.length > 0) {
-                      setMobileMenuOpen(true);
-                    } else {
+                    if (item.key === 'efaktur') {
+                      onNavigate('efaktur', 'dashboard');
                       setMobileMenuOpen(false);
+                    } else if (item.key === 'bukubesar') {
+                      onNavigate('bukubesar', 'ringkasan');
+                      setMobileMenuOpen(false);
+                    } else {
+                      onNavigate(item.key, 'empty');
+                      if (item.items.length > 0) {
+                        setMobileMenuOpen(true);
+                      } else {
+                        setMobileMenuOpen(false);
+                      }
                     }
                   }}
                   className={`relative shrink-0 min-w-[74px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center gap-0.5 transition cursor-pointer ${
