@@ -1909,7 +1909,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-[10.5px] text-slate-400">
-            <span>Copyright © 2024 Direktorat Jenderal Pajak. All rights reserved.</span>
+            <span>Copyright © 2026 KelasBrevet. Seluruh hak cipta dilindungi.</span>
           </div>
         </div>
       </footer>

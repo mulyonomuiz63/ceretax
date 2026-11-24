@@ -220,7 +220,7 @@ export const LogoutPage: React.FC<LogoutPageProps> = ({
 
       {/* FOOTER */}
       <footer className="relative z-10 w-full py-5 text-center text-xs text-slate-500 border-t border-slate-200/60 bg-white/40 backdrop-blur-xs">
-        <p>© 2026 Direktorat Jenderal Pajak. Seluruh hak cipta dilindungi.</p>
+        <p>© 2026 KelasBrevet. Seluruh hak cipta dilindungi.</p>
       </footer>
     </div>
   );
