@@ -191,6 +191,10 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [txCodeSearchQuery, setTxCodeSearchQuery] = useState('');
   const [isOtherValue, setIsOtherValue] = useState(false);
   const [ppnRatePercent, setPpnRatePercent] = useState(12);
+  const [unitPriceFocused, setUnitPriceFocused] = useState(false);
+  const [discountFocused, setDiscountFocused] = useState(false);
+  const [ppnbmFocused, setPpnbmFocused] = useState(false);
+  const [quantityFocused, setQuantityFocused] = useState(false);
 
   const isReturTab =
     normalizedTab === 'retur_keluaran' ||
@@ -374,6 +378,10 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setTxPpnbmRate(0);
     setTxCodeDropdownOpen(false);
     setTxCodeSearchQuery('');
+    setUnitPriceFocused(false);
+    setDiscountFocused(false);
+    setPpnbmFocused(false);
+    setQuantityFocused(false);
     setAddTxModalOpen(true);
   };
 
@@ -2293,23 +2301,14 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
       {/* Authentic Coretax Add Transaction Modal (2-Column: Detail Barang/Jasa & PPN dan PPnBM) */}
       {addTxModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-[4px] shadow-2xl border border-slate-300 w-full max-w-4xl overflow-visible my-6">
-            <div className="bg-white px-6 py-3.5 flex items-center justify-between border-b border-slate-200">
-              <h3 className="font-sans font-bold text-[14.5px] text-[#1E2C5E]">Add Transaction</h3>
-              <button
-                type="button"
-                onClick={() => setAddTxModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[0.5px] flex items-start justify-center p-3 sm:p-5 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-[4px] shadow-2xl border border-slate-200 w-full max-w-4xl my-auto p-6 sm:p-8 relative">
+            <h3 className="font-sans font-medium text-[15px] text-[#1E293B] mb-5">Add Transaction</h3>
 
-            <form onSubmit={handleAddTransactionLine} className="p-6 space-y-4 text-[12px]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={handleAddTransactionLine} className="space-y-3.5 text-[12px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 {/* Left Column: Barang / Jasa Details */}
-                <div className="space-y-3.5">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="block text-slate-700 font-normal mb-1">Tipe</label>
@@ -2371,7 +2370,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       onClick={() => setTxCodeDropdownOpen(!txCodeDropdownOpen)}
                       className={`w-full border ${
                         txCodeDropdownOpen ? 'border-sky-500 ring-1 ring-sky-400' : 'border-slate-300'
-                      } rounded-[3px] bg-white px-3 py-2 text-[12px] flex items-center justify-between cursor-pointer`}
+                      } rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] flex items-center justify-between cursor-pointer`}
                     >
                       <span className={itemCode ? 'text-slate-800 font-medium' : 'text-slate-400'}>
                         {itemCode ? `${itemCode} - ${itemName}` : 'Pilih kode'}
@@ -2421,40 +2420,38 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-normal mb-1">
-                      Nama <span className="text-rose-600">*</span>
-                    </label>
+                    <label className="block text-slate-700 font-normal mb-1">Nama</label>
                     <input
                       type="text"
                       value={itemName}
                       onChange={(e) => setItemName(e.target.value)}
-                      placeholder="Nama barang atau jasa"
-                      className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 bg-white"
+                      placeholder=""
+                      className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white"
                       required
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-700 font-normal mb-1">
-                        Satuan <span className="text-rose-600">*</span>
-                      </label>
+                      <label className="block text-slate-700 font-normal mb-1">Satuan</label>
                       <input
                         type="text"
                         value={txUnit}
                         onChange={(e) => setTxUnit(e.target.value)}
-                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 bg-white"
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-700 font-normal mb-1">KUANTITAS</label>
+                      <label className="block text-slate-700 font-normal mb-1">Kuantitas</label>
                       <input
-                        type="number"
+                        type={quantityFocused ? 'number' : 'text'}
                         min={1}
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-                        className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
+                        value={quantityFocused ? (quantity === 0 ? '' : quantity) : String(quantity || 1)}
+                        onFocus={() => setQuantityFocused(true)}
+                        onBlur={() => setQuantityFocused(false)}
+                        onChange={(e) => setQuantity(Math.max(1, Number(e.target.value.replace(/[^0-9]/g, '')) || 1))}
+                        className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
                         required
                       />
                     </div>
@@ -2463,11 +2460,13 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                   <div>
                     <label className="block text-slate-700 font-normal mb-1">Harga Satuan</label>
                     <input
-                      type="number"
+                      type={unitPriceFocused ? 'number' : 'text'}
                       min={0}
-                      value={unitPrice}
-                      onChange={(e) => setUnitPrice(Number(e.target.value) || 0)}
-                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
+                      value={unitPriceFocused ? (unitPrice === 0 ? '' : unitPrice) : formatCoretaxDec(unitPrice)}
+                      onFocus={() => setUnitPriceFocused(true)}
+                      onBlur={() => setUnitPriceFocused(false)}
+                      onChange={(e) => setUnitPrice(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
                     />
                   </div>
 
@@ -2477,25 +2476,27 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       type="text"
                       readOnly
                       value={formatCoretaxDec(modalTotalPrice)}
-                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
                     />
                   </div>
 
                   <div>
                     <label className="block text-slate-700 font-normal mb-1">Potongan harga</label>
                     <input
-                      type="number"
+                      type={discountFocused ? 'number' : 'text'}
                       min={0}
-                      value={discount}
-                      onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
+                      value={discountFocused ? (discount === 0 ? '' : discount) : formatCoretaxDec(discount)}
+                      onFocus={() => setDiscountFocused(true)}
+                      onBlur={() => setDiscountFocused(false)}
+                      onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
                     />
                   </div>
                 </div>
 
                 {/* Right Column: PPN dan PPnBM */}
-                <div className="space-y-3.5">
-                  <div className="text-[12.5px] font-semibold text-slate-800 pb-1">
+                <div className="space-y-3">
+                  <div className="text-[12.5px] font-normal text-slate-700 pb-0.5">
                     PPN dan PPnBM
                   </div>
 
@@ -2505,7 +2506,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       type="text"
                       readOnly
                       value={formatCoretaxDec(modalDpp)}
-                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
                     />
                   </div>
 
@@ -2523,7 +2524,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       type="text"
                       readOnly
                       value={formatCoretaxDec(isOtherValue ? modalDppOther : 0)}
-                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
                     />
                   </div>
 
@@ -2532,7 +2533,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                     <select
                       value={ppnRatePercent}
                       onChange={(e) => setPpnRatePercent(Number(e.target.value))}
-                      className="w-full border border-slate-300 rounded-[3px] bg-white px-3 py-1.5 text-[12px] text-slate-800 cursor-pointer"
+                      className="w-full border border-slate-300 rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] text-slate-800 cursor-pointer"
                     >
                       <option value={12}>12%</option>
                       <option value={11}>11%</option>
@@ -2546,19 +2547,21 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       type="text"
                       readOnly
                       value={formatCoretaxDec(modalPpn)}
-                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
                     />
                   </div>
 
                   <div>
                     <label className="block text-slate-700 font-normal mb-1">Tarif PPnBM (%)</label>
                     <input
-                      type="number"
+                      type={ppnbmFocused ? 'number' : 'text'}
                       min={0}
                       max={200}
-                      value={txPpnbmRate}
-                      onChange={(e) => setTxPpnbmRate(Number(e.target.value) || 0)}
-                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 text-[12px] text-slate-800 font-mono-num bg-white"
+                      value={ppnbmFocused ? (txPpnbmRate === 0 ? '' : txPpnbmRate) : formatCoretaxDec(txPpnbmRate)}
+                      onFocus={() => setPpnbmFocused(true)}
+                      onBlur={() => setPpnbmFocused(false)}
+                      onChange={(e) => setTxPpnbmRate(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
                     />
                   </div>
 
@@ -2568,24 +2571,24 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       type="text"
                       readOnly
                       value={formatCoretaxDec(modalPpnbm)}
-                      className="w-full text-right border border-slate-200 bg-[#F4F6F9] rounded-[3px] px-3 py-1.5 text-[12px] text-slate-700 font-mono-num"
+                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Bottom buttons matching screenshot */}
-              <div className="flex justify-end items-center gap-2 pt-4 border-t border-slate-200 mt-6">
+              {/* Bottom buttons matching Coretax screenshot */}
+              <div className="flex justify-end items-center gap-2 pt-6">
                 <button
                   type="button"
                   onClick={() => setAddTxModalOpen(false)}
-                  className="px-5 py-1.5 bg-[#38BDF8] hover:bg-[#0EA5E9] text-white text-[12.5px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
+                  className="px-5 py-1.5 bg-[#0EA5E9] hover:bg-[#0284C7] text-white text-[12px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-1.5 bg-[#0088FF] hover:bg-[#0070D2] text-white text-[12.5px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
+                  className="px-5 py-1.5 bg-[#0088FF] hover:bg-[#0070D2] text-white text-[12px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
                 >
                   Simpan
                 </button>
