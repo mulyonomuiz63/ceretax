@@ -153,16 +153,8 @@ export const LogoutPage: React.FC<LogoutPageProps> = ({
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* LEFT COLUMN: BRANDING & LOGOUT SUMMARY */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="inline-flex items-center gap-2">
-              <span className="font-display font-black text-2xl tracking-tight text-[#1E2C5E]">
-                C
-                <span className="inline-flex items-center justify-center relative -top-[1px]">
-                  <span className="w-3.5 h-3.5 rounded-full border-2 border-[#1E2C5E] inline-flex items-center justify-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
-                  </span>
-                </span>
-                RE<span className="text-[#F59E0B]">TAX</span>
-              </span>
+            <div>
+              <KelasBrevetLogo variant="hero" dark={darkTheme} />
             </div>
 
             <div>
