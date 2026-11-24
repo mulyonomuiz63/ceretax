@@ -29,6 +29,7 @@ import {
 } from '../utils/taxCalc.ts';
 import { SignModal } from '../components/SignModal.tsx';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
+import { downloadBuktiPotongPdf } from '../utils/buktiPotongPdfGenerator.ts';
 import {
   CoretaxIconToolbar,
   CoretaxPagination,
@@ -865,14 +866,25 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                     paginatedMySlips.map((slip) => (
                       <tr key={slip.id} className="hover:bg-[#F8FAFC]">
                         <td className="px-3 py-2.5 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => onPrintDocument({ type: 'BPA1', slip })}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[#CBD5E1] bg-white hover:bg-[#1E2C5E] hover:text-white text-[#1E2C5E] font-semibold text-[11px] transition cursor-pointer"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span>Lihat</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onPrintDocument({ type: 'BPA1', slip })}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-[4px] border border-[#CBD5E1] bg-white hover:bg-[#1E2C5E] hover:text-white text-[#1E2C5E] font-semibold text-[11px] transition cursor-pointer"
+                              title="Lihat Bukti Potong"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>Lihat</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => downloadBuktiPotongPdf(slip, workspace.corporateTaxpayer)}
+                              className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                              title="Download Bukti Potong (PDF Resmi)"
+                            >
+                              <FileText className="w-3 h-3" />
+                            </button>
+                          </div>
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
@@ -2363,9 +2375,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           )}
                         </th>
                         {!isBpa && (
-                          <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky left-9 bg-[#FCD34D] z-10 w-16">
-                            Aksi
-                          </th>
+                          <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky left-9 bg-[#FCD34D] z-10 w-20" />
                         )}
                         {isBpa ? (
                           <>
@@ -2807,11 +2817,11 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               </td>
                               {!isBpa && (
                                 <td className="px-3 py-2.5 whitespace-nowrap sticky left-9 bg-white">
-                                  <div className="flex items-center justify-center gap-2">
+                                  <div className="flex items-center justify-center gap-1.5">
                                     <button
                                       type="button"
                                       onClick={() => setDetailSlip(slip)}
-                                      className="text-slate-500 hover:text-[#1E2C5E] cursor-pointer transition p-0.5"
+                                      className="p-1 rounded text-sky-600 hover:text-sky-800 hover:bg-sky-50 cursor-pointer transition"
                                       title="Lihat Detail Bukti Potong"
                                     >
                                       <Eye className="w-3.5 h-3.5" />
@@ -2823,7 +2833,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                           ? openEditForm(slip)
                                           : setDetailSlip(slip)
                                       }
-                                      className="text-slate-500 hover:text-sky-600 cursor-pointer transition p-0.5"
+                                      className="p-1 rounded text-sky-600 hover:text-sky-800 hover:bg-sky-50 cursor-pointer transition"
                                       title={
                                         slip.status === 'UNISSUED'
                                           ? 'Edit Konsep Bukti Potong'
@@ -2831,6 +2841,14 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                       }
                                     >
                                       <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadBuktiPotongPdf(slip, workspace.corporateTaxpayer)}
+                                      className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                      title="Download Bukti Potong (PDF Resmi DJP)"
+                                    >
+                                      <FileText className="w-3 h-3" />
                                     </button>
                                   </div>
                                 </td>

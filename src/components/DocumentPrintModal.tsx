@@ -3,11 +3,13 @@ import { Printer, X } from 'lucide-react';
 import { BillingCode, TaxInvoice, TaxReturn, Taxpayer, WithholdingSlip } from '../types/tax.ts';
 import { formatRp, MONTHS_ID } from '../utils/taxCalc.ts';
 import { downloadBpePdf } from '../utils/sptIndukPdfGenerator.ts';
+import { downloadBuktiPotongPdf } from '../utils/buktiPotongPdfGenerator.ts';
 import { KelasBrevetLogo } from './KelasBrevetLogo.tsx';
 
 export type PrintablePayload =
   | { type: 'BPE'; taxReturn: TaxReturn; taxpayer: Taxpayer }
   | { type: 'BPA1'; slip: WithholdingSlip }
+  | { type: 'BUPOT'; slip: WithholdingSlip; issuer?: Taxpayer }
   | { type: 'FAKTUR'; invoice: TaxInvoice; seller: Taxpayer }
   | { type: 'BILLING'; billing: BillingCode; taxpayer: Taxpayer };
 
@@ -54,6 +56,15 @@ export const DocumentPrintModal: React.FC<DocumentPrintModalProps> = ({ doc, onC
                 className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded cursor-pointer transition"
               >
                 <span>Unduh PDF BPE</span>
+              </button>
+            )}
+            {(doc.type === 'BPA1' || doc.type === 'BUPOT') && (
+              <button
+                type="button"
+                onClick={() => downloadBuktiPotongPdf(doc.slip, (doc as any).issuer)}
+                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded cursor-pointer transition"
+              >
+                <span>Unduh PDF Bukti Potong</span>
               </button>
             )}
             <button
@@ -207,7 +218,7 @@ export const DocumentPrintModal: React.FC<DocumentPrintModalProps> = ({ doc, onC
             </>
           )}
 
-          {doc.type === 'BPA1' && (
+          {(doc.type === 'BPA1' || doc.type === 'BUPOT') && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 border border-slate-300 rounded p-3.5 bg-slate-50">
                 <div>
