@@ -2842,14 +2842,16 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                     >
                                       <Edit3 className="w-3.5 h-3.5" />
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => downloadBuktiPotongPdf(slip, workspace.corporateTaxpayer)}
-                                      className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                                      title="Download Bukti Potong (PDF Resmi DJP)"
-                                    >
-                                      <FileText className="w-3 h-3" />
-                                    </button>
+                                    {subTab !== 'bpmp' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => downloadBuktiPotongPdf(slip, workspace.corporateTaxpayer)}
+                                        className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                        title="Download Bukti Potong (PDF Resmi DJP)"
+                                      >
+                                        <FileText className="w-3 h-3" />
+                                      </button>
+                                    )}
                                   </div>
                                 </td>
                               )}
