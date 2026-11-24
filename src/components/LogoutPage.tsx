@@ -165,7 +165,7 @@ export const LogoutPage: React.FC<LogoutPageProps> = ({
             </div>
 
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-lg">
-              Sesi Anda telah diakhiri dengan aman. Terima kasih telah menggunakan Coretax DJP.
+              Sesi Anda telah diakhiri dengan aman. Terima kasih telah menggunakan Simulasi Coretax by Kelasbrevet.
             </p>
           </div>
 
