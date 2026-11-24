@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Award,
   Bell,
@@ -7,6 +7,7 @@ import {
   Check,
   CheckCheck,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   ChevronsLeft,
@@ -446,9 +447,88 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const shellRef = useRef<HTMLDivElement>(null);
+  const navScrollRef = useRef<HTMLDivElement>(null);
+  const [navPopoverAnchor, setNavPopoverAnchor] = useState<{
+    type: 'nav' | 'extra';
+    key: string;
+    top: number;
+    left: number;
+    title: string;
+    items: { id?: string; label: string; targetModule?: MainNavKey; targetSubTab?: string }[];
+  } | null>(null);
+  const navPopoverTimer = useRef<any>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const compactSearchInputRef = useRef<HTMLInputElement>(null);
   const lastScrollYRef = useRef(0);
+  const [canScrollNav, setCanScrollNav] = useState({ left: false, right: false, needed: false });
+
+  const checkNavScroll = useCallback(() => {
+    const el = navScrollRef.current;
+    if (!el) return;
+    const needed = el.scrollWidth > el.clientWidth + 2;
+    const left = needed && el.scrollLeft > 2;
+    const right = needed && el.scrollLeft < el.scrollWidth - el.clientWidth - 2;
+    setCanScrollNav({ left, right, needed });
+  }, []);
+
+  useEffect(() => {
+    checkNavScroll();
+    const el = navScrollRef.current;
+    if (!el) return;
+    const handleScroll = () => checkNavScroll();
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', checkNavScroll);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => checkNavScroll());
+      ro.observe(el);
+    }
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', checkNavScroll);
+      if (ro) ro.disconnect();
+    };
+  }, [checkNavScroll]);
+
+  const handleNavOpen = (
+    type: 'nav' | 'extra',
+    key: any,
+    targetEl: HTMLElement,
+    title: string,
+    items: any[]
+  ) => {
+    if (navPopoverTimer.current) clearTimeout(navPopoverTimer.current);
+    const rect = targetEl.getBoundingClientRect();
+    if (type === 'nav') {
+      setOpenDropdown(key);
+      setOpenExtraDropdown(null);
+    } else {
+      setOpenExtraDropdown(key);
+      setOpenDropdown(null);
+    }
+    const clampedLeft = Math.max(16, Math.min(rect.left, window.innerWidth - 360));
+    setNavPopoverAnchor({
+      type,
+      key,
+      top: rect.bottom + 4,
+      left: clampedLeft,
+      title,
+      items,
+    });
+  };
+
+  const handleNavCloseDebounced = () => {
+    if (navPopoverTimer.current) clearTimeout(navPopoverTimer.current);
+    navPopoverTimer.current = setTimeout(() => {
+      setOpenDropdown(null);
+      setOpenExtraDropdown(null);
+      setNavPopoverAnchor(null);
+    }, 150);
+  };
+
+  const handleNavKeepOpen = () => {
+    if (navPopoverTimer.current) clearTimeout(navPopoverTimer.current);
+  };
 
   // Restore sidebar automatically whenever user navigates to another main module (or refreshes page)
   useEffect(() => {
@@ -1032,43 +1112,45 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
 
           {/* ROW 2: RESPONSIVE HORIZONTAL MODULE RIBBON (Desktop lg+ only; on mobile it sits in the bottom floating dock) */}
           <nav
-            className="hidden lg:flex px-2.5 sm:px-4 xl:px-5 py-2 flex-wrap items-center justify-between gap-x-2 gap-y-1.5"
-            onMouseLeave={() => {
-              setOpenDropdown(null);
-              setOpenExtraDropdown(null);
-            }}
+            className="hidden lg:flex px-2 sm:px-3 xl:px-4 py-1.5 items-center justify-between gap-1 relative group select-none"
+            onMouseLeave={handleNavCloseDebounced}
+            onMouseEnter={handleNavKeepOpen}
           >
-            <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 lg:gap-2 xl:gap-3 min-w-0">
+            {/* Left Scroll Arrow Button (Only displayed when menu overflows and can scroll left) */}
+            {canScrollNav.needed && canScrollNav.left && (
+              <button
+                type="button"
+                onClick={() => navScrollRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
+                className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-[#1B2958] border border-[#CBD5E1] shadow-sm flex items-center justify-center cursor-pointer opacity-35 group-hover:opacity-100 hover:!opacity-100 transition-opacity shrink-0 z-10"
+                title="Geser menu ke kiri"
+                aria-label="Geser menu ke kiri"
+              >
+                <ChevronLeft className="w-4 h-4 text-slate-700" />
+              </button>
+            )}
+
+            {/* Scrollable Single Horizontal Row (flex-nowrap, overflow-x-auto, no-scrollbar) */}
+            <div
+              ref={navScrollRef}
+              className="flex-1 flex flex-nowrap items-center gap-1 sm:gap-1.5 lg:gap-2 xl:gap-2.5 overflow-x-auto no-scrollbar scroll-smooth py-1 px-1 min-w-0"
+            >
               {NAV_CONFIG.map((item) => {
                 const isActive = activeModule === item.key;
                 const isHoveredOpen = openDropdown === item.key;
                 const isHighlighted =
                   isHoveredOpen || (openDropdown === null && openExtraDropdown === null && isActive);
 
-                const popoverAlignClass =
-                  item.key === 'pembayaran'
-                    ? 'right-0 lg:right-auto lg:left-0'
-                    : item.key === 'spt'
-                      ? 'left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0'
-                      : 'left-0';
-
-                const caretAlignClass =
-                  item.key === 'pembayaran'
-                    ? 'right-10 lg:right-auto lg:left-12'
-                    : item.key === 'spt'
-                      ? 'left-1/2 -translate-x-1/2 sm:left-12 sm:translate-x-0'
-                      : 'left-12';
-
                 return (
                   <div
                     key={item.key}
                     className="relative shrink-0"
-                    onMouseEnter={() => {
-                      setOpenExtraDropdown(null);
+                    onMouseEnter={(e) => {
                       if (item.hasChevron) {
-                        setOpenDropdown(item.key);
+                        handleNavOpen('nav', item.key, e.currentTarget, item.popoverTitle, item.items);
                       } else {
                         setOpenDropdown(null);
+                        setOpenExtraDropdown(null);
+                        setNavPopoverAnchor(null);
                       }
                     }}
                   >
@@ -1082,6 +1164,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                           onNavigate(item.key, item.items[0]?.id);
                         }
                         setOpenDropdown(null);
+                        setNavPopoverAnchor(null);
                       }}
                       className={`inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-[10px] text-[12px] lg:text-[12.5px] transition-all duration-150 cursor-pointer whitespace-nowrap ${
                         isHighlighted
@@ -1101,44 +1184,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                         />
                       )}
                     </button>
-
-                    {/* Floating Speech-Bubble Hover Popover Card */}
-                    {item.hasChevron && isHoveredOpen && (
-                      <div className={`absolute top-full pt-2.5 z-50 ${popoverAlignClass}`}>
-                        <div className="relative w-[min(350px,calc(100vw-2rem))] bg-white text-[#1B2958] border border-[#E5EAF2] rounded-[16px] shadow-[0_20px_50px_rgba(30,44,94,0.16)]">
-                          <div
-                            className={`w-3.5 h-3.5 bg-white border-l border-t border-[#E5EAF2] rotate-45 absolute -top-[7px] ${caretAlignClass}`}
-                            aria-hidden="true"
-                          />
-                          <div className="px-5 pt-4 pb-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-[#F1F5F9]">
-                            {item.popoverTitle}
-                          </div>
-                          <div className="p-2 space-y-0.5 max-h-[65vh] overflow-y-auto">
-                            {item.items.map((sub) => {
-                              const isCurrentSub = isActive && activeSubTab === sub.id;
-                              return (
-                                <button
-                                  key={sub.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setLeftCollapsed(false);
-                                    onNavigate(item.key, sub.id);
-                                    setOpenDropdown(null);
-                                  }}
-                                  className={`w-full text-left px-3.5 py-2 rounded-[10px] text-[12.5px] transition cursor-pointer flex items-center justify-between gap-2 ${
-                                    isCurrentSub
-                                      ? 'bg-[#EEF2FA] text-[#1B2958] font-bold'
-                                      : 'text-[#1B2958] hover:bg-[#F4F6FA] font-semibold'
-                                  }`}
-                                >
-                                  <span className="leading-snug">{sub.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -1150,9 +1195,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   <div
                     key={extra.key}
                     className="relative shrink-0"
-                    onMouseEnter={() => {
-                      setOpenDropdown(null);
-                      setOpenExtraDropdown(extra.key);
+                    onMouseEnter={(e) => {
+                      handleNavOpen('extra', extra.key, e.currentTarget, extra.popoverTitle, extra.items);
                     }}
                   >
                     <button
@@ -1161,6 +1205,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                         const first = extra.items[0];
                         if (first) onNavigate(first.targetModule, first.targetSubTab);
                         setOpenExtraDropdown(null);
+                        setNavPopoverAnchor(null);
                       }}
                       className={`inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-[10px] text-[12px] lg:text-[12.5px] transition-all duration-150 cursor-pointer whitespace-nowrap ${
                         isExtraOpen
@@ -1178,45 +1223,29 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                         }`}
                       />
                     </button>
-
-                    {isExtraOpen && (
-                      <div className="absolute right-0 top-full pt-2.5 z-50">
-                        <div className="relative w-[min(330px,calc(100vw-2rem))] bg-white text-[#1B2958] border border-[#E5EAF2] rounded-[16px] shadow-[0_20px_50px_rgba(30,44,94,0.16)]">
-                          <div
-                            className="w-3.5 h-3.5 bg-white border-l border-t border-[#E5EAF2] rotate-45 absolute -top-[7px] right-10"
-                            aria-hidden="true"
-                          />
-                          <div className="px-5 pt-4 pb-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-[#F1F5F9]">
-                            {extra.popoverTitle}
-                          </div>
-                          <div className="p-2 space-y-0.5">
-                            {extra.items.map((sub) => (
-                              <button
-                                key={sub.label}
-                                type="button"
-                                onClick={() => {
-                                  onNavigate(sub.targetModule, sub.targetSubTab);
-                                  setOpenExtraDropdown(null);
-                                }}
-                                className="w-full text-left px-3.5 py-2 rounded-[10px] text-[12.5px] text-[#1B2958] hover:bg-[#F4F6FA] font-semibold transition cursor-pointer"
-                              >
-                                {sub.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
 
+            {/* Right Scroll Arrow Button (Only displayed when menu overflows and can scroll right) */}
+            {canScrollNav.needed && canScrollNav.right && (
+              <button
+                type="button"
+                onClick={() => navScrollRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+                className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-[#1B2958] border border-[#CBD5E1] shadow-sm flex items-center justify-center cursor-pointer opacity-35 group-hover:opacity-100 hover:!opacity-100 transition-opacity shrink-0 z-10"
+                title="Geser menu ke kanan"
+                aria-label="Geser menu ke kanan"
+              >
+                <ChevronRight className="w-4 h-4 text-slate-700" />
+              </button>
+            )}
+
             {/* Subtle Right-Aligned Read-Only Soal Latihan Button */}
             <button
               type="button"
               onClick={onOpenExamDrawer}
-              className={`hidden 2xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+              className={`hidden 2xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ml-1 ${
                 darkHeader
                   ? 'bg-slate-800 text-[#F4C430] hover:bg-slate-700 border border-slate-700'
                   : 'bg-[#F4F6FA] hover:bg-[#FEF9E7] text-[#1B2958] border border-[#E5EAF2]'
@@ -1226,6 +1255,64 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               <span>Soal Latihan</span>
             </button>
           </nav>
+
+          {/* Floating Speech-Bubble Hover Popover Card Rendered with Fixed Coordinates */}
+          {navPopoverAnchor && (
+            <div
+              style={{
+                position: 'fixed',
+                top: `${navPopoverAnchor.top}px`,
+                left: `${navPopoverAnchor.left}px`,
+                zIndex: 9999,
+              }}
+              onMouseEnter={handleNavKeepOpen}
+              onMouseLeave={handleNavCloseDebounced}
+              className="pt-1 select-none animate-in fade-in duration-100"
+            >
+              <div className="relative w-[min(350px,calc(100vw-2rem))] bg-white text-[#1B2958] border border-[#E5EAF2] rounded-[16px] shadow-[0_20px_50px_rgba(30,44,94,0.18)]">
+                <div
+                  className="w-3.5 h-3.5 bg-white border-l border-t border-[#E5EAF2] rotate-45 absolute -top-[7px] left-8"
+                  aria-hidden="true"
+                />
+                <div className="px-5 pt-4 pb-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-[#F1F5F9]">
+                  {navPopoverAnchor.title}
+                </div>
+                <div className="p-2 space-y-0.5 max-h-[65vh] overflow-y-auto">
+                  {navPopoverAnchor.items.map((sub: any) => {
+                    const isCurrentSub =
+                      navPopoverAnchor.type === 'nav' &&
+                      activeModule === (navPopoverAnchor.key as MainNavKey) &&
+                      activeSubTab === sub.id;
+
+                    return (
+                      <button
+                        key={sub.id || sub.label}
+                        type="button"
+                        onClick={() => {
+                          setLeftCollapsed(false);
+                          if (navPopoverAnchor.type === 'nav') {
+                            onNavigate(navPopoverAnchor.key as MainNavKey, sub.id);
+                          } else {
+                            onNavigate(sub.targetModule, sub.targetSubTab);
+                          }
+                          setOpenDropdown(null);
+                          setOpenExtraDropdown(null);
+                          setNavPopoverAnchor(null);
+                        }}
+                        className={`w-full text-left px-3.5 py-2 rounded-[10px] text-[12.5px] transition cursor-pointer flex items-center justify-between gap-2 ${
+                          isCurrentSub
+                            ? 'bg-[#EEF2FA] text-[#1B2958] font-bold'
+                            : 'text-[#1B2958] hover:bg-[#F4F6FA] font-semibold'
+                        }`}
+                      >
+                        <span className="leading-snug">{sub.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

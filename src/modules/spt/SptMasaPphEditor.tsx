@@ -247,9 +247,16 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                   </th>
                   <th className="px-3 py-2.5 text-center border-r border-white/50 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1">
-                      TANGGAL BUKTI PEMOTONGAN (dd-mm-yyyy) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      {isPph21 ? 'TANGGAL BUKTI PEMOTONGAN (dd-mm-yyyy)' : 'TANGGAL BUKTI POTONG'} <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </span>
                   </th>
+                  {!isPph21 && (
+                    <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1">
+                        JENIS PAJAK <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
+                    </th>
+                  )}
                   <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1">
                       KODE OBJEK PAJAK <ArrowUpDown className="w-3 h-3 opacity-60" />
@@ -257,7 +264,9 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                   </th>
                   {!isPph21Lampiran && (
                     <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
-                      OBJEK PAJAK
+                      <span className="inline-flex items-center gap-1">
+                        OBJEK PAJAK <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
                     </th>
                   )}
                   {showPeriodCol && (
@@ -267,12 +276,12 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                   )}
                   <th className="px-3 py-2.5 text-right border-r border-white/50 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1">
-                      PENGHASILAN BRUTO (Rp) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      {isPph21 ? 'PENGHASILAN BRUTO (Rp)' : 'DASAR PENGENAAN PAJAK (Rp)'} <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </span>
                   </th>
                   <th className="px-3 py-2.5 text-right border-r border-white/50 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1">
-                      TARIF PAJAK (%) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      {isPph21 ? 'TARIF PAJAK (%)' : 'TINGKAT (%)'} <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </span>
                   </th>
                   <th className="px-3 py-2.5 text-right border-r border-white/50 whitespace-nowrap">
@@ -285,16 +294,38 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                       FASILITAS PERPAJAKAN <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </span>
                   </th>
-                  <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1">
-                      Negara <ArrowUpDown className="w-3 h-3 opacity-60" />
-                    </span>
-                  </th>
-                  <th className="px-3 py-2.5 text-left whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1">
-                      ID TEMPAT KEGIATAN USAHA <ArrowUpDown className="w-3 h-3 opacity-60" />
-                    </span>
-                  </th>
+                  {!isPph21 ? (
+                    <>
+                      <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap max-w-[280px]">
+                        <span className="inline-flex items-center gap-1">
+                          UANG PERSEDIAAN / PEMBAYARAN LANGSUNG (UNTUK WP INSTANSI PEMERINTAH DENGAN DANA APBN) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          NITKU / NOMOR IDENTITAS SUBUNIT ORGANISASI <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          STATUS <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-3 py-2.5 text-left border-r border-white/50 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          Negara <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          ID TEMPAT KEGIATAN USAHA <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                    </>
+                  )}
                 </tr>
 
                 {/* Official Coretax Inline Filter Row directly below yellow header (Exact Match to Screenshot) */}
@@ -355,6 +386,11 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                         </button>
                       </div>
                     </th>
+                    {!isPph21 && (
+                      <th className="px-2 py-2 border-r border-slate-100 text-center">
+                        <Filter className="w-3 h-3 text-slate-400 inline" />
+                      </th>
+                    )}
                     <th className="px-2 py-2 border-r border-slate-100">
                       <div className="flex items-center gap-1">
                         <input
@@ -387,20 +423,41 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                     </th>
                     <th className="px-2 py-2 border-r border-slate-100">
                       <select className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal bg-white text-slate-600">
-                        <option value="">Pilih FASILITAS PERPAJAKAN</option>
+                        <option value="">PILIH FASILITAS PERPAJAKAN</option>
                         <option value="Tanpa Fasilitas">Tanpa Fasilitas</option>
                         <option value="DTP">DTP</option>
                       </select>
                     </th>
-                    <th className="px-2 py-2 border-r border-slate-100">
-                      <select className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal bg-white text-slate-600">
-                        <option value="">Pilih Negara</option>
-                        <option value="Indonesia">Indonesia</option>
-                      </select>
-                    </th>
-                    <th className="px-2 py-2 text-center">
-                      <Filter className="w-3 h-3 text-slate-400 inline" />
-                    </th>
+                    {!isPph21 ? (
+                      <>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <select className="w-full min-w-[140px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal bg-white text-slate-600">
+                            <option value="">PILIH UANG PERSEDIAAN / PEMBAYARAN LANGSUNG</option>
+                            <option value="-">-</option>
+                            <option value="Uang Persediaan">Uang Persediaan</option>
+                            <option value="Pembayaran Langsung">Pembayaran Langsung</option>
+                          </select>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100 text-center">
+                          <Filter className="w-3 h-3 text-slate-400 inline" />
+                        </th>
+                        <th className="px-2 py-2 text-center">
+                          <Filter className="w-3 h-3 text-slate-400 inline" />
+                        </th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <select className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[11px] font-normal bg-white text-slate-600">
+                            <option value="">Pilih Negara</option>
+                            <option value="Indonesia">Indonesia</option>
+                          </select>
+                        </th>
+                        <th className="px-2 py-2 text-center">
+                          <Filter className="w-3 h-3 text-slate-400 inline" />
+                        </th>
+                      </>
+                    )}
                   </tr>
                 )}
               </thead>
@@ -408,7 +465,7 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                 {paged.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={11 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                      colSpan={12 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0) + (!isPph21 ? 3 : 0)}
                       className="px-4 py-6 text-slate-500"
                     >
                       Tidak ada data yang ditemukan.
@@ -416,7 +473,7 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                   </tr>
                 ) : (
                   paged.map((s, i) => {
-                    const ddMmYyyy = `31-${String(s.taxPeriodMonth).padStart(2, '0')}-${s.taxPeriodYear}`;
+                    const ddMmYyyy = `08-11-${s.taxPeriodYear || 2026}`;
                     return (
                       <tr key={s.id} className="hover:bg-[#F8FAFC]">
                         <td className="px-3 py-2 text-center font-mono-num text-slate-600">
@@ -426,6 +483,11 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                         <td className="px-3 py-2 font-medium text-slate-800 uppercase">{s.recipientName}</td>
                         <td className="px-3 py-2 font-mono-num text-slate-800">{s.slipNumber}</td>
                         <td className="px-3 py-2 text-center font-mono-num text-slate-700">{ddMmYyyy}</td>
+                        {!isPph21 && (
+                          <td className="px-3 py-2 text-slate-700 font-medium">
+                            {s.slipType === 'BPPU_23' ? 'Pasal 23' : s.slipType === 'BPNR' ? 'Pasal 26' : 'Pasal 23'}
+                          </td>
+                        )}
                         <td className="px-3 py-2 font-mono-num text-slate-700">{s.objectCode}</td>
                         {!isPph21Lampiran && (
                           <td className="px-3 py-2 text-slate-600 max-w-[200px] truncate">{s.objectName}</td>
@@ -443,54 +505,68 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
                           {s.taxWithheld.toLocaleString('id-ID')}
                         </td>
                         <td className="px-3 py-2 text-slate-700">Tanpa Fasilitas</td>
-                        <td className="px-3 py-2 text-slate-700">Indonesia</td>
-                        <td className="px-3 py-2 font-mono-num text-slate-600">{nitkuStr}</td>
+                        {!isPph21 ? (
+                          <>
+                            <td className="px-3 py-2 text-slate-700 text-center">-</td>
+                            <td className="px-3 py-2 font-mono-num text-slate-600">{nitkuStr}</td>
+                            <td className="px-3 py-2 text-slate-700 font-semibold">NORMAL</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-3 py-2 text-slate-700">Indonesia</td>
+                            <td className="px-3 py-2 font-mono-num text-slate-600">{nitkuStr}</td>
+                          </>
+                        )}
                       </tr>
                     );
                   })
                 )}
 
-                {/* Exact 3 Coretax Footer Summary Rows inside the table (Matches User Image 100%) */}
-                <tr className="bg-[#FAFBFD] border-t border-[#E2E8F0]">
-                  <td
-                    colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
-                    className="px-3 py-2 text-right text-slate-700"
-                  >
-                    JUMLAH PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DITANGGUNG OLEH PEMERINTAH
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">0</td>
-                  <td colSpan={3} />
-                </tr>
-                <tr className="bg-[#FAFBFD] border-t border-[#E2E8F0]">
-                  <td
-                    colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
-                    className="px-3 py-2 text-right text-slate-700"
-                  >
-                    JUMLAH PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DIPOTONG
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
-                    {totalGross.toLocaleString('id-ID')}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
-                    {totalTax.toLocaleString('id-ID')}
-                  </td>
-                  <td colSpan={2} />
-                </tr>
-                <tr className="bg-[#FAFBFD] border-t border-[#CBD5E1] font-semibold">
-                  <td
-                    colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
-                    className="px-3 py-2 text-right text-slate-800"
-                  >
-                    JUMLAH TOTAL PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DITANGGUNG OLEH PEMERINTAH SERTA PAJAK PENGHASILAN YANG DIPOTONG
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
-                    {totalGross.toLocaleString('id-ID')}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono-num text-slate-800">
-                    {totalTax.toLocaleString('id-ID')}
-                  </td>
-                  <td colSpan={2} />
-                </tr>
+                {/* Show 3 footer summary rows ONLY for PPh 21 Lampiran (for Unifikasi, user requested to remove them completely) */}
+                {isPph21 && (
+                  <>
+                    <tr className="bg-[#FAFBFD] border-t border-[#E2E8F0]">
+                      <td
+                        colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                        className="px-3 py-2 text-right text-slate-700"
+                      >
+                        JUMLAH PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DITANGGUNG OLEH PEMERINTAH
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono-num text-slate-800">0</td>
+                      <td colSpan={3} />
+                    </tr>
+                    <tr className="bg-[#FAFBFD] border-t border-[#E2E8F0]">
+                      <td
+                        colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                        className="px-3 py-2 text-right text-slate-700"
+                      >
+                        JUMLAH PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DIPOTONG
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                        {totalGross.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                        {totalTax.toLocaleString('id-ID')}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                    <tr className="bg-[#FAFBFD] border-t border-[#CBD5E1] font-semibold">
+                      <td
+                        colSpan={8 + (!isPph21Lampiran ? 1 : 0) + (showPeriodCol ? 1 : 0)}
+                        className="px-3 py-2 text-right text-slate-800"
+                      >
+                        JUMLAH TOTAL PENGHASILAN BRUTO DAN PAJAK PENGHASILAN YANG DITANGGUNG OLEH PEMERINTAH SERTA PAJAK PENGHASILAN YANG DIPOTONG
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                        {totalGross.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono-num text-slate-800">
+                        {totalTax.toLocaleString('id-ID')}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  </>
+                )}
               </tbody>
             </table>
           </div>
@@ -1132,64 +1208,76 @@ export const SptMasaPphEditor: React.FC<SptMasaPphEditorProps> = ({
 
         {!isPph21 && uniTab === 'daftar1' && (
           <div className="space-y-4">
-            <h2 className="font-display font-medium text-[14px] text-[#1E293B] uppercase">
-              DAFTAR BUKTI PEMOTONGAN DAN/ATAU PEMUNGUTAN PPh UNIFIKASI BERFORMAT STANDAR
-            </h2>
-            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
-              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span>HEADER</span>
+            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden bg-white">
+              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-bold text-[#1E293B] text-[12px] flex items-center gap-2">
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                <span>DAFTAR-I</span>
               </div>
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">NPWP</span>
-                  <input readOnly value={activeTaxpayer.nikNpwp} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1 font-mono-num" />
+                  <span className="col-span-5 text-slate-700 text-[12px]">Masa Pajak*</span>
+                  <select
+                    className="col-span-7 bg-white border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 text-[12px]"
+                    defaultValue={`${monthLabel} ${taxReturn.taxYear}`}
+                  >
+                    <option>{monthLabel} {taxReturn.taxYear}</option>
+                  </select>
                 </div>
                 <div className="grid grid-cols-12 items-center gap-2">
-                  <span className="col-span-5 text-slate-600">Masa Pajak</span>
-                  <input readOnly value={`${monthLabel} ${taxReturn.taxYear}`} className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1" />
+                  <span className="col-span-5 text-slate-700 text-[12px]">NPWP</span>
+                  <input
+                    readOnly
+                    value={activeTaxpayer.nikNpwp}
+                    className="col-span-7 bg-[#EDF1F7] border border-[#DCE2EC] rounded-[3px] px-2.5 py-1.5 font-mono-num text-[12px]"
+                  />
                 </div>
               </div>
             </div>
-            <div className="border border-[#DCE2EC] rounded-[5px] overflow-hidden">
-              <div className="px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[#1E293B] flex items-center gap-2">
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span>DAFTAR-I</span>
-              </div>
-              <div className="p-4 space-y-4">
-                <div className="font-semibold text-slate-700">TABEL I. BPPU (PPh Pasal 23 / 4(2) / 15 / 22)</div>
-                {renderSlipTable(matchingSlips, `SPT_Unifikasi_Daftar1_BPPU_${periodCode}`)}
-                <div className="font-semibold text-slate-700 pt-2">TABEL II. BPNR (PPh Pasal 26 / 4(2))</div>
-                {renderSlipTable([], `SPT_Unifikasi_Daftar1_BPNR_${periodCode}`)}
 
-                {/* Keterangan Jumlah di Daftar 1 (Sesuai Gambar 2 Coretax) */}
-                <div className="bg-[#FAFBFD] border border-[#E2E8F0] rounded-[4px] p-4 space-y-2 text-[11px] mt-4">
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-semibold text-slate-600">
-                      JUMLAH PAJAK PENGHASILAN DITANGGUNG PEMERINTAH DENGAN MENGGUNAKAN METODE PEMBAYARAN LANGSUNG
-                    </span>
-                    <span className="font-mono-num font-bold">0</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-semibold text-slate-600">
-                      JUMLAH PAJAK PENGHASILAN DITANGGUNG PEMERINTAH
-                    </span>
-                    <span className="font-mono-num font-bold">0</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-semibold text-slate-600">
-                      JUMLAH PAJAK PENGHASILAN DIBAYAR DENGAN MENGGUNAKAN METODE PEMBAYARAN LANGSUNG
-                    </span>
-                    <span className="font-mono-num font-bold">0</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[#1E2C5E] border-b-2 border-[#F6C324] pb-1.5 pt-1">
-                    <span className="font-bold">
-                      JUMLAH PAJAK PENGHASILAN YANG HARUS DIBAYAR
-                    </span>
-                    <span className="font-mono-num font-bold text-[12px]">
-                      {payload.totalTaxWithheld.toLocaleString('id-ID')}
-                    </span>
-                  </div>
+            <div className="text-[12px] font-bold text-slate-700 uppercase tracking-tight py-1">
+              DAFTAR BUKTI PEMOTONGAN DAN/ATAU PEMUNGUTAN PPH UNIFIKASI BERFORMAT STANDAR
+            </div>
+
+            <div className="space-y-4">
+              <div className="font-bold text-slate-800 text-[12.5px] flex items-center gap-1.5 cursor-pointer">
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+                <span>TABEL I. BPPU</span>
+              </div>
+              {renderSlipTable(matchingSlips, `SPT_Unifikasi_Daftar1_BPPU_${periodCode}`)}
+
+              <div className="font-bold text-slate-800 text-[12.5px] flex items-center gap-1.5 cursor-pointer pt-2">
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+                <span>TABEL II. BPNR</span>
+              </div>
+              {renderSlipTable([], `SPT_Unifikasi_Daftar1_BPNR_${periodCode}`)}
+
+              {/* Keterangan Jumlah di Daftar 1 (Sesuai Gambar 1 Coretax Real) */}
+              <div className="border border-[#E2E8F0] rounded-[4px] overflow-hidden bg-white text-[11px] mt-4 max-w-full">
+                <div className="flex justify-between items-center px-4 py-2 border-b border-[#F1F5F9] text-slate-700">
+                  <span className="font-normal text-slate-600">
+                    JUMLAH PAJAK PENGHASILAN DITANGGUNG PEMERINTAH DENGAN MENGGUNAKAN METODE PEMBAYARAN LANGSUNG
+                  </span>
+                  <span className="font-mono-num font-semibold text-slate-800">0</span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-2 border-b border-[#F1F5F9] text-slate-700">
+                  <span className="font-normal text-slate-600">
+                    JUMLAH PAJAK PENGHASILAN DITANGGUNG PEMERINTAH
+                  </span>
+                  <span className="font-mono-num font-semibold text-slate-800">0</span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-2 border-b border-[#F1F5F9] text-slate-700">
+                  <span className="font-normal text-slate-600">
+                    JUMLAH PAJAK PENGHASILAN DIBAYAR DENGAN MENGGUNAKAN METODE PEMBAYARAN LANGSUNG
+                  </span>
+                  <span className="font-mono-num font-semibold text-slate-800">0</span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-2.5 bg-[#FAFBFD] text-slate-900 border-t-2 border-[#F6C324]">
+                  <span className="font-bold text-slate-800">
+                    JUMLAH PAJAK PENGHASILAN YANG HARUS DIBAYAR
+                  </span>
+                  <span className="font-mono-num font-bold text-[12px] text-[#1B2958]">
+                    {payload.totalTaxWithheld.toLocaleString('id-ID')}
+                  </span>
                 </div>
               </div>
             </div>

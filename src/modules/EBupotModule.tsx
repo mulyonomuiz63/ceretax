@@ -126,137 +126,19 @@ const SAMPLE_XML_TEMPLATE = `<?xml version="1.0" encoding="UTF-8"?>
   </Bupot>
 </CoretaxEBupotImport>`;
 
-// Comprehensive PPh Unifikasi Object Codes for BPPU (Sesuai Coretax Asli)
-export const UNIFIKASI_BPPU_OBJECT_CODES = [
-  {
-    code: '24-101-01',
-    name: 'Dividen',
-    taxType: 'Pasal 23',
-    nature: 'Tidak Final',
-    rate: 15,
-    kap: '411124-100',
-  },
-  {
-    code: '24-104-18',
-    name: 'Jasa Aktuaris',
-    taxType: 'Pasal 23',
-    nature: 'Tidak Final',
-    rate: 2,
-    kap: '411124-100',
-  },
-  {
-    code: '28-403-05',
-    name: 'Pekerjaan Konstruksi Terintegrasi yang Dilakukan oleh Penyedia Jasa yang Memiliki Sertifikat Badan Usaha',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 2.65,
-    kap: '411128-409',
-  },
-  {
-    code: '28-403-06',
-    name: 'Pekerjaan Konstruksi Terintegrasi yang Dilakukan oleh Penyedia Jasa yang Tidak Memiliki Sertifikat Badan Usaha',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 4,
-    kap: '411128-409',
-  },
-  {
-    code: '28-403-03',
-    name: 'Jasa Konsultansi Konstruksi yang Dilakukan oleh Penyedia Jasa yang Memiliki Sertifikat Badan Usaha atau Sertifikat Kompetensi Kerja',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 3.5,
-    kap: '411128-409',
-  },
-  {
-    code: '28-403-04',
-    name: 'Jasa Konsultansi Konstruksi yang Dilakukan oleh Penyedia Jasa yang Tidak Memiliki Sertifikat Badan Usaha atau Sertifikat Kompetensi Kerja',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 6,
-    kap: '411128-409',
-  },
-  {
-    code: '28-403-01',
-    name: 'Pekerjaan Konstruksi yang Dilakukan oleh Penyedia Jasa yang Memiliki Sertifikat Badan Usaha Kualifikasi Kecil',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 1.75,
-    kap: '411128-409',
-  },
-  {
-    code: '28-403-02',
-    name: 'Pekerjaan Konstruksi yang Dilakukan oleh Penyedia Jasa yang Tidak Memiliki Sertifikat Badan Usaha',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 4,
-    kap: '411128-409',
-  },
-  {
-    code: '24-102-01',
-    name: 'Bunga Selain yang Dikenakan PPh Pasal 4 ayat (2)',
-    taxType: 'Pasal 23',
-    nature: 'Tidak Final',
-    rate: 15,
-    kap: '411124-100',
-  },
-  {
-    code: '24-103-01',
-    name: 'Royalti',
-    taxType: 'Pasal 23',
-    nature: 'Tidak Final',
-    rate: 15,
-    kap: '411124-100',
-  },
-  {
-    code: '24-100-01',
-    name: 'Hadiah, Penghargaan, Bonus, dan sejenisnya',
-    taxType: 'Pasal 23',
-    nature: 'Tidak Final',
-    rate: 15,
-    kap: '411124-100',
-  },
-  {
-    code: '24-100-02',
-    name: 'Sewa dan Penghasilan Lain Sehubungan Penggunaan Harta selain Tanah dan Bangunan',
-    taxType: 'Pasal 23',
-    nature: 'Tidak Final',
-    rate: 2,
-    kap: '411124-100',
-  },
-  {
-    code: '24-104-29',
-    name: 'Jasa Teknik, Jasa Manajemen, Jasa Konsultan, dan Jasa Lain',
-    taxType: 'Pasal 23',
-    nature: 'Tidak Final',
-    rate: 2,
-    kap: '411124-100',
-  },
-  {
-    code: '28-403-00',
-    name: 'Sewa Tanah dan/atau Bangunan',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 10,
-    kap: '411128-403',
-  },
-  {
-    code: '28-402-01',
-    name: 'Pengalihan Hak atas Tanah dan/atau Bangunan',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 2.5,
-    kap: '411128-402',
-  },
-  {
-    code: '28-401-01',
-    name: 'Bunga Deposito / Tabungan dan Diskonto SBI',
-    taxType: 'Pasal 4(2)',
-    nature: 'Final',
-    rate: 20,
-    kap: '411128-401',
-  },
-];
+import {
+  UNIFIKASI_BPPU_OBJECT_CODES,
+  UNIFIKASI_FASILITAS_OPTIONS,
+  UNIFIKASI_PEMBAYARAN_IP_OPTIONS,
+  UNIFIKASI_DOKUMEN_OPTIONS,
+} from '../data/unifikasiTaxObjects.ts';
+
+export {
+  UNIFIKASI_BPPU_OBJECT_CODES,
+  UNIFIKASI_FASILITAS_OPTIONS,
+  UNIFIKASI_PEMBAYARAN_IP_OPTIONS,
+  UNIFIKASI_DOKUMEN_OPTIONS,
+};
 
 const SUBTAB_CONFIG: Record<
   string,
@@ -388,8 +270,9 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const [bpmpObjectCode, setBpmpObjectCode] = useState('21-100-01');
   const [bp21ObjectCode, setBp21ObjectCode] = useState('21-100-07');
   const [bp26ObjectCode, setBp26ObjectCode] = useState('27-100-01');
-  const [taxFacility, setTaxFacility] = useState<'NONE' | 'SKB' | 'DTP'>('NONE');
-  const [refDocType, setRefDocType] = useState('Invoice / Daftar Gaji');
+  const [taxFacility, setTaxFacility] = useState<string>('N/A');
+  const [paymentIp, setPaymentIp] = useState<string>('N/A');
+  const [refDocType, setRefDocType] = useState('CommercialInvoice');
   const [refDocNumber, setRefDocNumber] = useState('DOC/2025/01/001');
   const [refDocDate, setRefDocDate] = useState('2025-01-25');
   const [submitBanner, setSubmitBanner] = useState<string | null>(null);
@@ -542,7 +425,9 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
       const foundUni =
         UNIFIKASI_BPPU_OBJECT_CODES.find((c) => c.code === pph23Code) ||
         UNIFIKASI_BPPU_OBJECT_CODES[0];
-      const tax = taxFacility === 'DTP' ? 0 : Math.round((grossAmount * foundUni.rate) / 100);
+      const isExempt = taxFacility === 'DTP' || taxFacility.startsWith('TaxEx');
+      const effRate = isExempt ? 0 : foundUni.rate;
+      const tax = Math.round((grossAmount * effRate) / 100);
       return {
         objectCode: foundUni.code,
         objectName: foundUni.name,
@@ -550,7 +435,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
         nature: foundUni.nature,
         kap: foundUni.kap,
         netAmount: grossAmount,
-        ratePercent: foundUni.rate,
+        ratePercent: effRate,
         taxWithheld: tax,
       };
     }
@@ -1846,12 +1731,14 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           </label>
                           <select
                             value={taxFacility}
-                            onChange={(e) => setTaxFacility(e.target.value as 'NONE' | 'DTP' | 'OTHER')}
-                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            onChange={(e) => setTaxFacility(e.target.value)}
+                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white text-xs"
                           >
-                            <option value="NONE">Tanpa Fasilitas</option>
-                            <option value="DTP">PPh Ditanggung Pemerintah (DTP)</option>
-                            <option value="OTHER">Fasilitas Lainnya</option>
+                            {UNIFIKASI_FASILITAS_OPTIONS.map((f) => (
+                              <option key={f.code} value={f.code}>
+                                {f.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
 
@@ -1888,7 +1775,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             >
                               {UNIFIKASI_BPPU_OBJECT_CODES.map((c) => (
                                 <option key={c.code} value={c.code}>
-                                  {c.name} ({c.code} — {c.taxType})
+                                  {c.code} - {c.name} ({c.rate}%)
                                 </option>
                               ))}
                             </select>
@@ -1960,6 +1847,23 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               value={(calc as any).nature || 'Tidak Final'}
                               className="col-span-7 border border-[#DCE2EC] bg-[#EDF1F7] rounded-[3px] px-2.5 py-1.5"
                             />
+                          </div>
+                        )}
+
+                        {currentSlipType === 'BPPU_23' && (
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-5 text-slate-700">Kode Pembayaran IP*</label>
+                            <select
+                              value={paymentIp}
+                              onChange={(e) => setPaymentIp(e.target.value)}
+                              className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white text-xs"
+                            >
+                              {UNIFIKASI_PEMBAYARAN_IP_OPTIONS.map((ip) => (
+                                <option key={ip.code} value={ip.code}>
+                                  {ip.name}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         )}
 
@@ -2073,13 +1977,13 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           <select
                             value={refDocType}
                             onChange={(e) => setRefDocType(e.target.value)}
-                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white"
+                            className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white text-xs"
                           >
-                            <option value="Akta Perjanjian">Akta Perjanjian</option>
-                            <option value="Akta Rapat Umum Pemegang Saham">Akta Rapat Umum Pemegang Saham</option>
-                            <option value="Bukti Pembayaran">Bukti Pembayaran</option>
-                            <option value="Dokumen Ketentuan Peraturan Perpajakan">Dokumen Ketentuan Peraturan Perpajakan</option>
-                            <option value="Dokumen Lainnya">Dokumen Lainnya</option>
+                            {UNIFIKASI_DOKUMEN_OPTIONS.map((d) => (
+                              <option key={d.code} value={d.code}>
+                                {d.name} ({d.code})
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div className="grid grid-cols-12 items-center gap-2">

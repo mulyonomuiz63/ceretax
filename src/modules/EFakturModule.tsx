@@ -1427,7 +1427,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           </th>
                           <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                             <span className="inline-flex items-center gap-1">
-                              {isInputTab ? 'NPWP Penjual' : 'NPWP Pembeli / Identitas Lainnya'}
+                              {isInputTab ? 'NPWP Penjual' : 'NPWP Pembeli / Identitas lainnya'}
                               <ArrowUpDown className="w-3 h-3 opacity-60" />
                             </span>
                           </th>
@@ -1455,15 +1455,53 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                               <ArrowUpDown className="w-3 h-3 opacity-60" />
                             </span>
                           </th>
+                          {normalizedTab === 'output' && (
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              Tahun
+                            </th>
+                          )}
+                          <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                            Status Faktur
+                          </th>
+                          {normalizedTab === 'output' && (
+                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              ESignStatus
+                            </th>
+                          )}
                           <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                            Harga Jual / DPP
+                            {normalizedTab === 'output' ? 'Harga Jual/Penggantian/DPP' : 'Harga Jual / DPP'}
                           </th>
                           <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                            DPP Nilai Lain
+                            {normalizedTab === 'output' ? 'DPP Nilai Lain/DPP' : 'DPP Nilai Lain'}
                           </th>
                           <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
                             PPN
                           </th>
+                          {normalizedTab === 'output' && (
+                            <>
+                              <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                                PPnBM
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Penandatangan
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Referensi
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                Metode Input
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                Dilaporkan oleh Penjual
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                Dilaporkan oleh Pemungut PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap">
+                                IsShowClearName
+                              </th>
+                            </>
+                          )}
                           {isInputTab && !isReturTab && (
                             <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
                               Pengkreditan
@@ -1474,9 +1512,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                               PPN Diretur
                             </th>
                           )}
-                          <th className="px-3 py-2.5 text-center whitespace-nowrap">
-                            Status Faktur
-                          </th>
                         </tr>
 
                         {/* Inline White Filter Row (Exact Coretax Pajak Keluaran Screenshot) */}
@@ -1749,20 +1784,62 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 <div className="text-[10px] text-slate-500">Ref: {inv.referenceCode}</div>
                               </td>
                               <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
-                                {inv.invoiceDate}
+                                {inv.invoiceDate ? `${inv.invoiceDate}T00:00:00` : '2026-11-18T00:00:00'}
                               </td>
                               <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
-                                {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)]} {inv.taxPeriodYear}
+                                {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'}
                               </td>
+                              {normalizedTab === 'output' && (
+                                <td className="px-3 py-2.5 text-center font-mono-num whitespace-nowrap">
+                                  {inv.taxPeriodYear || 2026}
+                                </td>
+                              )}
+                              <td className="px-3 py-2.5 text-center whitespace-nowrap border-r border-slate-100">
+                                <span
+                                  className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}
+                                >
+                                  {inv.status}
+                                </span>
+                              </td>
+                              {normalizedTab === 'output' && (
+                                <td className="px-3 py-2.5 text-center whitespace-nowrap font-medium text-emerald-700">
+                                  {inv.status === 'APPROVED' ? 'Done' : 'Pending'}
+                                </td>
+                              )}
                               <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
                                 {formatRp(inv.dppTotal)}
                               </td>
                               <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
-                                {formatRp(inv.dppOtherValue)}
+                                {formatRp(inv.dppOtherValue || Math.round(inv.dppTotal * (11 / 12)))}
                               </td>
                               <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
                                 {formatRp(inv.ppnTotal)}
                               </td>
+                              {normalizedTab === 'output' && (
+                                <>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    0
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
+                                    {workspace.corporateTaxpayer.representativeName || 'ARIEF BASYARI'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-slate-600">
+                                    {inv.referenceCode || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-700">
+                                    MANUAL
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-600">
+                                    False
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
+                                    -
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
+                                    -
+                                  </td>
+                                </>
+                              )}
                               {isInputTab && !isReturTab && (
                                 <td className="px-3 py-2.5 text-center whitespace-nowrap">
                                   <span
@@ -1786,13 +1863,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   )}
                                 </td>
                               )}
-                              <td className="px-3 py-2.5 text-center whitespace-nowrap">
-                                <span
-                                  className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}
-                                >
-                                  {inv.status}
-                                </span>
-                              </td>
                             </tr>
                           ))
                         )}

@@ -136,7 +136,10 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
   curY += 7;
 
   // Box 2: Pengusaha Kena Pajak
-  const pkpBoxH = 26;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  const sLines = doc.splitTextToSize(`: ${sellerAddress}`, contentWidth - 25);
+  const pkpBoxH = Math.max(22, 10 + sLines.length * 3.8 + 8);
   doc.rect(marginLeft, curY, contentWidth, pkpBoxH);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
@@ -144,21 +147,23 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('Nama', marginLeft + 4, curY + 10);
-  doc.text(`: ${sellerName}`, marginLeft + 20, curY + 10);
+  doc.text('Nama', marginLeft + 4, curY + 9);
+  doc.text(`: ${sellerName}`, marginLeft + 20, curY + 9);
 
-  doc.text('Alamat', marginLeft + 4, curY + 14.5);
-  const sLines = doc.splitTextToSize(`: ${sellerAddress}`, contentWidth - 25);
-  doc.text(sLines, marginLeft + 20, curY + 14.5);
+  doc.text('Alamat', marginLeft + 4, curY + 13);
+  doc.text(sLines, marginLeft + 20, curY + 13);
 
-  const npwpY = curY + 14.5 + (sLines.length > 1 ? sLines.length * 3.8 : 4.5);
+  const npwpY = curY + 13 + sLines.length * 3.8 + 1;
   doc.text('NPWP', marginLeft + 4, npwpY);
   doc.text(`: ${sellerNpwp}`, marginLeft + 20, npwpY);
 
   curY += pkpBoxH;
 
   // Box 3: Pembeli Barang Kena Pajak / Penerima Jasa Kena Pajak
-  const buyerBoxH = 37;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  const bLines = doc.splitTextToSize(`: ${buyerAddress}`, contentWidth - 30);
+  const buyerBoxH = Math.max(34, 10 + bLines.length * 3.6 + 6 * 4 + 4);
   doc.rect(marginLeft, curY, contentWidth, buyerBoxH);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
@@ -166,32 +171,31 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  let bRowY = curY + 9.5;
+  let bRowY = curY + 9;
   doc.text('Nama', marginLeft + 4, bRowY);
   doc.text(`: ${buyerName}`, marginLeft + 26, bRowY);
 
-  bRowY += 4.5;
+  bRowY += 4;
   doc.text('Alamat', marginLeft + 4, bRowY);
-  const bLines = doc.splitTextToSize(`: ${buyerAddress}`, contentWidth - 30);
   doc.text(bLines, marginLeft + 26, bRowY);
 
-  bRowY += bLines.length > 1 ? bLines.length * 3.8 : 4.5;
+  bRowY += bLines.length * 3.6 + 0.5;
   doc.text('NPWP', marginLeft + 4, bRowY);
   doc.text(`: ${buyerNpwp}`, marginLeft + 26, bRowY);
 
-  bRowY += 4.2;
+  bRowY += 3.8;
   doc.text('NIK', marginLeft + 4, bRowY);
   doc.text(': -', marginLeft + 26, bRowY);
 
-  bRowY += 4.2;
+  bRowY += 3.8;
   doc.text('Nomor Paspor', marginLeft + 4, bRowY);
   doc.text(': -', marginLeft + 26, bRowY);
 
-  bRowY += 4.2;
+  bRowY += 3.8;
   doc.text('Identitas Lain', marginLeft + 4, bRowY);
   doc.text(': -', marginLeft + 26, bRowY);
 
-  bRowY += 4.2;
+  bRowY += 3.8;
   doc.text('Email', marginLeft + 4, bRowY);
   doc.text(': -', marginLeft + 26, bRowY);
 
@@ -250,7 +254,9 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
       ];
 
   items.forEach((it, idx) => {
-    const rowH = 24;
+    const rawPrice = it.unitPrice || it.dpp || 46287500;
+    const priceFormatted = formatCurrency(rawPrice);
+    const rowH = 22;
     doc.rect(marginLeft, curY, contentWidth, rowH);
     doc.line(colX_Kode, curY, colX_Kode, curY + rowH);
     doc.line(colX_Nama, curY, colX_Nama, curY + rowH);
@@ -258,23 +264,17 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
-    doc.text(String(idx + 1), colX_No + colW_No / 2, curY + 5.5, { align: 'center' });
-    doc.text(it.itemCode || '240900', colX_Kode + colW_Kode / 2, curY + 5.5, { align: 'center' });
+    doc.text(String(idx + 1), colX_No + colW_No / 2, curY + 5, { align: 'center' });
+    doc.text(it.itemCode || '240900', colX_Kode + colW_Kode / 2, curY + 5, { align: 'center' });
 
-    // Item description lines matching official screenshot:
-    // Line 1: Item name
-    // Line 2: Rp XX x YY Kegiatan / Unit
-    // Line 3: Potongan Harga = Rp 0,00
-    // Line 4: PPnBM (0,00%) = Rp 0,00
-    const rawPrice = it.unitPrice || it.dpp || 46287500;
-    const priceFormatted = formatCurrency(rawPrice);
     doc.text(it.itemName, colX_Nama + 2, curY + 5);
-    doc.text(`Rp ${priceFormatted} x ${it.quantity.toFixed(2).replace('.', ',')} Kegiatan`, colX_Nama + 2, curY + 9.5);
-    doc.text('Potongan Harga = Rp 0,00', colX_Nama + 2, curY + 14);
-    doc.text('PPnBM (0,00%) = Rp 0,00', colX_Nama + 2, curY + 18.5);
+    const qtyStr = (it.quantity || 1).toFixed(2).replace('.', ',');
+    doc.text(`Rp ${priceFormatted} x ${qtyStr} Kegiatan`, colX_Nama + 2, curY + 9);
+    doc.text('Potongan Harga = Rp 0,00', colX_Nama + 2, curY + 13);
+    doc.text('PPnBM (0,00%) = Rp 0,00', colX_Nama + 2, curY + 17);
 
     // Amount column (right aligned)
-    doc.text(priceFormatted, marginRight - 2, curY + 5.5, { align: 'right' });
+    doc.text(priceFormatted, marginRight - 2, curY + 5, { align: 'right' });
 
     curY += rowH;
   });
@@ -290,20 +290,20 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
   ];
 
   summaryRows.forEach((sr) => {
-    const sH = 6;
+    const sH = 5.5;
     doc.rect(marginLeft, curY, contentWidth, sH);
     doc.line(colX_Harga, curY, colX_Harga, curY + sH);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
-    doc.text(sr.label, marginLeft + 2, curY + 4.2);
+    doc.text(sr.label, marginLeft + 2, curY + 3.8);
     if (sr.val) {
-      doc.text(sr.val, marginRight - 2, curY + 4.2, { align: 'right' });
+      doc.text(sr.val, marginRight - 2, curY + 3.8, { align: 'right' });
     }
     curY += sH;
   });
 
   // 5. Electronic Signature Notice Section
-  const noticeH = 40;
+  const noticeH = 36;
   doc.rect(marginLeft, curY, contentWidth, noticeH);
 
   // Left Legal Notice
@@ -312,7 +312,7 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
   const legalNotice =
     'Sesuai dengan ketentuan yang berlaku, Direktorat Jenderal Pajak mengatur bahwa Faktur Pajak ini telah ditandatangani secara elektronik sehingga tidak diperlukan tanda tangan basah pada Faktur Pajak ini.';
   const lLines = doc.splitTextToSize(legalNotice, 105);
-  doc.text(lLines, marginLeft + 2, curY + 5);
+  doc.text(lLines, marginLeft + 2, curY + 4.5);
 
   // Right Sign-off Block
   const signDate = invoice.invoiceDate
@@ -323,26 +323,26 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
       })
     : '18 November 2026';
 
-  const signBlockX = 145;
+  const signBlockX = 142;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text(`${signerCity}, ${signDate}`, signBlockX, curY + 5);
+  doc.text(`${signerCity}, ${signDate}`, signBlockX, curY + 4.5);
 
   // QR Code
   const qrUrl = generateQrCodeDataUrl(
     `DJP-FAKTUR|${fNumber}|${sellerNpwp}|${buyerNpwp}|${invoice.dppTotal}|${invoice.ppnTotal}`
   );
   if (qrUrl) {
-    doc.addImage(qrUrl, 'PNG', signBlockX - 1, curY + 7.5, 20, 20);
+    doc.addImage(qrUrl, 'PNG', signBlockX - 1, curY + 6.5, 18, 18);
   }
 
   doc.setFontSize(6);
   doc.setTextColor(100, 116, 139);
-  doc.text('Ditandatangani secara elektronik', signBlockX - 1, curY + 30);
+  doc.text('Ditandatangani secara elektronik', signBlockX - 1, curY + 26.5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(0, 0, 0);
-  doc.text(signerName, signBlockX - 1, curY + 34);
+  doc.text(signerName, signBlockX - 1, curY + 30.5);
 
   curY += noticeH;
 
@@ -350,14 +350,14 @@ export function downloadFakturPajakPdf(invoice: TaxInvoice, seller?: Taxpayer): 
   doc.setFontSize(6);
   doc.setTextColor(0, 0, 0);
   const refCode = invoice.referenceCode || '065/VLS/XI/2026';
-  doc.text(`(Referensi: ${refCode})`, marginLeft, curY + 6);
+  doc.text(`(Referensi: ${refCode})`, marginLeft, curY + 4);
 
   const warnText =
     'Pemberitahuan: Faktur Pajak ini telah dilaporkan ke Direktorat Jenderal Pajak dan telah memperoleh persetujuan sesuai dengan ketentuan peraturan perpajakan yang berlaku. PERINGATAN: PKP yang membuat Faktur Pajak yang tidak sesuai dengan keadaan yang sebenarnya dan/atau sesungguhnya sebagaimana dimaksud dalam Pasal 13 ayat (9) UU PPN dikenai sanksi sesuai dengan Pasal 14 ayat (4) UU KUP.';
   const wLines = doc.splitTextToSize(warnText, contentWidth - 25);
-  doc.text(wLines, marginLeft, curY + 10);
+  doc.text(wLines, marginLeft, curY + 7.5);
 
-  doc.text('1 dari 1', marginRight - 8, curY + 10, { align: 'right' });
+  doc.text('1 dari 1', marginRight - 2, curY + 7.5, { align: 'right' });
 
   // 7. Save / Trigger Download
   const filename = `Faktur_Pajak_${fNumber}.pdf`;
