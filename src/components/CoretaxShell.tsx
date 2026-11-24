@@ -1323,7 +1323,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       {/* ===================================================================== */}
       {/* FLOATING 2-COLUMN WORKSPACE (LEFT SUBMENU CARD + RIGHT CONTENT CARD)  */}
       {/* ===================================================================== */}
-      <div className="relative z-20 flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full min-h-[260px]">
+      <div className="relative flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full min-h-[260px]">
         {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge: Centered Vertically on Left Screen Edge (top-1/2) with z-40 above footer */}
         {leftCollapsed && (
           <button

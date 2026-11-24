@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, X } from 'lucide-react';
 import { BillingCode, TaxInvoice, TaxReturn, Taxpayer, WithholdingSlip } from '../types/tax.ts';
 import { formatRp, MONTHS_ID } from '../utils/taxCalc.ts';
@@ -38,8 +39,8 @@ export const DocumentPrintModal: React.FC<DocumentPrintModalProps> = ({ doc, onC
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-md shadow-2xl border border-slate-300 w-full max-w-2xl my-8 overflow-hidden">
         {/* Toolbar */}
         <div className="bg-[#1D2B53] text-white px-5 py-3 flex items-center justify-between border-b-2 border-[#F4C430]">
@@ -397,4 +398,6 @@ export const DocumentPrintModal: React.FC<DocumentPrintModalProps> = ({ doc, onC
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   ArrowLeft,
@@ -2300,303 +2301,306 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       </div>
 
       {/* Authentic Coretax Add Transaction Modal (2-Column: Detail Barang/Jasa & PPN dan PPnBM) */}
-      {addTxModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[0.5px] flex items-start justify-center p-3 sm:p-5 md:p-6 overflow-y-auto">
-          <div className="bg-white rounded-[4px] shadow-2xl border border-slate-200 w-full max-w-4xl my-auto p-6 sm:p-8 relative">
-            <h3 className="font-sans font-medium text-[15px] text-[#1E293B] mb-5">Add Transaction</h3>
+      {addTxModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-[1px] flex items-start justify-center p-3 sm:p-5 md:p-6 overflow-y-auto">
+            <div className="bg-white rounded-[4px] shadow-2xl border border-slate-200 w-full max-w-4xl my-auto p-6 sm:p-8 relative">
+              <h3 className="font-sans font-medium text-[15px] text-[#1E293B] mb-5">Add Transaction</h3>
 
-            <form onSubmit={handleAddTransactionLine} className="space-y-3.5 text-[12px]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                {/* Left Column: Barang / Jasa Details */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="block text-slate-700 font-normal mb-1">Tipe</label>
-                      <div className="flex items-center gap-6">
-                        <label className="inline-flex items-center gap-2 cursor-pointer text-slate-800 text-[12px]">
-                          <input
-                            type="radio"
-                            name="itemType"
-                            checked={txItemType === 'GOODS'}
-                            onChange={() => {
-                              setTxItemType('GOODS');
-                              setItemCode('');
-                              setItemName('');
-                              setTxCodeSearchQuery('');
-                            }}
-                            className="accent-[#0088FF] w-4 h-4 cursor-pointer"
-                          />
-                          <span>Barang</span>
-                        </label>
-                        <label className="inline-flex items-center gap-2 cursor-pointer text-slate-800 text-[12px]">
-                          <input
-                            type="radio"
-                            name="itemType"
-                            checked={txItemType === 'SERVICES'}
-                            onChange={() => {
-                              setTxItemType('SERVICES');
-                              setItemCode('');
-                              setItemName('');
-                              setTxCodeSearchQuery('');
-                            }}
-                            className="accent-[#0088FF] w-4 h-4 cursor-pointer"
-                          />
-                          <span>Jasa</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const isGoods = txItemType === 'GOODS';
-                        downloadCsvFile(
-                          isGoods ? 'Daftar_Kode_Barang_Coretax.csv' : 'Daftar_Kode_Jasa_Coretax.csv',
-                          ['Kode', 'Tipe', 'Nama Barang/Jasa'],
-                          (isGoods ? GOODS_CODES : SERVICES_CODES).map((it) => [it.code, it.type, it.name])
-                        );
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] bg-[#1D2B53] hover:bg-[#152048] text-white text-[11px] font-semibold cursor-pointer shadow-sm"
-                    >
-                      <span>Unduh Kode</span>
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Kode Combobox with Real-Time Search */}
-                  <div className="relative">
-                    <label className="block text-slate-700 font-normal mb-1">Kode</label>
-                    <div
-                      onClick={() => setTxCodeDropdownOpen(!txCodeDropdownOpen)}
-                      className={`w-full border ${
-                        txCodeDropdownOpen ? 'border-sky-500 ring-1 ring-sky-400' : 'border-slate-300'
-                      } rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] flex items-center justify-between cursor-pointer`}
-                    >
-                      <span className={itemCode ? 'text-slate-800 font-medium' : 'text-slate-400'}>
-                        {itemCode ? `${itemCode} - ${itemName}` : 'Pilih kode'}
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
-                    </div>
-
-                    {txCodeDropdownOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-[3px] shadow-2xl z-50 overflow-hidden">
-                        <div className="p-2 border-b border-slate-200 relative">
-                          <input
-                            type="text"
-                            autoFocus
-                            placeholder=""
-                            value={txCodeSearchQuery}
-                            onChange={(e) => setTxCodeSearchQuery(e.target.value)}
-                            className="w-full border border-sky-400 rounded-[3px] px-3 py-1.5 pr-8 text-[12px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                          />
-                          <Search className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <form onSubmit={handleAddTransactionLine} className="space-y-3.5 text-[12px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                  {/* Left Column: Barang / Jasa Details */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-slate-700 font-normal mb-1">Tipe</label>
+                        <div className="flex items-center gap-6">
+                          <label className="inline-flex items-center gap-2 cursor-pointer text-slate-800 text-[12px]">
+                            <input
+                              type="radio"
+                              name="itemType"
+                              checked={txItemType === 'GOODS'}
+                              onChange={() => {
+                                setTxItemType('GOODS');
+                                setItemCode('');
+                                setItemName('');
+                                setTxCodeSearchQuery('');
+                              }}
+                              className="accent-[#0088FF] w-4 h-4 cursor-pointer"
+                            />
+                            <span>Barang</span>
+                          </label>
+                          <label className="inline-flex items-center gap-2 cursor-pointer text-slate-800 text-[12px]">
+                            <input
+                              type="radio"
+                              name="itemType"
+                              checked={txItemType === 'SERVICES'}
+                              onChange={() => {
+                                setTxItemType('SERVICES');
+                                setItemCode('');
+                                setItemName('');
+                                setTxCodeSearchQuery('');
+                              }}
+                              className="accent-[#0088FF] w-4 h-4 cursor-pointer"
+                            />
+                            <span>Jasa</span>
+                          </label>
                         </div>
-                        <div className="max-h-56 overflow-y-auto">
-                          {filteredCatalogCodes.length > 0 ? (
-                            filteredCatalogCodes.map((c) => (
-                              <div
-                                key={c.code}
-                                onClick={() => {
-                                  setItemCode(c.code);
-                                  setItemName(c.name);
-                                  setTxCodeDropdownOpen(false);
-                                  setTxCodeSearchQuery('');
-                                }}
-                                className={`px-3 py-2 text-[11.5px] cursor-pointer hover:bg-sky-50 hover:text-sky-900 border-b border-slate-100 last:border-0 ${
-                                  itemCode === c.code ? 'bg-sky-100 text-sky-900 font-semibold' : 'text-slate-700'
-                                }`}
-                              >
-                                {c.code} - {c.name}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const isGoods = txItemType === 'GOODS';
+                          downloadCsvFile(
+                            isGoods ? 'Daftar_Kode_Barang_Coretax.csv' : 'Daftar_Kode_Jasa_Coretax.csv',
+                            ['Kode', 'Tipe', 'Nama Barang/Jasa'],
+                            (isGoods ? GOODS_CODES : SERVICES_CODES).map((it) => [it.code, it.type, it.name])
+                          );
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] bg-[#1D2B53] hover:bg-[#152048] text-white text-[11px] font-semibold cursor-pointer shadow-sm"
+                      >
+                        <span>Unduh Kode</span>
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Kode Combobox with Real-Time Search */}
+                    <div className="relative">
+                      <label className="block text-slate-700 font-normal mb-1">Kode</label>
+                      <div
+                        onClick={() => setTxCodeDropdownOpen(!txCodeDropdownOpen)}
+                        className={`w-full border ${
+                          txCodeDropdownOpen ? 'border-sky-500 ring-1 ring-sky-400' : 'border-slate-300'
+                        } rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] flex items-center justify-between cursor-pointer`}
+                      >
+                        <span className={itemCode ? 'text-slate-800 font-medium' : 'text-slate-400'}>
+                          {itemCode ? `${itemCode} - ${itemName}` : 'Pilih kode'}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
+                      </div>
+
+                      {txCodeDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-[3px] shadow-2xl z-50 overflow-hidden">
+                          <div className="p-2 border-b border-slate-200 relative">
+                            <input
+                              type="text"
+                              autoFocus
+                              placeholder=""
+                              value={txCodeSearchQuery}
+                              onChange={(e) => setTxCodeSearchQuery(e.target.value)}
+                              className="w-full border border-sky-400 rounded-[3px] px-3 py-1.5 pr-8 text-[12px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                            />
+                            <Search className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                          <div className="max-h-56 overflow-y-auto">
+                            {filteredCatalogCodes.length > 0 ? (
+                              filteredCatalogCodes.map((c) => (
+                                <div
+                                  key={c.code}
+                                  onClick={() => {
+                                    setItemCode(c.code);
+                                    setItemName(c.name);
+                                    setTxCodeDropdownOpen(false);
+                                    setTxCodeSearchQuery('');
+                                  }}
+                                  className={`px-3 py-2 text-[11.5px] cursor-pointer hover:bg-sky-50 hover:text-sky-900 border-b border-slate-100 last:border-0 ${
+                                    itemCode === c.code ? 'bg-sky-100 text-sky-900 font-semibold' : 'text-slate-700'
+                                  }`}
+                                >
+                                  {c.code} - {c.name}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-3 py-4 text-center text-xs text-slate-400">
+                                Tidak ada kode yang sesuai
                               </div>
-                            ))
-                          ) : (
-                            <div className="px-3 py-4 text-center text-xs text-slate-400">
-                              Tidak ada kode yang sesuai
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">Nama</label>
-                    <input
-                      type="text"
-                      value={itemName}
-                      onChange={(e) => setItemName(e.target.value)}
-                      placeholder=""
-                      className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-700 font-normal mb-1">Satuan</label>
+                      <label className="block text-slate-700 font-normal mb-1">Nama</label>
                       <input
                         type="text"
-                        value={txUnit}
-                        onChange={(e) => setTxUnit(e.target.value)}
+                        value={itemName}
+                        onChange={(e) => setItemName(e.target.value)}
+                        placeholder=""
                         className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white"
                         required
                       />
                     </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-700 font-normal mb-1">Satuan</label>
+                        <input
+                          type="text"
+                          value={txUnit}
+                          onChange={(e) => setTxUnit(e.target.value)}
+                          className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-normal mb-1">Kuantitas</label>
+                        <input
+                          type={quantityFocused ? 'number' : 'text'}
+                          min={1}
+                          value={quantityFocused ? (quantity === 0 ? '' : quantity) : String(quantity || 1)}
+                          onFocus={() => setQuantityFocused(true)}
+                          onBlur={() => setQuantityFocused(false)}
+                          onChange={(e) => setQuantity(Math.max(1, Number(e.target.value.replace(/[^0-9]/g, '')) || 1))}
+                          className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
+                          required
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="block text-slate-700 font-normal mb-1">Kuantitas</label>
+                      <label className="block text-slate-700 font-normal mb-1">Harga Satuan</label>
                       <input
-                        type={quantityFocused ? 'number' : 'text'}
-                        min={1}
-                        value={quantityFocused ? (quantity === 0 ? '' : quantity) : String(quantity || 1)}
-                        onFocus={() => setQuantityFocused(true)}
-                        onBlur={() => setQuantityFocused(false)}
-                        onChange={(e) => setQuantity(Math.max(1, Number(e.target.value.replace(/[^0-9]/g, '')) || 1))}
+                        type={unitPriceFocused ? 'number' : 'text'}
+                        min={0}
+                        value={unitPriceFocused ? (unitPrice === 0 ? '' : unitPrice) : formatCoretaxDec(unitPrice)}
+                        onFocus={() => setUnitPriceFocused(true)}
+                        onBlur={() => setUnitPriceFocused(false)}
+                        onChange={(e) => setUnitPrice(Math.max(0, Number(e.target.value) || 0))}
                         className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
-                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">Total Harga</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={formatCoretaxDec(modalTotalPrice)}
+                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">Potongan harga</label>
+                      <input
+                        type={discountFocused ? 'number' : 'text'}
+                        min={0}
+                        value={discountFocused ? (discount === 0 ? '' : discount) : formatCoretaxDec(discount)}
+                        onFocus={() => setDiscountFocused(true)}
+                        onBlur={() => setDiscountFocused(false)}
+                        onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))}
+                        className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">Harga Satuan</label>
-                    <input
-                      type={unitPriceFocused ? 'number' : 'text'}
-                      min={0}
-                      value={unitPriceFocused ? (unitPrice === 0 ? '' : unitPrice) : formatCoretaxDec(unitPrice)}
-                      onFocus={() => setUnitPriceFocused(true)}
-                      onBlur={() => setUnitPriceFocused(false)}
-                      onChange={(e) => setUnitPrice(Math.max(0, Number(e.target.value) || 0))}
-                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
-                    />
-                  </div>
+                  {/* Right Column: PPN dan PPnBM */}
+                  <div className="space-y-3">
+                    <div className="text-[12.5px] font-normal text-slate-700 pb-0.5">
+                      PPN dan PPnBM
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">Total Harga</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={formatCoretaxDec(modalTotalPrice)}
-                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">Potongan harga</label>
-                    <input
-                      type={discountFocused ? 'number' : 'text'}
-                      min={0}
-                      value={discountFocused ? (discount === 0 ? '' : discount) : formatCoretaxDec(discount)}
-                      onFocus={() => setDiscountFocused(true)}
-                      onBlur={() => setDiscountFocused(false)}
-                      onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))}
-                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Right Column: PPN dan PPnBM */}
-                <div className="space-y-3">
-                  <div className="text-[12.5px] font-normal text-slate-700 pb-0.5">
-                    PPN dan PPnBM
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">DPP</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={formatCoretaxDec(modalDpp)}
-                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="inline-flex items-center gap-2 cursor-pointer text-slate-700 text-[12px]">
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">DPP</label>
                       <input
-                        type="checkbox"
-                        checked={isOtherValue}
-                        onChange={(e) => setIsOtherValue(e.target.checked)}
-                        className="accent-[#0088FF] w-4 h-4 rounded cursor-pointer"
+                        type="text"
+                        readOnly
+                        value={formatCoretaxDec(modalDpp)}
+                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
                       />
-                      <span>DPP Nilai Lain/DPP</span>
-                    </label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={formatCoretaxDec(isOtherValue ? modalDppOther : 0)}
-                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
-                    />
-                  </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">Tarif PPN</label>
-                    <select
-                      value={ppnRatePercent}
-                      onChange={(e) => setPpnRatePercent(Number(e.target.value))}
-                      className="w-full border border-slate-300 rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] text-slate-800 cursor-pointer"
-                    >
-                      <option value={12}>12%</option>
-                      <option value={11}>11%</option>
-                      <option value={0}>0%</option>
-                    </select>
-                  </div>
+                    <div className="space-y-1">
+                      <label className="inline-flex items-center gap-2 cursor-pointer text-slate-700 text-[12px]">
+                        <input
+                          type="checkbox"
+                          checked={isOtherValue}
+                          onChange={(e) => setIsOtherValue(e.target.checked)}
+                          className="accent-[#0088FF] w-4 h-4 rounded cursor-pointer"
+                        />
+                        <span>DPP Nilai Lain/DPP</span>
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={formatCoretaxDec(isOtherValue ? modalDppOther : 0)}
+                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">PPN</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={formatCoretaxDec(modalPpn)}
-                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">Tarif PPN</label>
+                      <select
+                        value={ppnRatePercent}
+                        onChange={(e) => setPpnRatePercent(Number(e.target.value))}
+                        className="w-full border border-slate-300 rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] text-slate-800 cursor-pointer"
+                      >
+                        <option value={12}>12%</option>
+                        <option value={11}>11%</option>
+                        <option value={0}>0%</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">Tarif PPnBM (%)</label>
-                    <input
-                      type={ppnbmFocused ? 'number' : 'text'}
-                      min={0}
-                      max={200}
-                      value={ppnbmFocused ? (txPpnbmRate === 0 ? '' : txPpnbmRate) : formatCoretaxDec(txPpnbmRate)}
-                      onFocus={() => setPpnbmFocused(true)}
-                      onBlur={() => setPpnbmFocused(false)}
-                      onChange={(e) => setTxPpnbmRate(Math.max(0, Number(e.target.value) || 0))}
-                      className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">PPN</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={formatCoretaxDec(modalPpn)}
+                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-normal mb-1">PPnBM</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={formatCoretaxDec(modalPpnbm)}
-                      className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
-                    />
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">Tarif PPnBM (%)</label>
+                      <input
+                        type={ppnbmFocused ? 'number' : 'text'}
+                        min={0}
+                        max={200}
+                        value={ppnbmFocused ? (txPpnbmRate === 0 ? '' : txPpnbmRate) : formatCoretaxDec(txPpnbmRate)}
+                        onFocus={() => setPpnbmFocused(true)}
+                        onBlur={() => setPpnbmFocused(false)}
+                        onChange={(e) => setTxPpnbmRate(Math.max(0, Number(e.target.value) || 0))}
+                        className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">PPnBM</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={formatCoretaxDec(modalPpnbm)}
+                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Bottom buttons matching Coretax screenshot */}
-              <div className="flex justify-end items-center gap-2 pt-6">
-                <button
-                  type="button"
-                  onClick={() => setAddTxModalOpen(false)}
-                  className="px-5 py-1.5 bg-[#0EA5E9] hover:bg-[#0284C7] text-white text-[12px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-1.5 bg-[#0088FF] hover:bg-[#0070D2] text-white text-[12px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
-                >
-                  Simpan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* Bottom buttons matching Coretax screenshot */}
+                <div className="flex justify-end items-center gap-2 pt-6">
+                  <button
+                    type="button"
+                    onClick={() => setAddTxModalOpen(false)}
+                    className="px-5 py-1.5 bg-[#0EA5E9] hover:bg-[#0284C7] text-white text-[12px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-1.5 bg-[#0088FF] hover:bg-[#0070D2] text-white text-[12px] font-medium rounded-[3px] shadow-sm transition cursor-pointer"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Direct Upload SignModal from Inline Output Invoice Edit */}
       <SignModal

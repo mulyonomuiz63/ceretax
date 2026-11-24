@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface SignModalProps {
@@ -48,8 +49,8 @@ export const SignModal: React.FC<SignModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
       <div className="bg-white rounded-[6px] shadow-2xl border border-[#CBD5E1] w-full max-w-[680px] overflow-hidden">
         {/* Authentic Coretax White Modal Title Bar */}
         <div className="bg-white px-5 py-3.5 flex items-center justify-between border-b border-[#E2E8F0]">
@@ -180,4 +181,6 @@ export const SignModal: React.FC<SignModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
