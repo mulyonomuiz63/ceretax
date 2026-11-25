@@ -4,10 +4,12 @@ import {
   AdminUser,
   BillingCode,
   BrandingSettings,
+  DEFAULT_FOOTER_SETTINGS,
   ExamCaseCode,
   ExamCheckItem,
   ExamEvaluation,
   ExamQuestion,
+  FooterSettings,
   NotificationItem,
   OpAssetLiabilityFamily,
   ParticipantAccount,
@@ -1699,12 +1701,13 @@ export async function getBrandingSettings(): Promise<BrandingSettings> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT setting_key, setting_value, updated_at
      FROM app_settings
-     WHERE setting_key IN ('brand_logo_url', 'brand_meta_icon_url', 'brand_name')`
+     WHERE setting_key IN ('brand_logo_url', 'brand_meta_icon_url', 'brand_name', 'footer_settings')`
   );
 
   let logoUrl = '';
   let metaIconUrl = '';
   let brandName = 'KelasBrevet';
+  let footer: FooterSettings = { ...DEFAULT_FOOTER_SETTINGS };
   let updatedAt = '';
 
   for (const row of rows) {
@@ -1714,16 +1717,25 @@ export async function getBrandingSettings(): Promise<BrandingSettings> {
     if (key === 'brand_logo_url') logoUrl = val;
     if (key === 'brand_meta_icon_url') metaIconUrl = val;
     if (key === 'brand_name' && val.trim()) brandName = val.trim();
+    if (key === 'footer_settings' && val.trim()) {
+      try {
+        const parsed = JSON.parse(val) as Partial<FooterSettings>;
+        footer = { ...DEFAULT_FOOTER_SETTINGS, ...parsed };
+      } catch {
+        // Fallback to default footer settings if JSON is malformed
+      }
+    }
     if (ts && ts > updatedAt) updatedAt = ts;
   }
 
-  return { logoUrl, metaIconUrl, brandName, updatedAt };
+  return { logoUrl, metaIconUrl, brandName, footer, updatedAt };
 }
 
 export async function saveBrandingSettings(updates: {
   logoUrl?: string;
   metaIconUrl?: string;
   brandName?: string;
+  footer?: Partial<FooterSettings>;
 }): Promise<BrandingSettings> {
   const pool = await ensureMysqlSchema();
   const now = new Date().toISOString();
@@ -1755,7 +1767,23 @@ export async function saveBrandingSettings(updates: {
     );
   }
 
+  if (updates.footer !== undefined) {
+    const current = await getBrandingSettings();
+    const mergedFooter: FooterSettings = {
+      ...DEFAULT_FOOTER_SETTINGS,
+      ...(current.footer || {}),
+      ...updates.footer,
+    };
+    await pool.execute(
+      `INSERT INTO app_settings (setting_key, setting_value, updated_at)
+       VALUES ('footer_settings', ?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = VALUES(updated_at)`,
+      [JSON.stringify(mergedFooter), now]
+    );
+  }
+
   return getBrandingSettings();
 }
+
 
 

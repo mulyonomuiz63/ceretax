@@ -33,11 +33,17 @@ import {
   AdminPublicUser,
   AdminRole,
   BrandingSettings,
+  DEFAULT_FOOTER_SETTINGS,
   ExamQuestion,
+  FooterSettings,
   ParticipantResultSummary,
 } from '../types/tax.ts';
 import { KelasBrevetLogo } from '../components/KelasBrevetLogo.tsx';
-import { DEFAULT_META_ICON_URL, setBrandingCache } from '../lib/brandingStore.ts';
+import {
+  DEFAULT_META_ICON_URL,
+  normalizeFooterSettings,
+  setBrandingCache,
+} from '../lib/brandingStore.ts';
 
 type AdminTab = 'analytics' | 'participants' | 'questions' | 'admins' | 'branding' | 'integration';
 
@@ -147,10 +153,11 @@ export const AdminApp: React.FC = () => {
   const [admIsActive, setAdmIsActive] = useState(true);
   const [savingAdminUser, setSavingAdminUser] = useState(false);
 
-  // Logo & Branding Settings State
+  // Logo, Branding & Footer Settings State
   const [brandLogoUrl, setBrandLogoUrl] = useState('');
   const [brandMetaIconUrl, setBrandMetaIconUrl] = useState('');
   const [brandName, setBrandName] = useState('KelasBrevet');
+  const [footerForm, setFooterForm] = useState<FooterSettings>({ ...DEFAULT_FOOTER_SETTINGS });
   const [brandUpdatedAt, setBrandUpdatedAt] = useState('');
   const [savingBranding, setSavingBranding] = useState(false);
 
@@ -224,6 +231,7 @@ export const AdminApp: React.FC = () => {
         setBrandLogoUrl(b.logoUrl || '');
         setBrandMetaIconUrl(b.metaIconUrl || '');
         setBrandName(b.brandName || 'KelasBrevet');
+        setFooterForm(normalizeFooterSettings(b.footer));
         setBrandUpdatedAt(b.updatedAt || '');
         setBrandingCache(b);
       }
@@ -446,6 +454,7 @@ export const AdminApp: React.FC = () => {
   const handleSaveBranding = async (overrides?: {
     logoUrl?: string;
     metaIconUrl?: string;
+    footer?: FooterSettings;
     toastMessage?: string;
   }) => {
     setSavingBranding(true);
@@ -455,22 +464,25 @@ export const AdminApp: React.FC = () => {
         overrides?.logoUrl !== undefined ? overrides.logoUrl : brandLogoUrl.trim();
       const targetMetaIconUrl =
         overrides?.metaIconUrl !== undefined ? overrides.metaIconUrl : brandMetaIconUrl.trim();
+      const targetFooter = overrides?.footer !== undefined ? overrides.footer : footerForm;
       const res = await adminFetch<{ branding: BrandingSettings }>('/api/admin/branding', {
         method: 'PUT',
         body: JSON.stringify({
           logoUrl: targetLogoUrl,
           metaIconUrl: targetMetaIconUrl,
           brandName: brandName.trim() || 'KelasBrevet',
+          footer: targetFooter,
         }),
       });
       setBrandLogoUrl(res.branding.logoUrl || '');
       setBrandMetaIconUrl(res.branding.metaIconUrl || '');
       setBrandName(res.branding.brandName || 'KelasBrevet');
+      setFooterForm(normalizeFooterSettings(res.branding.footer));
       setBrandUpdatedAt(res.branding.updatedAt || '');
       setBrandingCache(res.branding);
       showToast(
         overrides?.toastMessage ||
-          'Pengaturan Logo & Icon Meta berhasil disimpan ke database dan langsung diterapkan.'
+          'Pengaturan Logo, Icon Meta & Footer berhasil disimpan ke database dan langsung diterapkan.'
       );
     } catch (err: any) {
       setErrorBanner(err?.message || 'Gagal menyimpan pengaturan branding.');
@@ -899,7 +911,7 @@ export const AdminApp: React.FC = () => {
     { id: 'participants', label: 'Peserta & Nilai', icon: Users },
     { id: 'questions', label: 'Manajemen Soal', icon: BookOpen },
     { id: 'admins', label: 'Akun Admin', icon: ShieldCheck },
-    { id: 'branding', label: 'Logo & Icon Meta', icon: ImageIcon },
+    { id: 'branding', label: 'Logo, Meta & Footer', icon: ImageIcon },
     { id: 'integration', label: 'Integrasi API', icon: Code2 },
   ];
 
@@ -908,7 +920,7 @@ export const AdminApp: React.FC = () => {
     participants: 'Daftar Peserta, Nilai & Kelulusan',
     questions: 'Manajemen Bank Soal Latihan',
     admins: 'Manajemen Akun Admin (Database)',
-    branding: 'Pengaturan Logo & Icon Meta',
+    branding: 'Pengaturan Logo, Icon Meta & Informasi Footer',
     integration: 'Integrasi API kelasbrevet.com',
   };
 
@@ -2138,7 +2150,7 @@ export const AdminApp: React.FC = () => {
                       </div>
                       <div className="bg-white rounded-xl border border-slate-200 py-5 px-6 flex flex-col items-center gap-2">
                         <KelasBrevetLogo
-                          variant="hero"
+                          variant="header"
                           logoUrlOverride={brandLogoUrl}
                           brandNameOverride={brandName}
                         />
@@ -2146,6 +2158,333 @@ export const AdminApp: React.FC = () => {
                           Memuat layanan {brandName || 'KelasBrevet'}...
                         </span>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Full-Width Card 3: Manajemen Informasi Footer KelasBrevet */}
+              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-display font-bold text-base text-slate-900">
+                      Manajemen Informasi Footer (KelasBrevet)
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Atur profil singkat, alamat, kontak, layanan digital, media sosial, dan teks
+                      copyright KelasBrevet yang tampil di bagian bawah seluruh halaman simulasi.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={savingBranding}
+                      onClick={() =>
+                        handleSaveBranding({
+                          footer: { ...DEFAULT_FOOTER_SETTINGS },
+                          toastMessage: 'Informasi Footer dikembalikan ke default KelasBrevet.',
+                        })
+                      }
+                      className="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition cursor-pointer"
+                    >
+                      Reset Default Footer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingBranding}
+                      onClick={() =>
+                        handleSaveBranding({
+                          footer: footerForm,
+                          toastMessage:
+                            'Informasi Footer KelasBrevet berhasil disimpan dan langsung diperbarui.',
+                        })
+                      }
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold text-xs rounded-lg transition cursor-pointer"
+                    >
+                      {savingBranding ? 'Menyimpan...' : 'Simpan Informasi Footer'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Nama Lembaga / Brand
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.orgTitle}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, orgTitle: e.target.value }))
+                      }
+                      placeholder="KelasBrevet"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Subjudul / Tagline Lembaga
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.orgSubtitle}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, orgSubtitle: e.target.value }))
+                      }
+                      placeholder="Platform Pelatihan & Simulasi Perpajakan Indonesia"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Alamat Kantor
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.address}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, address: e.target.value }))
+                      }
+                      placeholder="Jakarta, Indonesia"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Nomor Telepon
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.phone}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, phone: e.target.value }))
+                      }
+                      placeholder="+62 812-3456-7890"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Layanan Peserta / WhatsApp / Hotline
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.hotlineLabel}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, hotlineLabel: e.target.value }))
+                      }
+                      placeholder="Layanan Peserta: +62 812-3456-7890 (WhatsApp)"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Email Kontak
+                    </label>
+                    <input
+                      type="email"
+                      value={footerForm.email}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                      placeholder="info@kelasbrevet.com"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Layanan Digital — Website Utama
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.websitePrimary}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, websitePrimary: e.target.value }))
+                      }
+                      placeholder="www.kelasbrevet.com"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Layanan Digital — Portal / Website 2
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.websiteSecondary}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, websiteSecondary: e.target.value }))
+                      }
+                      placeholder="simulasi.kelasbrevet.com"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Handle Media Sosial (Temukan Kami)
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.socialHandle}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, socialHandle: e.target.value }))
+                      }
+                      placeholder="@kelasbrevet"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      URL Facebook (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.facebookUrl}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, facebookUrl: e.target.value }))
+                      }
+                      placeholder="https://facebook.com/kelasbrevet"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      URL X / Twitter (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.xUrl}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, xUrl: e.target.value }))
+                      }
+                      placeholder="https://x.com/kelasbrevet"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      URL Instagram (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.instagramUrl}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, instagramUrl: e.target.value }))
+                      }
+                      placeholder="https://instagram.com/kelasbrevet"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      URL YouTube (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.youtubeUrl}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, youtubeUrl: e.target.value }))
+                      }
+                      placeholder="https://youtube.com/@kelasbrevet"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Teks Copyright
+                    </label>
+                    <input
+                      type="text"
+                      value={footerForm.copyrightText}
+                      onChange={(e) =>
+                        setFooterForm((prev) => ({ ...prev, copyrightText: e.target.value }))
+                      }
+                      placeholder="Copyright © 2026 KelasBrevet. Seluruh hak cipta dilindungi."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Footer Preview */}
+                <div className="pt-2">
+                  <div className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                    Pratinjau Langsung Footer Portal
+                  </div>
+                  <div className="rounded-2xl border border-[#E5EAF2] bg-[#F8FAFD] px-6 py-5 text-[#334155]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 text-[11.5px]">
+                      <div className="lg:col-span-4 space-y-1.5">
+                        <KelasBrevetLogo
+                          variant="header"
+                          logoUrlOverride={brandLogoUrl}
+                          brandNameOverride={brandName}
+                        />
+                        <div className="font-bold text-[#1E2C5E] pt-0.5 leading-snug">
+                          {footerForm.orgTitle || 'KelasBrevet'}
+                          {footerForm.orgSubtitle && (
+                            <>
+                              <br />
+                              <span className="font-semibold opacity-90">
+                                {footerForm.orgSubtitle}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {footerForm.address && (
+                          <div className="text-slate-500 text-[11px]">{footerForm.address}</div>
+                        )}
+                      </div>
+
+                      <div className="lg:col-span-3 space-y-1.5">
+                        <div className="font-bold text-[#1E2C5E]">Hubungi Kami</div>
+                        <div className="text-slate-600 text-[11px] space-y-1">
+                          {footerForm.phone && <div>{footerForm.phone}</div>}
+                          {footerForm.hotlineLabel && <div>{footerForm.hotlineLabel}</div>}
+                          {footerForm.email && <div>{footerForm.email}</div>}
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-3 space-y-1.5">
+                        <div className="font-bold text-[#1E2C5E]">Layanan Digital</div>
+                        <div className="text-slate-600 text-[11px] space-y-1">
+                          {footerForm.websitePrimary && <div>{footerForm.websitePrimary}</div>}
+                          {footerForm.websiteSecondary && <div>{footerForm.websiteSecondary}</div>}
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-2 space-y-2">
+                        <div className="font-bold text-[#1E2C5E]">Temukan Kami</div>
+                        <div className="flex items-center gap-1.5">
+                          {['f', 'X', 'ig', '▶'].map((soc) => (
+                            <span
+                              key={soc}
+                              className="w-6 h-6 rounded-full border border-slate-300 bg-white text-[#1E2C5E] text-[10px] font-bold inline-flex items-center justify-center"
+                            >
+                              {soc}
+                            </span>
+                          ))}
+                        </div>
+                        {footerForm.socialHandle && (
+                          <div className="font-bold text-[10.5px] text-[#1E2C5E]">
+                            {footerForm.socialHandle}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-200/80 text-[10.5px] text-slate-400">
+                      {footerForm.copyrightText || DEFAULT_FOOTER_SETTINGS.copyrightText}
                     </div>
                   </div>
                 </div>

@@ -13,7 +13,8 @@ import {
 import { LoginPage } from './components/LoginPage.tsx';
 import { LogoutPage } from './components/LogoutPage.tsx';
 import { SubMenuPrompt } from './components/SubMenuPrompt.tsx';
-import { CoretaxShell, MainNavKey } from './components/CoretaxShell.tsx';
+import { CoretaxDashboard } from './components/CoretaxDashboard.tsx';
+import { CoretaxShell, isModuleInDevelopment, MainNavKey } from './components/CoretaxShell.tsx';
 import { DocumentPrintModal, PrintablePayload } from './components/DocumentPrintModal.tsx';
 import { ExamDrawer } from './components/ExamDrawer.tsx';
 import { LoadingOverlay } from './components/LoadingOverlay.tsx';
@@ -26,12 +27,15 @@ import { PembayaranModule } from './modules/PembayaranModule.tsx';
 import { BukuBesarModule } from './modules/BukuBesarModule.tsx';
 
 const MODULE_INFO: Record<MainNavKey, { name: string; count: number }> = {
+  dashboard: { name: 'Beranda', count: 0 },
   portal: { name: 'Portal Saya', count: 18 },
   efaktur: { name: 'e-Faktur', count: 5 },
   ebupot: { name: 'eBupot', count: 11 },
   spt: { name: 'Surat Pemberitahuan (SPT)', count: 4 },
-  pembayaran: { name: 'Pembayaran', count: 7 },
+  pembayaran: { name: 'Pembayaran', count: 8 },
   bukubesar: { name: 'Buku Besar', count: 3 },
+  layanan_wp: { name: 'Layanan WP', count: 4 },
+  manajemen_akses: { name: 'Manajemen Akses', count: 3 },
 };
 
 class ErrorBoundary extends React.Component<
@@ -72,8 +76,8 @@ class ErrorBoundary extends React.Component<
 function CoretaxSimulatorApp() {
   const [workspace, setWorkspace] = useState<WorkspaceState | null>(null);
   const [accountMode, setAccountMode] = useState<'INDIVIDUAL' | 'CORPORATE'>('INDIVIDUAL');
-  const [activeModule, setActiveModule] = useState<MainNavKey>('portal');
-  const [activeSubTab, setActiveSubTab] = useState<string>('ikhtisar');
+  const [activeModule, setActiveModule] = useState<MainNavKey>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<string>('home');
   const [language, setLanguage] = useState<'id-ID' | 'en-US'>('id-ID');
   const [loginLoading, setLoginLoading] = useState(false);
   const [bootLoading, setBootLoading] = useState(true);
@@ -94,7 +98,7 @@ function CoretaxSimulatorApp() {
     }>;
     index: number;
   }>({
-    entries: [{ module: 'portal', subTab: 'ikhtisar', accountMode: 'INDIVIDUAL' }],
+    entries: [{ module: 'dashboard', subTab: 'home', accountMode: 'INDIVIDUAL' }],
     index: 0,
   });
 
@@ -125,13 +129,17 @@ function CoretaxSimulatorApp() {
         if (active && ws?.nikKey) {
           setWorkspace(ws);
           const restoredMode = saved.accountMode || 'INDIVIDUAL';
-          const restoredMod = saved.activeModule || 'portal';
-          let restoredSub = saved.activeSubTab || 'ikhtisar';
-          if (restoredMod === 'efaktur' && (!restoredSub || restoredSub === 'empty')) {
+          let restoredMod: MainNavKey = saved.activeModule || 'dashboard';
+          let restoredSub = saved.activeSubTab || 'home';
+          if (restoredMod === 'dashboard') {
+            restoredSub = 'home';
+          } else if (isModuleInDevelopment(restoredMod)) {
+            if (restoredSub !== 'empty') {
+              restoredMod = 'dashboard';
+              restoredSub = 'home';
+            }
+          } else if (restoredMod === 'efaktur' && (!restoredSub || restoredSub === 'empty')) {
             restoredSub = 'dashboard';
-          }
-          if (restoredMod === 'bukubesar' && (!restoredSub || restoredSub === 'empty')) {
-            restoredSub = 'ringkasan';
           }
           setAccountMode(restoredMode);
           setActiveModule(restoredMod);
@@ -223,15 +231,15 @@ function CoretaxSimulatorApp() {
       setWorkspace(data.workspace);
       setIsLoggedOut(false);
       setAccountMode('INDIVIDUAL');
-      setActiveModule('portal');
-      setActiveSubTab('ikhtisar');
+      setActiveModule('dashboard');
+      setActiveSubTab('home');
       setNavHistory({
-        entries: [{ module: 'portal', subTab: 'ikhtisar', accountMode: 'INDIVIDUAL' }],
+        entries: [{ module: 'dashboard', subTab: 'home', accountMode: 'INDIVIDUAL' }],
         index: 0,
       });
       if (typeof window !== 'undefined') {
         window.history.replaceState(
-          { coretaxIdx: 0, module: 'portal', subTab: 'ikhtisar', accountMode: 'INDIVIDUAL' },
+          { coretaxIdx: 0, module: 'dashboard', subTab: 'home', accountMode: 'INDIVIDUAL' },
           ''
         );
       }
@@ -322,9 +330,9 @@ function CoretaxSimulatorApp() {
       if (!st || typeof st.coretaxIdx !== 'number' || st.coretaxIdx <= 0) {
         isPopStateRef.current = true;
         const rootEntry = navHistory.entries[0] || {
-          module: 'portal',
-          subTab: 'ikhtisar',
-          accountMode: 'INDIVIDUAL',
+          module: 'dashboard' as MainNavKey,
+          subTab: 'home',
+          accountMode: 'INDIVIDUAL' as const,
         };
         setActiveModule(rootEntry.module);
         setActiveSubTab(rootEntry.subTab);
@@ -408,16 +416,20 @@ function CoretaxSimulatorApp() {
       triggerTransitionLoading('Memuat modul layanan KelasBrevet...');
     }
     setActiveModule(module);
+    if (module === 'dashboard') {
+      setActiveSubTab('home');
+      return;
+    }
+    if (isModuleInDevelopment(module)) {
+      setActiveSubTab('empty');
+      return;
+    }
     if (subTab && subTab !== 'empty') {
       setActiveSubTab(subTab);
+    } else if (module === 'efaktur') {
+      setActiveSubTab('dashboard');
     } else {
-      if (module === 'efaktur') {
-        setActiveSubTab('dashboard');
-      } else if (module === 'bukubesar') {
-        setActiveSubTab('ringkasan');
-      } else {
-        setActiveSubTab('empty');
-      }
+      setActiveSubTab('empty');
     }
   };
 
@@ -425,8 +437,8 @@ function CoretaxSimulatorApp() {
     if (mode !== accountMode) {
       triggerTransitionLoading(
         mode === 'CORPORATE'
-          ? 'Beralih ke akun Badan / PKP (Impersonating)...'
-          : 'Kembali ke akun Utama Orang Pribadi...',
+          ? 'Beralih ke Akun Perwakilan...'
+          : 'Kembali ke Akun Utama...',
         320
       );
       setAccountMode(mode);
@@ -488,7 +500,13 @@ function CoretaxSimulatorApp() {
         onLanguageChange={setLanguage}
         onLogout={handleLogout}
       >
-        {activeSubTab === 'empty' && activeModule !== 'efaktur' && activeModule !== 'bukubesar' ? (
+        {activeModule === 'dashboard' ? (
+          <CoretaxDashboard
+            activeTaxpayer={activeTaxpayer}
+            onNavigate={handleNavigate}
+            onOpenExamDrawer={() => setExamOpen(true)}
+          />
+        ) : activeSubTab === 'empty' && activeModule !== 'efaktur' ? (
           <SubMenuPrompt
             moduleName={MODULE_INFO[activeModule]?.name || activeModule}
             subMenuCount={MODULE_INFO[activeModule]?.count || 0}

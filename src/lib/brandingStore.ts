@@ -1,12 +1,36 @@
 import { useEffect, useState } from 'react';
-import { BrandingSettings } from '../types/tax.ts';
+import { BrandingSettings, DEFAULT_FOOTER_SETTINGS, FooterSettings } from '../types/tax.ts';
 
 export const DEFAULT_META_ICON_URL = '/assets/aistudio/kelasbrevet_icon_transparent.png';
+
+export function normalizeFooterSettings(raw?: Partial<FooterSettings> | null): FooterSettings {
+  const src = raw || {};
+  return {
+    orgTitle: typeof src.orgTitle === 'string' && src.orgTitle.trim() ? src.orgTitle : DEFAULT_FOOTER_SETTINGS.orgTitle,
+    orgSubtitle: typeof src.orgSubtitle === 'string' ? src.orgSubtitle : DEFAULT_FOOTER_SETTINGS.orgSubtitle,
+    address: typeof src.address === 'string' ? src.address : DEFAULT_FOOTER_SETTINGS.address,
+    phone: typeof src.phone === 'string' ? src.phone : DEFAULT_FOOTER_SETTINGS.phone,
+    hotlineLabel: typeof src.hotlineLabel === 'string' ? src.hotlineLabel : DEFAULT_FOOTER_SETTINGS.hotlineLabel,
+    email: typeof src.email === 'string' ? src.email : DEFAULT_FOOTER_SETTINGS.email,
+    websitePrimary: typeof src.websitePrimary === 'string' ? src.websitePrimary : DEFAULT_FOOTER_SETTINGS.websitePrimary,
+    websiteSecondary: typeof src.websiteSecondary === 'string' ? src.websiteSecondary : DEFAULT_FOOTER_SETTINGS.websiteSecondary,
+    socialHandle: typeof src.socialHandle === 'string' ? src.socialHandle : DEFAULT_FOOTER_SETTINGS.socialHandle,
+    facebookUrl: typeof src.facebookUrl === 'string' ? src.facebookUrl : DEFAULT_FOOTER_SETTINGS.facebookUrl,
+    xUrl: typeof src.xUrl === 'string' ? src.xUrl : DEFAULT_FOOTER_SETTINGS.xUrl,
+    instagramUrl: typeof src.instagramUrl === 'string' ? src.instagramUrl : DEFAULT_FOOTER_SETTINGS.instagramUrl,
+    youtubeUrl: typeof src.youtubeUrl === 'string' ? src.youtubeUrl : DEFAULT_FOOTER_SETTINGS.youtubeUrl,
+    copyrightText:
+      typeof src.copyrightText === 'string' && src.copyrightText.trim()
+        ? src.copyrightText
+        : DEFAULT_FOOTER_SETTINGS.copyrightText,
+  };
+}
 
 const DEFAULT_BRANDING: BrandingSettings = {
   logoUrl: '',
   metaIconUrl: '',
   brandName: 'KelasBrevet',
+  footer: { ...DEFAULT_FOOTER_SETTINGS },
   updatedAt: '',
 };
 
@@ -67,6 +91,7 @@ export function setBrandingCache(next: BrandingSettings) {
     logoUrl: next.logoUrl || '',
     metaIconUrl: next.metaIconUrl || '',
     brandName: next.brandName || 'KelasBrevet',
+    footer: normalizeFooterSettings(next.footer),
     updatedAt: next.updatedAt || '',
   });
 }
@@ -86,6 +111,7 @@ export async function fetchBrandingSettings(force = false): Promise<BrandingSett
           logoUrl: String(b.logoUrl || ''),
           metaIconUrl: String(b.metaIconUrl || ''),
           brandName: String(b.brandName || 'KelasBrevet'),
+          footer: normalizeFooterSettings(b.footer),
           updatedAt: String(b.updatedAt || ''),
         };
         notifyListeners(normalized);

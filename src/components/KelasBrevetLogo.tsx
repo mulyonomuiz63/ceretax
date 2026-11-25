@@ -4,6 +4,7 @@ import { useBranding } from '../lib/brandingStore.ts';
 export const DEFAULT_DJP_LOGO_URL = '/assets/aistudio/kemenkeu_djp_transparent.png';
 export const DEFAULT_ICON_LOGO_URL = '/assets/aistudio/kelasbrevet_icon_transparent.png';
 export const DEFAULT_FULL_LOGO_URL = '/assets/aistudio/kelasbrevet_full_transparent.png';
+export const DEFAULT_CORETAX_LOGO_URL = '/coretax-logo.png';
 
 interface KelasBrevetLogoProps {
   variant?: 'header' | 'login' | 'light' | 'topbar' | 'hero' | 'portalbar' | 'admin';
@@ -47,45 +48,54 @@ export const KelasBrevetLogo: React.FC<KelasBrevetLogoProps> = ({
   // On light surfaces, mix-blend-multiply guarantees any residual white pixels vanish cleanly
   const blendClass = isDarkSurface ? '' : 'mix-blend-multiply';
 
-  // TOPBAR (Landing / Login top-left): Preserves official [Kemenkeu | djp] logo with transparent background
+  // TOPBAR (Landing, Login, Logout, and Logged-in Portal Header top-left): KelasBrevet logo
   if (variant === 'topbar') {
     return (
-      <div className={`inline-flex items-center select-none shrink-0 ${className}`}>
+      <div
+        className={`inline-flex items-center select-none shrink-0 ${
+          isDarkSurface ? 'bg-white/95 px-2.5 py-1 rounded-lg' : ''
+        } ${className}`}
+        aria-label={brandName}
+      >
         <img
-          src={DEFAULT_DJP_LOGO_URL}
-          alt="Kementerian Keuangan & Direktorat Jenderal Pajak"
-          className={`h-8 sm:h-9 w-auto object-contain ${blendClass}`}
+          src={fullLogoSrc}
+          alt={brandName}
+          className={`h-7 sm:h-8 w-auto max-w-[180px] object-contain ${isDarkSurface ? '' : 'mix-blend-multiply'}`}
         />
       </div>
     );
   }
 
-  // HERO (Landing & Login above heading): Full KelasBrevet logo (transparent, NO white background)
+  // HERO (Landing, Login & Logout above main heading): Attached Coretax wordmark logo
   if (variant === 'hero') {
     return (
-      <div className={`inline-flex items-center select-none shrink-0 ${className}`} aria-label={brandName}>
+      <div
+        className={`inline-flex items-center select-none shrink-0 ${
+          isDarkSurface ? 'bg-white/95 px-3.5 py-2 rounded-xl shadow-sm' : ''
+        } ${className}`}
+        aria-label="CORETAX"
+      >
         <img
-          src={fullLogoSrc}
-          alt={brandName}
-          className={`h-10 sm:h-12 w-auto max-w-[260px] object-contain ${blendClass}`}
+          src={DEFAULT_CORETAX_LOGO_URL}
+          alt="CORETAX"
+          className="h-9 sm:h-11 w-auto max-w-[235px] object-contain"
         />
       </div>
     );
   }
 
-  // PORTALBAR (Coretax Portal Header top-left): [Kemenkeu | djp] + [KelasBrevet] matching official layout
+  // PORTALBAR (Portal Header preview): KelasBrevet logo
   if (variant === 'portalbar') {
     return (
-      <div className={`inline-flex items-center gap-3 select-none shrink-0 ${className}`}>
-        <img
-          src={DEFAULT_DJP_LOGO_URL}
-          alt="Kementerian Keuangan & DJP"
-          className={`h-7 sm:h-8 w-auto object-contain ${blendClass}`}
-        />
+      <div
+        className={`inline-flex items-center gap-2.5 select-none shrink-0 ${
+          isDarkSurface ? 'bg-white/95 px-2.5 py-1 rounded-lg' : ''
+        } ${className}`}
+      >
         <img
           src={fullLogoSrc}
           alt={brandName}
-          className={`h-6 sm:h-7 w-auto max-w-[160px] object-contain ${blendClass}`}
+          className={`h-7 sm:h-8 w-auto max-w-[175px] object-contain ${isDarkSurface ? '' : 'mix-blend-multiply'}`}
         />
       </div>
     );
@@ -109,3 +119,4 @@ export const KelasBrevetLogo: React.FC<KelasBrevetLogoProps> = ({
     </div>
   );
 };
+

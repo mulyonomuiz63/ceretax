@@ -110,8 +110,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   onChangeSubTab,
   workspace,
   activeTaxpayer,
-  accountMode,
-  onSwitchAccountMode,
   onCreateInvoice,
   onInvoiceAction,
   onPrintDocument,
@@ -496,24 +494,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
             className="text-[#15803D] hover:text-[#14532D] font-bold cursor-pointer"
           >
             ×
-          </button>
-        </div>
-      )}
-
-      {accountMode !== 'CORPORATE' && (
-        <div className="bg-amber-50 border border-amber-300 text-amber-900 rounded-lg px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              Menu <strong>e-Faktur</strong> umumnya dikelola oleh Pengusaha Kena Pajak (PKP). Anda sedang berada di akun Orang Pribadi.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => onSwitchAccountMode('CORPORATE')}
-            className="bg-[#1D2B53] text-[#F4C430] font-bold px-3 py-1.5 rounded text-xs cursor-pointer"
-          >
-            Impersonate ke {workspace.corporateTaxpayer.name}
           </button>
         </div>
       )}
@@ -1218,25 +1198,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                   <h1 className="font-display font-bold text-[17px] text-[#1E2C5E]">
                     {activeTabTitle.replace(/^e-Faktur — |^Dokumen Lain — /, '')}
                   </h1>
-                  {normalizedTab !== 'input' && (
-                    <p className="text-[11.5px] text-slate-500">
-                      PMK 131/2024 — Perhitungan Otomatis DPP Nilai Lain 11/12 &amp; PPN 12%
-                    </p>
-                  )}
                 </div>
-                {normalizedTab !== 'input' && (
-                  <div className="text-xs text-slate-600 font-mono-num">
-                    Total PPN:{' '}
-                    <strong className="text-[#1E2C5E]">
-                      {formatRp(
-                        filteredInvoices.reduce(
-                          (s, i) => s + (i.status === 'CANCELLED' ? 0 : i.ppnTotal),
-                          0
-                        )
-                      )}
-                    </strong>
-                  </div>
-                )}
               </div>
 
               {/* Official Coretax Navy Action Bar + Right-aligned Upload Faktur & Hapus Dokumen */}

@@ -4,8 +4,10 @@ import {
   AdminUser,
   BillingCode,
   BrandingSettings,
+  DEFAULT_FOOTER_SETTINGS,
   ExamEvaluation,
   ExamQuestion,
+  FooterSettings,
   NotificationItem,
   OpAssetLiabilityFamily,
   ParticipantAccount,
@@ -848,16 +850,28 @@ export async function deleteAdminUser(id: string): Promise<boolean> {
 
 export async function getBrandingSettings(): Promise<BrandingSettings> {
   const meta = ensureMetaLoaded();
-  return { ...meta.branding };
+  return {
+    ...meta.branding,
+    footer: {
+      ...DEFAULT_FOOTER_SETTINGS,
+      ...(meta.branding.footer || {}),
+    },
+  };
 }
 
 export async function saveBrandingSettings(updates: {
   logoUrl?: string;
   metaIconUrl?: string;
   brandName?: string;
+  footer?: Partial<FooterSettings>;
 }): Promise<BrandingSettings> {
   const meta = ensureMetaLoaded();
   const now = new Date().toISOString();
+  const mergedFooter: FooterSettings = {
+    ...DEFAULT_FOOTER_SETTINGS,
+    ...(meta.branding.footer || {}),
+    ...(updates.footer || {}),
+  };
   meta.branding = {
     logoUrl: updates.logoUrl !== undefined ? updates.logoUrl : meta.branding.logoUrl,
     metaIconUrl:
@@ -866,10 +880,15 @@ export async function saveBrandingSettings(updates: {
       updates.brandName !== undefined
         ? updates.brandName.trim() || 'KelasBrevet'
         : meta.branding.brandName,
+    footer: mergedFooter,
     updatedAt: now,
   };
   saveMetaStore();
-  return { ...meta.branding };
+  return {
+    ...meta.branding,
+    footer: { ...mergedFooter },
+  };
 }
+
 
 

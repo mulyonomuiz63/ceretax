@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle,
   ArrowLeft,
   ArrowUpDown,
   ChevronDown,
@@ -221,7 +220,6 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   workspace,
   activeTaxpayer,
   accountMode,
-  onSwitchAccountMode,
   onCreateSlip,
   onIssueSlips,
   onDeleteSlip,
@@ -622,24 +620,6 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
 
   return (
     <div className="space-y-4">
-      {accountMode !== 'CORPORATE' && subTab !== 'bukti_potong_saya' && (
-        <div className="bg-amber-50 border border-amber-300 text-amber-900 rounded-lg px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              Pembuatan &amp; penerbitan <strong>e-Bupot PPh 21 &amp; PPh 23</strong> dilakukan oleh Pemotong Pajak (Akun Perusahaan).
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => onSwitchAccountMode('CORPORATE')}
-            className="bg-[#1E2C5E] text-[#F4C430] font-bold px-3 py-1.5 rounded text-xs cursor-pointer"
-          >
-            Impersonate ke {workspace.corporateTaxpayer.name}
-          </button>
-        </div>
-      )}
-
       {/* =================================================================== */}
       {/* VIEW 0: EMPTY SUBMENU LANDING (Exact Match to PDF 2 Page 1 Top)     */}
       {/* =================================================================== */}
@@ -2103,12 +2083,6 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                 <h1 className="font-display font-bold text-[15px] text-[#1E2C5E] uppercase tracking-tight">
                   {activeConfig.headingPrefix} {statusHeadingSuffix}
                 </h1>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Total PPh Dipotong pada daftar ini:{' '}
-                  <strong className="font-mono-num text-[#1E2C5E]">
-                    {formatRp(visibleSlips.reduce((sum, s) => sum + s.taxWithheld, 0))}
-                  </strong>
-                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5">

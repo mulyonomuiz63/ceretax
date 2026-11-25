@@ -463,11 +463,47 @@ export interface AdminPublicUser {
   updatedAt: string;
 }
 
+export interface FooterSettings {
+  orgTitle: string;
+  orgSubtitle: string;
+  address: string;
+  phone: string;
+  hotlineLabel: string;
+  email: string;
+  websitePrimary: string;
+  websiteSecondary: string;
+  socialHandle: string;
+  facebookUrl: string;
+  xUrl: string;
+  instagramUrl: string;
+  youtubeUrl: string;
+  copyrightText: string;
+}
+
+export const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
+  orgTitle: 'KelasBrevet',
+  orgSubtitle: 'Platform Pelatihan & Simulasi Perpajakan Indonesia',
+  address: 'Jakarta, Indonesia',
+  phone: '+62 812-3456-7890',
+  hotlineLabel: 'Layanan Peserta: +62 812-3456-7890 (WhatsApp)',
+  email: 'info@kelasbrevet.com',
+  websitePrimary: 'www.kelasbrevet.com',
+  websiteSecondary: 'simulasi.kelasbrevet.com',
+  socialHandle: '@kelasbrevet',
+  facebookUrl: 'https://facebook.com/kelasbrevet',
+  xUrl: 'https://x.com/kelasbrevet',
+  instagramUrl: 'https://instagram.com/kelasbrevet',
+  youtubeUrl: 'https://youtube.com/@kelasbrevet',
+  copyrightText: 'Copyright © 2026 KelasBrevet. Seluruh hak cipta dilindungi.',
+};
+
 export interface BrandingSettings {
   logoUrl: string;
   metaIconUrl: string;
   brandName: string;
+  footer?: FooterSettings;
   updatedAt: string;
 }
+
 
 

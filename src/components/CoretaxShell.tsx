@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Award,
   Bell,
   BookOpen,
-  Building2,
   Check,
   CheckCheck,
   ChevronDown,
@@ -11,26 +11,54 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronsLeft,
+  Clock,
   CreditCard,
   FileSpreadsheet,
   FileText,
+  Globe,
+  Headphones,
   HelpCircle,
   Home,
+  LayoutGrid,
   LogOut,
+  Mail,
   Moon,
   PanelTop,
+  Phone,
   Receipt,
   Search,
   ShieldUser,
   Sun,
   User,
   UserCircle2,
+  Users,
   X,
 } from 'lucide-react';
 import { KelasBrevetLogo } from './KelasBrevetLogo.tsx';
 import { NotificationItem, Taxpayer } from '../types/tax.ts';
+import { normalizeFooterSettings, useBranding } from '../lib/brandingStore.ts';
 
-export type MainNavKey = 'portal' | 'efaktur' | 'ebupot' | 'spt' | 'pembayaran' | 'bukubesar';
+export type MainNavKey =
+  | 'dashboard'
+  | 'portal'
+  | 'efaktur'
+  | 'ebupot'
+  | 'spt'
+  | 'pembayaran'
+  | 'bukubesar'
+  | 'layanan_wp'
+  | 'manajemen_akses';
+
+export const IN_DEV_MODULES: ReadonlySet<MainNavKey> = new Set<MainNavKey>([
+  'portal',
+  'bukubesar',
+  'layanan_wp',
+  'manajemen_akses',
+]);
+
+export function isModuleInDevelopment(key: MainNavKey): boolean {
+  return IN_DEV_MODULES.has(key);
+}
 
 interface CoretaxShellProps {
   activeModule: MainNavKey;
@@ -61,11 +89,12 @@ interface NavGroupDef {
 }
 
 const NAV_CONFIG: Array<{
-  key: MainNavKey;
+  key: Exclude<MainNavKey, 'dashboard'>;
   label: string;
   sidebarLabel: string;
   popoverTitle: string;
   hasChevron: boolean;
+  inDevelopment?: boolean;
   icon: React.FC<{ className?: string }>;
   items: NavItemDef[];
   groups?: NavGroupDef[];
@@ -76,6 +105,7 @@ const NAV_CONFIG: Array<{
     sidebarLabel: 'Portal Saya',
     popoverTitle: 'PORTAL SAYA',
     hasChevron: true,
+    inDevelopment: true,
     icon: ShieldUser,
     items: [
       { id: 'dokumen', label: 'Dokumen Saya' },
@@ -116,6 +146,7 @@ const NAV_CONFIG: Array<{
     sidebarLabel: 'e-Faktur',
     popoverTitle: 'E-FAKTUR',
     hasChevron: false,
+    inDevelopment: false,
     icon: Receipt,
     items: [],
   },
@@ -125,6 +156,7 @@ const NAV_CONFIG: Array<{
     sidebarLabel: 'eBupot',
     popoverTitle: 'EBUPOT',
     hasChevron: true,
+    inDevelopment: false,
     icon: FileSpreadsheet,
     items: [
       { id: 'bukti_potong_saya', label: 'Bukti Potong Saya' },
@@ -146,6 +178,7 @@ const NAV_CONFIG: Array<{
     sidebarLabel: 'Surat Pemberitahuan (SPT)',
     popoverTitle: 'SURAT PEMBERITAHUAN (SPT)',
     hasChevron: true,
+    inDevelopment: false,
     icon: FileText,
     items: [
       { id: 'konsep', label: 'Surat Pemberitahuan (SPT)', breadcrumbLabel: 'Surat Pemberitahuan (SPT)' },
@@ -160,6 +193,7 @@ const NAV_CONFIG: Array<{
     sidebarLabel: 'Pembayaran',
     popoverTitle: 'PEMBAYARAN',
     hasChevron: true,
+    inDevelopment: false,
     icon: CreditCard,
     items: [
       { id: 'pemindahbukuan', label: 'Permohonan Pemindahbukuan' },
@@ -178,36 +212,41 @@ const NAV_CONFIG: Array<{
     sidebarLabel: 'Buku Besar',
     popoverTitle: 'BUKU BESAR',
     hasChevron: false,
+    inDevelopment: true,
     icon: BookOpen,
-    items: [],
+    items: [
+      { id: 'ringkasan', label: 'Buku Besar Saya' },
+      { id: 'ikhtisar_akun', label: 'Ikhtisar Akun Wajib Pajak' },
+      { id: 'riwayat_transaksi', label: 'Riwayat Transaksi Kredit & Debit' },
+    ],
   },
-];
-
-const EXTRA_TOP_MENUS: Array<{
-  key: 'layanan_wp' | 'manajemen_akses';
-  label: string;
-  popoverTitle: string;
-  items: Array<{ label: string; targetModule: MainNavKey; targetSubTab: string }>;
-}> = [
   {
     key: 'layanan_wp',
     label: 'Layanan WP',
+    sidebarLabel: 'Layanan WP',
     popoverTitle: 'LAYANAN WAJIB PAJAK',
+    hasChevron: true,
+    inDevelopment: true,
+    icon: LayoutGrid,
     items: [
-      { label: 'Layanan Administrasi Perpajakan', targetModule: 'portal', targetSubTab: 'kasus' },
-      { label: 'Pemberitahuan Penggunaan NPPN / Stelsel Kas', targetModule: 'portal', targetSubTab: 'kasus_berjalan' },
-      { label: 'Permohonan Surat Keterangan Fiskal (SKF)', targetModule: 'portal', targetSubTab: 'dokumen' },
-      { label: 'Layanan Edukasi & Bantuan Coretax', targetModule: 'portal', targetSubTab: 'ikhtisar' },
+      { id: 'layanan_admin', label: 'Layanan Administrasi Perpajakan' },
+      { id: 'nppn_stelsel', label: 'Pemberitahuan Penggunaan NPPN / Stelsel Kas' },
+      { id: 'skf', label: 'Permohonan Surat Keterangan Fiskal (SKF)' },
+      { id: 'edukasi_bantuan', label: 'Layanan Edukasi & Bantuan Coretax' },
     ],
   },
   {
     key: 'manajemen_akses',
     label: 'Manajemen Akses',
+    sidebarLabel: 'Manajemen Akses',
     popoverTitle: 'MANAJEMEN AKSES',
+    hasChevron: true,
+    inDevelopment: true,
+    icon: Users,
     items: [
-      { label: 'Wakil / Kuasa Saya (Impersonating)', targetModule: 'portal', targetSubTab: 'status_kuasa' },
-      { label: 'Pencabutan Wakil / Kuasa', targetModule: 'portal', targetSubTab: 'status_cabut_kuasa' },
-      { label: 'Permintaan Kode Otorisasi / Sertifikat', targetModule: 'portal', targetSubTab: 'kode_otorisasi' },
+      { id: 'wakil_kuasa', label: 'Wakil / Kuasa Saya (Impersonating)' },
+      { id: 'cabut_kuasa', label: 'Pencabutan Wakil / Kuasa' },
+      { id: 'kode_otorisasi', label: 'Permintaan Kode Otorisasi / Sertifikat' },
     ],
   },
 ];
@@ -437,24 +476,44 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   });
 
   const [openDropdown, setOpenDropdown] = useState<MainNavKey | null>(null);
-  const [openExtraDropdown, setOpenExtraDropdown] = useState<'layanan_wp' | 'manajemen_akses' | null>(null);
+  const [inDevModal, setInDevModal] = useState<{ moduleLabel: string; subLabel: string } | null>(
+    null
+  );
   const [notifOpen, setNotifOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [accountSearch, setAccountSearch] = useState('');
+  const [lastLoginLabel] = useState(() => {
+    const now = new Date();
+    const datePart = now.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const timePart = now.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    return `${datePart}, ${timePart}`;
+  });
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [compactSearchOpen, setCompactSearchOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  const branding = useBranding();
+  const footerInfo = normalizeFooterSettings(branding.footer);
+
   const shellRef = useRef<HTMLDivElement>(null);
   const navScrollRef = useRef<HTMLDivElement>(null);
   const [navPopoverAnchor, setNavPopoverAnchor] = useState<{
-    type: 'nav' | 'extra';
-    key: string;
+    key: Exclude<MainNavKey, 'dashboard'>;
     top: number;
     left: number;
     title: string;
-    items: { id?: string; label: string; targetModule?: MainNavKey; targetSubTab?: string }[];
+    inDevelopment: boolean;
+    items: NavItemDef[];
   } | null>(null);
   const navPopoverTimer = useRef<any>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -491,28 +550,22 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   }, [checkNavScroll]);
 
   const handleNavOpen = (
-    type: 'nav' | 'extra',
-    key: any,
+    key: Exclude<MainNavKey, 'dashboard'>,
     targetEl: HTMLElement,
     title: string,
-    items: any[]
+    items: NavItemDef[],
+    inDevelopment: boolean
   ) => {
     if (navPopoverTimer.current) clearTimeout(navPopoverTimer.current);
     const rect = targetEl.getBoundingClientRect();
-    if (type === 'nav') {
-      setOpenDropdown(key);
-      setOpenExtraDropdown(null);
-    } else {
-      setOpenExtraDropdown(key);
-      setOpenDropdown(null);
-    }
-    const clampedLeft = Math.max(16, Math.min(rect.left, window.innerWidth - 360));
+    setOpenDropdown(key);
+    const clampedLeft = Math.max(16, Math.min(rect.left, window.innerWidth - 370));
     setNavPopoverAnchor({
-      type,
       key,
       top: rect.bottom + 4,
       left: clampedLeft,
       title,
+      inDevelopment,
       items,
     });
   };
@@ -521,13 +574,29 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     if (navPopoverTimer.current) clearTimeout(navPopoverTimer.current);
     navPopoverTimer.current = setTimeout(() => {
       setOpenDropdown(null);
-      setOpenExtraDropdown(null);
       setNavPopoverAnchor(null);
     }, 150);
   };
 
   const handleNavKeepOpen = () => {
     if (navPopoverTimer.current) clearTimeout(navPopoverTimer.current);
+  };
+
+  const handleSubMenuSelect = (
+    moduleKey: MainNavKey,
+    subId: string,
+    subLabel: string,
+    moduleLabel?: string
+  ) => {
+    if (isModuleInDevelopment(moduleKey)) {
+      const modMeta = NAV_CONFIG.find((n) => n.key === moduleKey);
+      setInDevModal({
+        moduleLabel: moduleLabel || modMeta?.label || moduleKey,
+        subLabel,
+      });
+      return;
+    }
+    onNavigate(moduleKey, subId);
   };
 
   // Restore sidebar automatically whenever user navigates to another main module (or refreshes page)
@@ -595,6 +664,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
         setOpenDropdown(null);
         setNotifOpen(false);
         setAccountMenuOpen(false);
+        setAccountSearch('');
         setLangMenuOpen(false);
         setSearchFocused(false);
         setCompactSearchOpen(false);
@@ -610,13 +680,14 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     ? QUICK_SERVICES.filter((s) => s.label.toLowerCase().includes(searchTerm.toLowerCase()))
     : QUICK_SERVICES.slice(0, 7);
 
+  const isDashboardView = activeModule === 'dashboard';
   const activeNavMeta = NAV_CONFIG.find((n) => n.key === activeModule) || NAV_CONFIG[0];
   const allActiveItems: NavItemDef[] = [
     ...activeNavMeta.items,
     ...(activeNavMeta.groups ? activeNavMeta.groups.flatMap((g) => g.items) : []),
   ];
   const activeSubMeta: NavItemDef | null =
-    activeSubTab === 'empty' || !activeSubTab
+    isDashboardView || activeSubTab === 'empty' || !activeSubTab
       ? null
       : activeModule === 'efaktur' && activeSubTab && EFAKTUR_BREADCRUMB_MAP[activeSubTab]
         ? { id: activeSubTab, label: EFAKTUR_BREADCRUMB_MAP[activeSubTab] }
@@ -662,13 +733,13 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               darkHeader ? 'lg:border-slate-800' : 'lg:border-[#F1F5F9]'
             }`}
           >
-            {/* Left: Official Kemenkeu & DJP Logo (KelasBrevet logo removed from navbar as requested) */}
+            {/* Left: KelasBrevet Brand Logo */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
               <button
                 type="button"
-                onClick={() => onNavigate('portal', 'ikhtisar')}
+                onClick={() => onNavigate('dashboard', 'home')}
                 className="cursor-pointer text-left shrink-0"
-                title="Beranda Coretax"
+                title="Beranda Simulasi Coretax KelasBrevet"
               >
                 <KelasBrevetLogo variant="topbar" dark={darkHeader} />
               </button>
@@ -716,21 +787,30 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   {filteredServices.length === 0 ? (
                     <div className="px-4 py-3 text-xs text-slate-500">Layanan tidak ditemukan.</div>
                   ) : (
-                    filteredServices.map((svc) => (
-                      <button
-                        key={svc.label}
-                        type="button"
-                        onClick={() => {
-                          onNavigate(svc.module, svc.subTab);
-                          setSearchFocused(false);
-                          setSearchTerm('');
-                        }}
-                        className="w-full text-left px-4 py-2 text-[12.5px] text-slate-700 hover:bg-[#F4F6FA] hover:text-[#1E2C5E] font-medium cursor-pointer flex items-center justify-between"
-                      >
-                        <span>{svc.label}</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      </button>
-                    ))
+                    filteredServices.map((svc) => {
+                      const inDev = isModuleInDevelopment(svc.module);
+                      return (
+                        <button
+                          key={svc.label}
+                          type="button"
+                          onClick={() => {
+                            handleSubMenuSelect(svc.module, svc.subTab, svc.label);
+                            setSearchFocused(false);
+                            setSearchTerm('');
+                          }}
+                          className="w-full text-left px-4 py-2 text-[12.5px] text-slate-700 hover:bg-[#F4F6FA] hover:text-[#1E2C5E] font-medium cursor-pointer flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate">{svc.label}</span>
+                          {inDev ? (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                              Dalam Pengembangan
+                            </span>
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               )}
@@ -909,146 +989,201 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 )}
               </div>
 
-              {/* Rounded Bordered Taxpayer / Impersonate Box (Icon-only square on mobile/tablet, full pill on lg+) */}
+              {/* Rounded Pill Taxpayer / Account Switcher Box (Official Coretax Design) */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => {
-                    setAccountMenuOpen((prev) => !prev);
+                    setAccountMenuOpen((prev) => {
+                      if (prev) setAccountSearch('');
+                      return !prev;
+                    });
                     setNotifOpen(false);
                     setLangMenuOpen(false);
                     setOpenDropdown(null);
-                    setOpenExtraDropdown(null);
                   }}
                   title={`${activeTaxpayer.name} (${activeTaxpayer.nikNpwp})`}
-                  className={`flex items-center justify-center gap-2 p-2 lg:px-3 lg:py-1.5 rounded-[10px] border transition cursor-pointer ${
-                    darkHeader
-                      ? 'bg-slate-800 border-slate-700 hover:border-slate-500 text-white'
-                      : 'bg-white border-[#DCE2EC] hover:border-[#1E2C5E]/50 text-[#1B2958]'
+                  className={`flex items-center justify-center gap-2.5 p-2 lg:px-3.5 lg:py-1.5 rounded-full border transition cursor-pointer ${
+                    accountMenuOpen
+                      ? darkHeader
+                        ? 'bg-slate-800 border-[#F4C430] ring-2 ring-[#F4C430]/25 text-white'
+                        : 'bg-white border-[#F4C430] ring-2 ring-[#FEF08A]/70 text-[#1B2958]'
+                      : darkHeader
+                        ? 'bg-slate-800 border-slate-700 hover:border-slate-500 text-white'
+                        : 'bg-white border-[#DCE2EC] hover:border-[#F4C430] text-[#1B2958]'
                   }`}
                 >
-                  {accountMode === 'CORPORATE' ? (
-                    <Building2 className="w-[18px] h-[18px] text-[#1D4ED8] shrink-0" />
-                  ) : (
-                    <UserCircle2
-                      className={`w-[18px] h-[18px] shrink-0 ${
-                        darkHeader ? 'text-slate-200' : 'text-[#1E2C5E]'
-                      }`}
-                    />
-                  )}
-                  <div className="hidden lg:block text-left leading-[1.15] max-w-[140px] xl:max-w-[175px]">
+                  <UserCircle2
+                    className={`w-[18px] h-[18px] shrink-0 ${
+                      darkHeader ? 'text-slate-200' : 'text-[#475569]'
+                    }`}
+                  />
+                  <div className="hidden lg:block text-left leading-[1.2] max-w-[155px] xl:max-w-[190px]">
                     <div
                       className={`text-[10px] font-mono-num truncate ${
-                        darkHeader ? 'text-slate-400' : 'text-slate-500'
+                        darkHeader ? 'text-slate-400' : 'text-slate-400'
                       }`}
                     >
                       {activeTaxpayer.nikNpwp}
                     </div>
-                    <div className="text-[11px] xl:text-[11.5px] font-bold uppercase tracking-tight truncate">
+                    <div className="text-[11.5px] font-bold uppercase tracking-tight truncate">
                       {activeTaxpayer.name}
                     </div>
                   </div>
-                  <span
-                    className={`hidden lg:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
-                      accountMode === 'CORPORATE'
-                        ? 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]'
-                        : darkHeader
-                          ? 'bg-slate-700 border-slate-600 text-slate-200'
-                          : 'bg-[#F8FAFC] border-[#CBD5E1] text-[#1E2C5E]'
+                  <ChevronDown
+                    className={`hidden lg:block w-3.5 h-3.5 opacity-60 shrink-0 transition-transform ${
+                      accountMenuOpen ? 'rotate-180' : ''
                     }`}
-                  >
-                    IMPERSONATE
-                  </span>
-                  <ChevronDown className="hidden lg:block w-3.5 h-3.5 opacity-60 shrink-0" />
+                  />
                 </button>
 
-                {accountMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-white text-slate-800 border border-[#E2E8F0] rounded-2xl shadow-[0_20px_50px_rgba(30,44,94,0.16)] z-50 overflow-hidden">
-                    <div className="px-4 py-2.5 bg-[#F8FAFC] border-b border-slate-100 text-[11px] font-semibold text-slate-500">
-                      Pilih Akun / Impersonating
-                    </div>
+                {accountMenuOpen && (() => {
+                  const query = accountSearch.trim().toLowerCase();
+                  const showIndividual =
+                    !query ||
+                    individualTaxpayer.name.toLowerCase().includes(query) ||
+                    individualTaxpayer.nikNpwp.toLowerCase().includes(query);
+                  const showCorporate =
+                    !query ||
+                    corporateTaxpayer.name.toLowerCase().includes(query) ||
+                    corporateTaxpayer.nikNpwp.toLowerCase().includes(query);
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSwitchAccountMode('INDIVIDUAL');
-                        setAccountMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
-                        accountMode === 'INDIVIDUAL' ? 'bg-[#FEF9E7]/70' : ''
-                      }`}
-                    >
-                      <User className="w-4 h-4 text-[#1E2C5E] mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-[#1B2958]">
-                            Akun Utama (Orang Pribadi)
-                          </span>
-                          {accountMode === 'INDIVIDUAL' && (
-                            <span className="text-[11px] font-bold text-emerald-700">Aktif</span>
-                          )}
+                  return (
+                    <div className="absolute right-0 top-full mt-2 w-[290px] bg-white text-slate-800 border border-[#E2E8F0] rounded-2xl shadow-[0_20px_50px_rgba(30,44,94,0.16)] z-50 overflow-hidden">
+                      {/* Active Account Summary Header */}
+                      <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-[#FEF9E2] text-[#1B2958] flex items-center justify-center shrink-0">
+                          <User className="w-[18px] h-[18px]" />
                         </div>
-                        <div className="text-xs font-medium text-slate-700 mt-0.5 truncate">
-                          {individualTaxpayer.name}
-                        </div>
-                        <div className="text-[11px] font-mono-num text-slate-500">
-                          {individualTaxpayer.nikNpwp}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[12px] font-bold uppercase text-[#1B2958] leading-snug truncate">
+                            {activeTaxpayer.name}
+                          </div>
+                          <div className="text-[11px] font-mono-num text-slate-400 leading-tight truncate">
+                            {activeTaxpayer.nikNpwp}
+                          </div>
                         </div>
                       </div>
-                    </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSwitchAccountMode('CORPORATE');
-                        setAccountMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
-                        accountMode === 'CORPORATE' ? 'bg-[#EFF6FF]' : ''
-                      }`}
-                    >
-                      <Building2 className="w-4 h-4 text-[#1D4ED8] mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-[#1D4ED8]">
-                            Impersonate (Badan / PKP)
-                          </span>
-                          {accountMode === 'CORPORATE' && (
-                            <span className="text-[11px] font-bold text-[#1D4ED8]">Aktif</span>
-                          )}
-                        </div>
-                        <div className="text-xs font-medium text-slate-700 mt-0.5 truncate">
-                          {corporateTaxpayer.name}
-                        </div>
-                        <div className="text-[11px] font-mono-num text-slate-500">
-                          {corporateTaxpayer.nikNpwp} · PKP
+                      {/* Search NPWP / Name */}
+                      <div className="px-3 pb-3">
+                        <div className="flex items-center gap-2 bg-[#F4F6FA] border border-transparent focus-within:border-[#CBD5E1] focus-within:bg-white rounded-lg px-2.5 py-2 transition">
+                          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <input
+                            type="text"
+                            value={accountSearch}
+                            onChange={(e) => setAccountSearch(e.target.value)}
+                            placeholder="Cari NPWP atau nama..."
+                            className="w-full bg-transparent text-[12px] text-slate-700 placeholder:text-slate-400 outline-none"
+                          />
                         </div>
                       </div>
-                    </button>
 
-                    <div className="p-2 space-y-1 bg-[#F8FAFC]">
-                      <button
-                        type="button"
-                        onClick={onLogout}
-                        className="w-full px-3 py-2 rounded-lg text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>Keluar</span>
-                      </button>
+                      {/* Account Groups: AKUN UTAMA & AKUN PERWAKILAN */}
+                      <div className="px-3 pb-3 space-y-3 max-h-[240px] overflow-y-auto">
+                        {showIndividual && (
+                          <div>
+                            <div className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              AKUN UTAMA
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSwitchAccountMode('INDIVIDUAL');
+                                setAccountMenuOpen(false);
+                                setAccountSearch('');
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition cursor-pointer ${
+                                accountMode === 'INDIVIDUAL'
+                                  ? 'bg-[#FEF9E2]'
+                                  : 'hover:bg-[#F8FAFC]'
+                              }`}
+                            >
+                              <div className="text-[11.5px] font-bold uppercase text-[#1B2958] leading-snug truncate">
+                                {individualTaxpayer.name}
+                              </div>
+                              <div className="text-[10.5px] font-mono-num text-slate-500 leading-tight mt-0.5">
+                                {individualTaxpayer.nikNpwp}
+                              </div>
+                            </button>
+                          </div>
+                        )}
+
+                        {showCorporate && (
+                          <div>
+                            <div className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              AKUN PERWAKILAN
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSwitchAccountMode('CORPORATE');
+                                setAccountMenuOpen(false);
+                                setAccountSearch('');
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition cursor-pointer ${
+                                accountMode === 'CORPORATE'
+                                  ? 'bg-[#FEF9E2]'
+                                  : 'hover:bg-[#F8FAFC]'
+                              }`}
+                            >
+                              <div className="text-[11.5px] font-bold uppercase text-[#1B2958] leading-snug truncate">
+                                {corporateTaxpayer.name}
+                              </div>
+                              <div className="text-[10.5px] font-mono-num text-slate-500 leading-tight mt-0.5">
+                                {corporateTaxpayer.nikNpwp}
+                              </div>
+                            </button>
+                          </div>
+                        )}
+
+                        {!showIndividual && !showCorporate && (
+                          <div className="px-2 py-3 text-center text-[11.5px] text-slate-400">
+                            Akun tidak ditemukan
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Login Terakhir */}
+                      <div className="border-t border-slate-100 px-4 py-2.5 flex items-center gap-2.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
+                            LOGIN TERAKHIR
+                          </div>
+                          <div className="text-[11.5px] font-semibold text-[#1B2958] leading-snug">
+                            {lastLoginLabel}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Keluar */}
+                      <div className="border-t border-slate-100 p-2">
+                        <button
+                          type="button"
+                          onClick={onLogout}
+                          className="w-full px-2.5 py-2 rounded-lg text-left text-[12px] font-semibold text-rose-500 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Keluar</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Far-Right Home Icon Button */}
               <button
                 type="button"
-                onClick={() => onNavigate('portal', 'ikhtisar')}
-                title="Beranda Portal"
+                onClick={() => onNavigate('dashboard', 'home')}
+                title="Beranda Utama"
                 className={`hidden sm:inline-flex p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
-                  darkHeader
-                    ? 'text-slate-300 hover:bg-slate-800'
-                    : 'text-[#1E2C5E] hover:bg-[#F4F6FA]'
+                  isDashboardView
+                    ? 'bg-[#FEF08A]/75 text-[#1B2958]'
+                    : darkHeader
+                      ? 'text-slate-300 hover:bg-slate-800'
+                      : 'text-[#1E2C5E] hover:bg-[#F4F6FA]'
                 }`}
               >
                 <Home className="w-[18px] h-[18px]" />
@@ -1092,21 +1227,30 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 {filteredServices.length === 0 ? (
                   <div className="px-4 py-2.5 text-xs text-slate-500">Layanan tidak ditemukan.</div>
                 ) : (
-                  filteredServices.map((svc) => (
-                    <button
-                      key={svc.label}
-                      type="button"
-                      onClick={() => {
-                        onNavigate(svc.module, svc.subTab);
-                        setCompactSearchOpen(false);
-                        setSearchTerm('');
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-[12.5px] text-slate-700 hover:bg-[#F4F6FA] hover:text-[#1E2C5E] font-medium cursor-pointer flex items-center justify-between"
-                    >
-                      <span className="truncate">{svc.label}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </button>
-                  ))
+                  filteredServices.map((svc) => {
+                    const inDev = isModuleInDevelopment(svc.module);
+                    return (
+                      <button
+                        key={svc.label}
+                        type="button"
+                        onClick={() => {
+                          handleSubMenuSelect(svc.module, svc.subTab, svc.label);
+                          setCompactSearchOpen(false);
+                          setSearchTerm('');
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-[12.5px] text-slate-700 hover:bg-[#F4F6FA] hover:text-[#1E2C5E] font-medium cursor-pointer flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate">{svc.label}</span>
+                        {inDev ? (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                            Dalam Pengembangan
+                          </span>
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -1137,21 +1281,26 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               className="flex-1 flex flex-nowrap items-center gap-1 sm:gap-1.5 lg:gap-2 xl:gap-2.5 overflow-x-auto no-scrollbar scroll-smooth py-1 px-1 min-w-0"
             >
               {NAV_CONFIG.map((item) => {
-                const isActive = activeModule === item.key;
+                const isActive = !isDashboardView && activeModule === item.key;
                 const isHoveredOpen = openDropdown === item.key;
                 const isHighlighted =
-                  isHoveredOpen || (openDropdown === null && openExtraDropdown === null && isActive);
+                  isHoveredOpen || (openDropdown === null && isActive);
 
                 return (
                   <div
                     key={item.key}
                     className="relative shrink-0"
                     onMouseEnter={(e) => {
-                      if (item.hasChevron) {
-                        handleNavOpen('nav', item.key, e.currentTarget, item.popoverTitle, item.items);
+                      if (item.hasChevron && item.items.length > 0) {
+                        handleNavOpen(
+                          item.key,
+                          e.currentTarget,
+                          item.popoverTitle,
+                          item.items,
+                          Boolean(item.inDevelopment)
+                        );
                       } else {
                         setOpenDropdown(null);
-                        setOpenExtraDropdown(null);
                         setNavPopoverAnchor(null);
                       }
                     }}
@@ -1162,8 +1311,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                         setLeftCollapsed(false);
                         if (item.key === 'efaktur') {
                           onNavigate('efaktur', 'dashboard');
-                        } else if (item.key === 'bukubesar') {
-                          onNavigate('bukubesar', 'ringkasan');
                         } else {
                           onNavigate(item.key, 'empty');
                         }
@@ -1187,45 +1334,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                           }`}
                         />
                       )}
-                    </button>
-                  </div>
-                );
-              })}
-
-              {/* Official Coretax Menu 7 & 8: Layanan WP & Manajemen Akses */}
-              {EXTRA_TOP_MENUS.map((extra) => {
-                const isExtraOpen = openExtraDropdown === extra.key;
-                return (
-                  <div
-                    key={extra.key}
-                    className="relative shrink-0"
-                    onMouseEnter={(e) => {
-                      handleNavOpen('extra', extra.key, e.currentTarget, extra.popoverTitle, extra.items);
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const first = extra.items[0];
-                        if (first) onNavigate(first.targetModule, first.targetSubTab);
-                        setOpenExtraDropdown(null);
-                        setNavPopoverAnchor(null);
-                      }}
-                      className={`inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-[10px] text-[12px] lg:text-[12.5px] transition-all duration-150 cursor-pointer whitespace-nowrap ${
-                        isExtraOpen
-                          ? 'bg-[#FEF08A]/85 text-[#1B2958] font-bold border border-[#F4C430]/75 border-b-[3px] border-b-[#F2B705]'
-                          : darkHeader
-                            ? 'text-slate-200 hover:bg-slate-800 font-semibold border border-transparent'
-                            : 'text-[#1E293B] hover:bg-[#F4F6FA] font-semibold border border-transparent'
-                      }`}
-                    >
-                      <ModuleBadgeIcon moduleKey={extra.key} icon={ShieldUser} />
-                      <span>{extra.label}</span>
-                      <ChevronDown
-                        className={`w-3.5 h-3.5 opacity-70 transition-transform duration-150 ${
-                          isExtraOpen ? 'rotate-180' : ''
-                        }`}
-                      />
                     </button>
                   </div>
                 );
@@ -1273,34 +1381,41 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               onMouseLeave={handleNavCloseDebounced}
               className="pt-1 select-none animate-in fade-in duration-100"
             >
-              <div className="relative w-[min(350px,calc(100vw-2rem))] bg-white text-[#1B2958] border border-[#E5EAF2] rounded-[16px] shadow-[0_20px_50px_rgba(30,44,94,0.18)]">
+              <div className="relative w-[min(360px,calc(100vw-2rem))] bg-white text-[#1B2958] border border-[#E5EAF2] rounded-[16px] shadow-[0_20px_50px_rgba(30,44,94,0.18)]">
                 <div
                   className="w-3.5 h-3.5 bg-white border-l border-t border-[#E5EAF2] rotate-45 absolute -top-[7px] left-8"
                   aria-hidden="true"
                 />
-                <div className="px-5 pt-4 pb-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-[#F1F5F9]">
-                  {navPopoverAnchor.title}
+                <div className="px-5 pt-4 pb-2.5 flex items-center justify-between gap-2 border-b border-[#F1F5F9]">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    {navPopoverAnchor.title}
+                  </span>
+                  {navPopoverAnchor.inDevelopment && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                      Dalam Pengembangan
+                    </span>
+                  )}
                 </div>
                 <div className="p-2 space-y-0.5 max-h-[65vh] overflow-y-auto">
-                  {navPopoverAnchor.items.map((sub: any) => {
+                  {navPopoverAnchor.items.map((sub) => {
                     const isCurrentSub =
-                      navPopoverAnchor.type === 'nav' &&
-                      activeModule === (navPopoverAnchor.key as MainNavKey) &&
+                      !navPopoverAnchor.inDevelopment &&
+                      activeModule === navPopoverAnchor.key &&
                       activeSubTab === sub.id;
 
                     return (
                       <button
-                        key={sub.id || sub.label}
+                        key={sub.id}
                         type="button"
                         onClick={() => {
                           setLeftCollapsed(false);
-                          if (navPopoverAnchor.type === 'nav') {
-                            onNavigate(navPopoverAnchor.key as MainNavKey, sub.id);
-                          } else {
-                            onNavigate(sub.targetModule, sub.targetSubTab);
-                          }
+                          handleSubMenuSelect(
+                            navPopoverAnchor.key,
+                            sub.id,
+                            sub.label,
+                            NAV_CONFIG.find((n) => n.key === navPopoverAnchor.key)?.label
+                          );
                           setOpenDropdown(null);
-                          setOpenExtraDropdown(null);
                           setNavPopoverAnchor(null);
                         }}
                         className={`w-full text-left px-3.5 py-2 rounded-[10px] text-[12.5px] transition cursor-pointer flex items-center justify-between gap-2 ${
@@ -1309,7 +1424,12 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                             : 'text-[#1B2958] hover:bg-[#F4F6FA] font-semibold'
                         }`}
                       >
-                        <span className="leading-snug">{sub.label}</span>
+                        <span className="leading-snug min-w-0 flex-1">{sub.label}</span>
+                        {navPopoverAnchor.inDevelopment && (
+                          <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0 whitespace-nowrap">
+                            Dalam Pengembangan
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -1321,319 +1441,350 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       </header>
 
       {/* ===================================================================== */}
-      {/* FLOATING 2-COLUMN WORKSPACE (LEFT SUBMENU CARD + RIGHT CONTENT CARD)  */}
+      {/* MAIN BODY: FULL-WIDTH DASHBOARD (NO MENU SELECTED) OR 2-COL WORKSPACE */}
       {/* ===================================================================== */}
-      <div className="relative flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full min-h-[260px]">
-        {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge: Centered Vertically on Left Screen Edge (top-1/2) with z-40 above footer */}
-        {leftCollapsed && (
-          <button
-            type="button"
-            onClick={() => setLeftCollapsed(false)}
-            title={`Buka menu ${activeNavMeta.sidebarLabel}`}
-            className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-[0_4px_16px_rgba(30,44,94,0.14)] cursor-pointer transition"
-          >
-            <ModuleBadgeIcon moduleKey={activeNavMeta.key} icon={activeNavMeta.icon} />
-            <span
-              className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
-              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+      {isDashboardView ? (
+        <main className="relative z-10 flex-1 px-3 sm:px-5 py-4 sm:py-5 max-w-full">
+          {children}
+        </main>
+      ) : (
+        <div className="relative flex-1 flex gap-4 px-2.5 sm:px-4 py-3 sm:py-4 items-start max-w-full min-h-[260px]">
+          {/* Authentic Collapsed Vertical Gold Tab on Far-Left Edge */}
+          {leftCollapsed && (
+            <button
+              type="button"
+              onClick={() => setLeftCollapsed(false)}
+              title={`Buka menu ${activeNavMeta.sidebarLabel}`}
+              className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 flex-col items-center gap-2 py-3.5 px-1.5 rounded-r-[10px] bg-[#FEF08A] hover:bg-[#F5C527] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-[0_4px_16px_rgba(30,44,94,0.14)] cursor-pointer transition"
             >
-              {activeNavMeta.sidebarLabel}
-            </span>
-          </button>
-        )}
-
-        {/* Mobile Left Edge Gold Tab to toggle mobile menu (Centered Vertically) */}
-        {!mobileMenuOpen && (
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            title={`Buka menu ${activeNavMeta.sidebarLabel}`}
-            className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 py-3 px-1 rounded-r-[9px] bg-[#FEF08A] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-sm cursor-pointer"
-          >
-            <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
-            <span
-              className="text-[10px] font-bold tracking-wide max-h-[120px] truncate"
-              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-            >
-              {activeNavMeta.sidebarLabel}
-            </span>
-          </button>
-        )}
-
-        {/* LEFT FLOATING WHITE SUBMENU CARD (Level with right main content card from the start) */}
-        {!leftCollapsed &&
-          (() => {
-            const sidebarMeta =
-              (openDropdown ? NAV_CONFIG.find((n) => n.key === openDropdown) : activeNavMeta) ||
-              activeNavMeta;
-            const SidebarModuleIcon = sidebarMeta.icon;
-
-            return (
-              <aside
-                className={`hidden lg:flex flex-col shrink-0 self-start rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] transition-all duration-200 sticky top-[124px] max-h-[calc(100vh-140px)] w-[224px] xl:w-[258px] ${
-                  darkHeader ? 'bg-slate-900 border-slate-700/80' : 'bg-white border-[#E5EAF2]'
-                }`}
+              <ModuleBadgeIcon moduleKey={activeNavMeta.key} icon={activeNavMeta.icon} />
+              <span
+                className="text-[11px] font-bold tracking-wide max-h-[145px] truncate"
+                style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
               >
-                {/* Top Shaded Module Header inside Left Panel */}
-                <div
-                  className={`m-3 rounded-[12px] px-3 py-2.5 flex items-center justify-between gap-2 ${
-                    darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
+                {activeNavMeta.sidebarLabel}
+              </span>
+            </button>
+          )}
+
+          {/* Mobile Left Edge Gold Tab to toggle mobile menu */}
+          {!mobileMenuOpen && (
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              title={`Buka menu ${activeNavMeta.sidebarLabel}`}
+              className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 py-3 px-1 rounded-r-[9px] bg-[#FEF08A] text-[#1B2958] border border-l-0 border-[#F4C430] shadow-sm cursor-pointer"
+            >
+              <MobileDuotoneModuleIcon moduleKey={activeNavMeta.key} active={true} />
+              <span
+                className="text-[10px] font-bold tracking-wide max-h-[120px] truncate"
+                style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+              >
+                {activeNavMeta.sidebarLabel}
+              </span>
+            </button>
+          )}
+
+          {/* LEFT FLOATING WHITE SUBMENU CARD */}
+          {!leftCollapsed &&
+            (() => {
+              const sidebarMeta =
+                (openDropdown ? NAV_CONFIG.find((n) => n.key === openDropdown) : activeNavMeta) ||
+                activeNavMeta;
+              const SidebarModuleIcon = sidebarMeta.icon;
+              const sidebarInDev = Boolean(sidebarMeta.inDevelopment);
+
+              return (
+                <aside
+                  className={`hidden lg:flex flex-col shrink-0 self-start rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] transition-all duration-200 sticky top-[124px] max-h-[calc(100vh-140px)] w-[236px] xl:w-[266px] ${
+                    darkHeader ? 'bg-slate-900 border-slate-700/80' : 'bg-white border-[#E5EAF2]'
                   }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <ModuleBadgeIcon moduleKey={sidebarMeta.key} icon={SidebarModuleIcon} />
-                    <span
-                      title={sidebarMeta.sidebarLabel}
-                      className={`font-display font-bold text-[13.5px] truncate ${
-                        darkHeader ? 'text-white' : 'text-[#1B2958]'
-                      }`}
-                    >
-                      {sidebarMeta.sidebarLabel}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setLeftCollapsed(true)}
-                    title="Tutup sidebar"
-                    aria-label="Tutup sidebar"
-                    className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition cursor-pointer ${
-                      darkHeader
-                        ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
-                        : 'bg-white border-[#E2E8F0] text-[#475569] hover:text-[#1B2958]'
+                  {/* Top Shaded Module Header inside Left Panel */}
+                  <div
+                    className={`m-3 rounded-[12px] px-3 py-2.5 flex items-center justify-between gap-2 ${
+                      darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
                     }`}
                   >
-                    <ChevronsLeft className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Vertical Submenu Items List with authentic subtle gold active indicator */}
-                <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
-                  {sidebarMeta.items.map((sub) => {
-                    const isSubActive =
-                      activeModule === sidebarMeta.key &&
-                      (sidebarMeta.key === 'spt'
-                        ? activeSubTab === sub.id ||
-                          (['konsep', 'menunggu', 'dilaporkan', 'ditolak', 'dibatalkan'].includes(activeSubTab) &&
-                            sub.id === 'konsep')
-                        : activeSubTab === sub.id);
-                    return (
-                      <button
-                        key={sub.id}
-                        type="button"
-                        title={sub.label}
-                        onClick={() => {
-                          onNavigate(sidebarMeta.key, sub.id);
-                          setOpenDropdown(null);
-                        }}
-                        className={`relative w-full text-left px-3 py-2 rounded-[9px] text-[12.5px] transition cursor-pointer flex items-center justify-between gap-2 ${
-                          isSubActive
-                            ? darkHeader
-                              ? 'bg-slate-800 text-[#F4C430] font-bold'
-                              : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
-                            : darkHeader
-                              ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
-                              : 'text-[#475569] hover:bg-[#F6F8FC] hover:text-[#1B2958] font-medium'
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ModuleBadgeIcon moduleKey={sidebarMeta.key} icon={SidebarModuleIcon} />
+                      <span
+                        title={sidebarMeta.sidebarLabel}
+                        className={`font-display font-bold text-[13.5px] truncate ${
+                          darkHeader ? 'text-white' : 'text-[#1B2958]'
                         }`}
                       >
-                        {isSubActive && (
-                          <span
-                            className="w-[3px] h-5 rounded-full bg-[#F4C430] absolute left-0.5 top-1/2 -translate-y-1/2"
-                            aria-hidden="true"
-                          />
-                        )}
-                        <span className="truncate">{sub.label}</span>
-                        {sub.id === 'notifikasi' && unreadCount > 0 && (
-                          <span className="text-[10.5px] font-mono-num font-bold text-[#DC2626]">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                        {sidebarMeta.sidebarLabel}
+                      </span>
+                    </div>
 
-                  {/* Collapsible Portal Saya Sub-Groups (Perubahan Data & Perubahan Status) */}
-                  {sidebarMeta.groups &&
-                    sidebarMeta.groups.map((grp) => {
-                      const isExpanded = openGroups[grp.groupLabel] ?? true;
+                    <button
+                      type="button"
+                      onClick={() => setLeftCollapsed(true)}
+                      title="Tutup sidebar"
+                      aria-label="Tutup sidebar"
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition cursor-pointer ${
+                        darkHeader
+                          ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
+                          : 'bg-white border-[#E2E8F0] text-[#475569] hover:text-[#1B2958]'
+                      }`}
+                    >
+                      <ChevronsLeft className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Vertical Submenu Items List */}
+                  <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
+                    {sidebarMeta.items.map((sub) => {
+                      const isSubActive =
+                        !sidebarInDev &&
+                        activeModule === sidebarMeta.key &&
+                        (sidebarMeta.key === 'spt'
+                          ? activeSubTab === sub.id ||
+                            (['konsep', 'menunggu', 'dilaporkan', 'ditolak', 'dibatalkan'].includes(activeSubTab) &&
+                              sub.id === 'konsep')
+                          : activeSubTab === sub.id);
                       return (
-                        <div key={grp.groupLabel} className="pt-2 mt-1.5 border-t border-slate-100">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenGroups((prev) => ({
-                                ...prev,
-                                [grp.groupLabel]: !isExpanded,
-                              }))
-                            }
-                            className={`w-full px-3 py-1.5 flex items-center justify-between text-[12px] font-bold rounded-lg transition cursor-pointer ${
-                              darkHeader
-                                ? 'text-slate-300 hover:bg-slate-800/60'
-                                : 'text-[#334155] hover:bg-[#F6F8FC]'
-                            }`}
-                          >
-                            <span className="truncate">{grp.groupLabel}</span>
-                            <ChevronDown
-                              className={`w-3.5 h-3.5 opacity-70 transition-transform ${
-                                isExpanded ? '' : '-rotate-90'
-                              }`}
+                        <button
+                          key={sub.id}
+                          type="button"
+                          title={sidebarInDev ? `${sub.label} (Dalam Pengembangan)` : sub.label}
+                          onClick={() => {
+                            handleSubMenuSelect(
+                              sidebarMeta.key,
+                              sub.id,
+                              sub.label,
+                              sidebarMeta.label
+                            );
+                            setOpenDropdown(null);
+                          }}
+                          className={`relative w-full text-left px-3 py-2 rounded-[9px] text-[12.5px] transition cursor-pointer flex items-center justify-between gap-2 ${
+                            isSubActive
+                              ? darkHeader
+                                ? 'bg-slate-800 text-[#F4C430] font-bold'
+                                : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
+                              : darkHeader
+                                ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
+                                : 'text-[#475569] hover:bg-[#F6F8FC] hover:text-[#1B2958] font-medium'
+                          }`}
+                        >
+                          {isSubActive && (
+                            <span
+                              className="w-[3px] h-5 rounded-full bg-[#F4C430] absolute left-0.5 top-1/2 -translate-y-1/2"
+                              aria-hidden="true"
                             />
-                          </button>
-
-                          {isExpanded && (
-                            <div className="mt-0.5 space-y-0.5 pl-2">
-                              {grp.items.map((sub) => {
-                                const isSubActive =
-                                  activeModule === sidebarMeta.key && activeSubTab === sub.id;
-                                return (
-                                  <button
-                                    key={sub.id}
-                                    type="button"
-                                    title={sub.label}
-                                    onClick={() => {
-                                      onNavigate(sidebarMeta.key, sub.id);
-                                      setOpenDropdown(null);
-                                    }}
-                                    className={`relative w-full text-left px-2.5 py-1.5 rounded-[8px] text-[11.5px] transition cursor-pointer flex items-center gap-2 ${
-                                      isSubActive
-                                        ? darkHeader
-                                          ? 'bg-slate-800 text-[#F4C430] font-bold'
-                                          : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
-                                        : darkHeader
-                                          ? 'text-slate-400 hover:bg-slate-800/60 font-medium'
-                                          : 'text-[#64748B] hover:bg-[#F6F8FC] hover:text-[#1B2958] font-medium'
-                                    }`}
-                                  >
-                                    <span className="w-1 h-1 rounded-full bg-current opacity-50 shrink-0" />
-                                    <span className="truncate">{sub.label}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
                           )}
-                        </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate leading-snug">{sub.label}</div>
+                            {sidebarInDev && (
+                              <span className="inline-block mt-0.5 text-[9.5px] font-semibold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80">
+                                Dalam Pengembangan
+                              </span>
+                            )}
+                          </div>
+                          {!sidebarInDev && sub.id === 'notifikasi' && unreadCount > 0 && (
+                            <span className="text-[10.5px] font-mono-num font-bold text-[#DC2626]">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </button>
                       );
                     })}
-                </div>
 
-                {/* Bottom "Auto hide saat di-scroll" Toggle Switch */}
-                <div
-                  className={`px-4 py-3 border-t flex items-center justify-between gap-2 text-[12px] ${
-                    darkHeader ? 'border-slate-800 text-slate-400' : 'border-[#F1F5F9] text-[#52607A]'
-                  }`}
-                >
-                  <span className="inline-flex items-center gap-2 truncate">
-                    <PanelTop className="w-3.5 h-3.5 shrink-0 opacity-75" />
-                    <span>
-                      <em className="not-italic sm:italic">Auto hide</em> saat di-scroll
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={autoHideOnScroll}
-                    onClick={() => setAutoHideOnScroll((prev) => !prev)}
-                    className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer shrink-0 flex items-center ${
-                      autoHideOnScroll ? 'bg-[#F4C430] justify-end' : 'bg-slate-300 justify-start'
+                    {/* Collapsible Portal Saya Sub-Groups (Perubahan Data & Perubahan Status) */}
+                    {sidebarMeta.groups &&
+                      sidebarMeta.groups.map((grp) => {
+                        const isExpanded = openGroups[grp.groupLabel] ?? true;
+                        return (
+                          <div key={grp.groupLabel} className="pt-2 mt-1.5 border-t border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenGroups((prev) => ({
+                                  ...prev,
+                                  [grp.groupLabel]: !isExpanded,
+                                }))
+                              }
+                              className={`w-full px-3 py-1.5 flex items-center justify-between text-[12px] font-bold rounded-lg transition cursor-pointer ${
+                                darkHeader
+                                  ? 'text-slate-300 hover:bg-slate-800/60'
+                                  : 'text-[#334155] hover:bg-[#F6F8FC]'
+                              }`}
+                            >
+                              <span className="truncate">{grp.groupLabel}</span>
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 opacity-70 transition-transform ${
+                                  isExpanded ? '' : '-rotate-90'
+                                }`}
+                              />
+                            </button>
+
+                            {isExpanded && (
+                              <div className="mt-0.5 space-y-0.5 pl-2">
+                                {grp.items.map((sub) => {
+                                  const isSubActive =
+                                    !sidebarInDev &&
+                                    activeModule === sidebarMeta.key &&
+                                    activeSubTab === sub.id;
+                                  return (
+                                    <button
+                                      key={sub.id}
+                                      type="button"
+                                      title={sidebarInDev ? `${sub.label} (Dalam Pengembangan)` : sub.label}
+                                      onClick={() => {
+                                        handleSubMenuSelect(
+                                          sidebarMeta.key,
+                                          sub.id,
+                                          sub.label,
+                                          sidebarMeta.label
+                                        );
+                                        setOpenDropdown(null);
+                                      }}
+                                      className={`relative w-full text-left px-2.5 py-1.5 rounded-[8px] text-[11.5px] transition cursor-pointer flex items-start gap-2 ${
+                                        isSubActive
+                                          ? darkHeader
+                                            ? 'bg-slate-800 text-[#F4C430] font-bold'
+                                            : 'bg-[#F1F4FA] text-[#1B2958] font-bold'
+                                          : darkHeader
+                                            ? 'text-slate-400 hover:bg-slate-800/60 font-medium'
+                                            : 'text-[#64748B] hover:bg-[#F6F8FC] hover:text-[#1B2958] font-medium'
+                                      }`}
+                                    >
+                                      <span className="w-1 h-1 rounded-full bg-current opacity-50 shrink-0 mt-1.5" />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="truncate leading-snug">{sub.label}</div>
+                                        {sidebarInDev && (
+                                          <span className="inline-block mt-0.5 text-[9px] font-semibold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80">
+                                            Dalam Pengembangan
+                                          </span>
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  {/* Bottom "Auto hide saat di-scroll" Toggle Switch */}
+                  <div
+                    className={`px-4 py-3 border-t flex items-center justify-between gap-2 text-[12px] ${
+                      darkHeader ? 'border-slate-800 text-slate-400' : 'border-[#F1F5F9] text-[#52607A]'
                     }`}
                   >
-                    <span className="w-4 h-4 rounded-full bg-white shadow-sm block" />
-                  </button>
-                </div>
-              </aside>
-            );
-          })()}
+                    <span className="inline-flex items-center gap-2 truncate">
+                      <PanelTop className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                      <span>
+                        <em className="not-italic sm:italic">Auto hide</em> saat di-scroll
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={autoHideOnScroll}
+                      onClick={() => setAutoHideOnScroll((prev) => !prev)}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer shrink-0 flex items-center ${
+                        autoHideOnScroll ? 'bg-[#F4C430] justify-end' : 'bg-slate-300 justify-start'
+                      }`}
+                    >
+                      <span className="w-4 h-4 rounded-full bg-white shadow-sm block" />
+                    </button>
+                  </div>
+                </aside>
+              );
+            })()}
 
-        {/* RIGHT FLOATING WHITE MAIN CONTENT CARD (Exact match to screenshot) */}
-        <main
-          className={`flex-1 min-w-0 rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] flex flex-col overflow-hidden ${
-            darkHeader ? 'bg-slate-900/95 border-slate-700/80' : 'bg-white border-[#E5EAF2]'
-          }`}
-        >
-          {/* Breadcrumb Strip: [Home] Beranda › Portal Saya › Home */}
-          <div
-            className={`px-5 sm:px-6 py-3.5 border-b flex items-center justify-between gap-3 text-[12.5px] ${
-              darkHeader ? 'border-slate-800 text-slate-400' : 'border-[#F1F5F9] text-slate-500'
+          {/* RIGHT FLOATING WHITE MAIN CONTENT CARD */}
+          <main
+            className={`flex-1 min-w-0 rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.06)] flex flex-col overflow-hidden ${
+              darkHeader ? 'bg-slate-900/95 border-slate-700/80' : 'bg-white border-[#E5EAF2]'
             }`}
           >
-            <div className="flex items-center gap-1.5 min-w-0">
-              <button
-                type="button"
-                onClick={() => onNavigate('portal', 'ikhtisar')}
-                className="inline-flex items-center gap-1.5 hover:text-[#1B2958] transition cursor-pointer whitespace-nowrap"
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>Beranda</span>
-              </button>
-              <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
-              {!activeSubMeta ||
-              activeModule === 'efaktur' ||
-              activeModule === 'bukubesar' ||
-              (activeSubMeta.breadcrumbLabel || activeSubMeta.label) ===
-                activeNavMeta.sidebarLabel ? (
-                <span
-                  className={`font-bold truncate ${
-                    darkHeader ? 'text-[#F4C430]' : 'text-[#1B2958]'
-                  }`}
+            {/* Breadcrumb Strip */}
+            <div
+              className={`px-5 sm:px-6 py-3.5 border-b flex items-center justify-between gap-3 text-[12.5px] ${
+                darkHeader ? 'border-slate-800 text-slate-400' : 'border-[#F1F5F9] text-slate-500'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('dashboard', 'home')}
+                  className="inline-flex items-center gap-1.5 hover:text-[#1B2958] transition cursor-pointer whitespace-nowrap"
                 >
-                  {activeNavMeta.sidebarLabel}
-                </span>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLeftCollapsed(false);
-                      onNavigate(activeModule, activeNavMeta.items[0]?.id);
-                    }}
-                    className={`font-semibold hover:underline cursor-pointer whitespace-nowrap ${
-                      darkHeader ? 'text-slate-200' : 'text-[#1B2958]'
-                    }`}
-                  >
-                    {activeNavMeta.sidebarLabel}
-                  </button>
-                  <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Beranda</span>
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
+                {!activeSubMeta ||
+                activeModule === 'efaktur' ||
+                isModuleInDevelopment(activeModule) ||
+                (activeSubMeta.breadcrumbLabel || activeSubMeta.label) ===
+                  activeNavMeta.sidebarLabel ? (
                   <span
                     className={`font-bold truncate ${
                       darkHeader ? 'text-[#F4C430]' : 'text-[#1B2958]'
                     }`}
                   >
-                    {activeSubMeta.breadcrumbLabel || activeSubMeta.label}
+                    {activeNavMeta.sidebarLabel}
                   </span>
-                </>
-              )}
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLeftCollapsed(false);
+                        onNavigate(activeModule, activeNavMeta.items[0]?.id);
+                      }}
+                      className={`font-semibold hover:underline cursor-pointer whitespace-nowrap ${
+                        darkHeader ? 'text-slate-200' : 'text-[#1B2958]'
+                      }`}
+                    >
+                      {activeNavMeta.sidebarLabel}
+                    </button>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
+                    <span
+                      className={`font-bold truncate ${
+                        darkHeader ? 'text-[#F4C430]' : 'text-[#1B2958]'
+                      }`}
+                    >
+                      {activeSubMeta.breadcrumbLabel || activeSubMeta.label}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <span className="hidden xl:inline text-[11px] text-slate-400 whitespace-nowrap">
+                Lisensi Simulasi {branding.brandName || 'KelasBrevet'}
+              </span>
             </div>
 
-            <span className="hidden xl:inline text-[11px] text-slate-400 whitespace-nowrap">
-              Lisensi Simulasi KelasBrevet
-            </span>
-          </div>
-
-          {/* Active Module Content Viewport */}
-          <div className="p-3 sm:p-5 xl:p-6 flex-1 bg-white text-[#1E293B] overflow-x-auto max-w-full">
-            {children}
-          </div>
-        </main>
-      </div>
+            {/* Active Module Content Viewport */}
+            <div className="p-3 sm:p-5 xl:p-6 flex-1 bg-white text-[#1E293B] overflow-x-auto max-w-full">
+              {children}
+            </div>
+          </main>
+        </div>
+      )}
 
       {/* ===================================================================== */}
-      {/* MOBILE SUBMENU SLIDE-OVER DRAWER (Top-level sibling: z-[80] covers header z-30 & body) */}
+      {/* MOBILE SUBMENU SLIDE-OVER DRAWER                                      */}
       {/* ===================================================================== */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !isDashboardView && (
         <div className="lg:hidden">
-          {/* Dark Backdrop dimming entire screen including header and navbar (z-[80] covers header z-30) */}
           <div
             className="fixed inset-0 bg-slate-900/60 z-[80] backdrop-blur-[2px] transition-opacity touch-none"
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          {/* Floating Left Rounded Panel on layer z-[90], sitting on top of the dark backdrop */}
           <div
             className={`fixed left-2 sm:left-3 top-3 bottom-[82px] z-[90] w-[84vw] max-w-[315px] rounded-[18px] shadow-[0_22px_55px_rgba(15,23,42,0.45)] border border-slate-200/60 flex flex-col overflow-hidden overscroll-contain ${
               darkHeader ? 'bg-slate-900 text-slate-100 border-slate-700' : 'bg-white text-[#1B2958]'
             }`}
           >
-            {/* Top Shaded Pill Box with Duotone Module Icon + Label + [<<] Collapse Button */}
             <div
               className={`m-3 rounded-[12px] px-3.5 py-2.5 flex items-center justify-between gap-2 ${
                 darkHeader ? 'bg-slate-800' : 'bg-[#F4F6FA]'
@@ -1664,20 +1815,20 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </button>
             </div>
 
-            {/* Clean Single-Line Truncated Submenu Items */}
             <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
               {activeNavMeta.items.map((sub) => {
-                const isSubActive = activeSubTab === sub.id;
+                const mobileInDev = Boolean(activeNavMeta.inDevelopment);
+                const isSubActive = !mobileInDev && activeSubTab === sub.id;
                 return (
                   <button
                     key={sub.id}
                     type="button"
                     title={sub.label}
                     onClick={() => {
-                      onNavigate(activeModule, sub.id);
+                      handleSubMenuSelect(activeModule, sub.id, sub.label, activeNavMeta.label);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[13px] transition cursor-pointer block truncate ${
+                    className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[13px] transition cursor-pointer block ${
                       isSubActive
                         ? darkHeader
                           ? 'bg-slate-800 text-[#F4C430] font-bold'
@@ -1687,7 +1838,12 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                           : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
                     }`}
                   >
-                    {sub.label}
+                    <div className="truncate">{sub.label}</div>
+                    {mobileInDev && (
+                      <span className="inline-block mt-0.5 text-[9.5px] font-semibold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80">
+                        Dalam Pengembangan
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -1699,17 +1855,23 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                       {grp.groupLabel}
                     </div>
                     {grp.items.map((sub) => {
-                      const isSubActive = activeSubTab === sub.id;
+                      const mobileInDev = Boolean(activeNavMeta.inDevelopment);
+                      const isSubActive = !mobileInDev && activeSubTab === sub.id;
                       return (
                         <button
                           key={sub.id}
                           type="button"
                           title={sub.label}
                           onClick={() => {
-                            onNavigate(activeModule, sub.id);
+                            handleSubMenuSelect(
+                              activeModule,
+                              sub.id,
+                              sub.label,
+                              activeNavMeta.label
+                            );
                             setMobileMenuOpen(false);
                           }}
-                          className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[12.5px] transition cursor-pointer block truncate ${
+                          className={`w-full text-left px-3.5 py-2 rounded-[8px] text-[12.5px] transition cursor-pointer block ${
                             isSubActive
                               ? darkHeader
                                 ? 'bg-slate-800 text-[#F4C430] font-bold'
@@ -1719,7 +1881,12 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                                 : 'text-[#334155] hover:bg-[#F8FAFC] font-medium'
                           }`}
                         >
-                          {sub.label}
+                          <div className="truncate">{sub.label}</div>
+                          {mobileInDev && (
+                            <span className="inline-block mt-0.5 text-[9px] font-semibold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80">
+                              Dalam Pengembangan
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -1731,7 +1898,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       )}
 
       {/* ===================================================================== */}
-      {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK (Layer z-[90] above dark backdrop) */}
+      {/* MOBILE FLOATING BOTTOM NAVIGATION DOCK                                */}
       {/* ===================================================================== */}
       <div className="lg:hidden fixed bottom-3 inset-x-0 z-[90] px-3 pointer-events-none flex justify-center">
         <div
@@ -1741,10 +1908,9 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               : 'bg-white/95 border-[#DCE2EE] text-[#1B2958]'
           }`}
         >
-          {/* Horizontally Scrollable Module Pills */}
           <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 px-1">
             {NAV_CONFIG.map((item) => {
-              const isActive = activeModule === item.key;
+              const isActive = !isDashboardView && activeModule === item.key;
               return (
                 <button
                   key={item.key}
@@ -1752,9 +1918,6 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                   onClick={() => {
                     if (item.key === 'efaktur') {
                       onNavigate('efaktur', 'dashboard');
-                      setMobileMenuOpen(false);
-                    } else if (item.key === 'bukubesar') {
-                      onNavigate('bukubesar', 'ringkasan');
                       setMobileMenuOpen(false);
                     } else {
                       onNavigate(item.key, 'empty');
@@ -1788,30 +1951,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 </button>
               );
             })}
-
-            {EXTRA_TOP_MENUS.map((extra) => (
-              <button
-                key={extra.key}
-                type="button"
-                onClick={() => {
-                  const first = extra.items[0];
-                  if (first) onNavigate(first.targetModule, first.targetSubTab);
-                }}
-                className={`shrink-0 min-w-[78px] px-3 py-1.5 rounded-full flex flex-col items-center justify-center gap-0.5 transition cursor-pointer ${
-                  darkHeader
-                    ? 'text-slate-300 hover:bg-slate-800/60 font-medium'
-                    : 'text-[#64748B] hover:bg-[#F4F6FA] font-medium'
-                }`}
-              >
-                <MobileDuotoneModuleIcon moduleKey={extra.key} active={false} />
-                <span className="text-[10.5px] leading-tight whitespace-nowrap">
-                  {extra.label}
-                </span>
-              </button>
-            ))}
           </div>
 
-          {/* Right Circular Search Button inside Floating Bottom Pill */}
           <button
             type="button"
             onClick={() => {
@@ -1840,7 +1981,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* OFFICIAL CORETAX DJP FOOTER (Exact Match to PDF 2, 3, 4)              */}
+      {/* KELABREVET DYNAMIC FOOTER (Managed in Admin Panel)                    */}
       {/* ===================================================================== */}
       <footer className="relative z-10 mx-2.5 sm:mx-4 mt-6 mb-24 lg:mb-4 clear-both">
         <div
@@ -1851,71 +1992,250 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
           }`}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 text-[11.5px]">
-            {/* Col 1: DJP Logo & Address */}
-            <div className="lg:col-span-4 space-y-1.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded bg-[#1E2C5E] flex items-center justify-center text-[#F4C430] font-display font-black text-xs shrink-0">
-                  DJP
+            {/* Col 1: KelasBrevet Logo & Address */}
+            <div className="lg:col-span-4 space-y-2">
+              <div className="flex items-center">
+                <KelasBrevetLogo variant="header" dark={darkHeader} />
+              </div>
+              <div
+                className={`font-bold pt-0.5 leading-snug ${
+                  darkHeader ? 'text-white' : 'text-[#1E2C5E]'
+                }`}
+              >
+                {footerInfo.orgTitle}
+                {footerInfo.orgSubtitle && (
+                  <>
+                    <br />
+                    <span className="font-semibold opacity-90">{footerInfo.orgSubtitle}</span>
+                  </>
+                )}
+              </div>
+              {footerInfo.address && (
+                <div
+                  className={`text-[11px] leading-relaxed ${
+                    darkHeader ? 'text-slate-400' : 'text-slate-500'
+                  }`}
+                >
+                  {footerInfo.address}
                 </div>
-                <div className="h-5 w-[1.5px] bg-slate-300" />
-                <span className="font-display font-black text-[18px] tracking-tight text-[#1E2C5E]">
-                  djp
-                </span>
-              </div>
-              <div className="font-bold text-[#1E2C5E] pt-1 leading-snug">
-                Kementerian Keuangan
-                <br />
-                Direktorat Jenderal Pajak
-              </div>
-              <div className="text-slate-500 text-[11px]">
-                Jalan Gatot Subroto, Kav. 40-42, Jakarta, 12190
-              </div>
+              )}
             </div>
 
             {/* Col 2: Hubungi Kami */}
-            <div className="lg:col-span-3 space-y-1.5">
-              <div className="font-bold text-[#1E2C5E]">Hubungi Kami</div>
-              <div className="text-slate-600 text-[11px] space-y-1">
-                <div>✆ (021) 525 1609, (021) 525 0208, (021) 526 2880</div>
-                <div>🎧 Kring Pajak: (021) 1500200</div>
-                <div>✉ informasi@pajak.go.id</div>
+            <div className="lg:col-span-3 space-y-2">
+              <div className={`font-bold ${darkHeader ? 'text-white' : 'text-[#1E2C5E]'}`}>
+                Hubungi Kami
+              </div>
+              <div
+                className={`text-[11px] space-y-1.5 ${
+                  darkHeader ? 'text-slate-300' : 'text-slate-600'
+                }`}
+              >
+                {footerInfo.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                    <span>{footerInfo.phone}</span>
+                  </div>
+                )}
+                {footerInfo.hotlineLabel && (
+                  <div className="flex items-center gap-2">
+                    <Headphones className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                    <span>{footerInfo.hotlineLabel}</span>
+                  </div>
+                )}
+                {footerInfo.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                    <a
+                      href={`mailto:${footerInfo.email}`}
+                      className="hover:underline"
+                    >
+                      {footerInfo.email}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Col 3: Layanan Digital */}
-            <div className="lg:col-span-3 space-y-1.5">
-              <div className="font-bold text-[#1E2C5E]">Layanan Digital</div>
-              <div className="text-slate-600 text-[11px] space-y-1">
-                <div>🌐 www.kemenkeu.go.id</div>
-                <div>🌐 www.pajak.go.id</div>
+            <div className="lg:col-span-3 space-y-2">
+              <div className={`font-bold ${darkHeader ? 'text-white' : 'text-[#1E2C5E]'}`}>
+                Layanan Digital
+              </div>
+              <div
+                className={`text-[11px] space-y-1.5 ${
+                  darkHeader ? 'text-slate-300' : 'text-slate-600'
+                }`}
+              >
+                {footerInfo.websitePrimary && (
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-3.5 h-3.5 shrink-0 text-[#2563EB]" />
+                    <a
+                      href={
+                        /^https?:\/\//i.test(footerInfo.websitePrimary)
+                          ? footerInfo.websitePrimary
+                          : `https://${footerInfo.websitePrimary}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {footerInfo.websitePrimary}
+                    </a>
+                  </div>
+                )}
+                {footerInfo.websiteSecondary && (
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-3.5 h-3.5 shrink-0 text-[#2563EB]" />
+                    <a
+                      href={
+                        /^https?:\/\//i.test(footerInfo.websiteSecondary)
+                          ? footerInfo.websiteSecondary
+                          : `https://${footerInfo.websiteSecondary}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {footerInfo.websiteSecondary}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Col 4: Temukan Kami */}
             <div className="lg:col-span-2 space-y-2">
-              <div className="font-bold text-[#1E2C5E]">Temukan Kami</div>
-              <div className="flex items-center gap-1.5">
-                {['f', 'X', 'ig', '▶'].map((soc) => (
-                  <span
-                    key={soc}
-                    className="w-6 h-6 rounded-full border border-slate-300 bg-white text-[#1E2C5E] text-[10px] font-bold inline-flex items-center justify-center"
-                  >
-                    {soc}
-                  </span>
-                ))}
+              <div className={`font-bold ${darkHeader ? 'text-white' : 'text-[#1E2C5E]'}`}>
+                Temukan Kami
               </div>
-              <div className="font-bold text-[10.5px] text-[#1E2C5E]">@DITJENPAJAKRI</div>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { label: 'f', title: 'Facebook', url: footerInfo.facebookUrl },
+                  { label: 'X', title: 'X (Twitter)', url: footerInfo.xUrl },
+                  { label: 'ig', title: 'Instagram', url: footerInfo.instagramUrl },
+                  { label: '▶', title: 'YouTube', url: footerInfo.youtubeUrl },
+                ].map((soc) =>
+                  soc.url ? (
+                    <a
+                      key={soc.label}
+                      href={
+                        /^https?:\/\//i.test(soc.url) ? soc.url : `https://${soc.url}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={soc.title}
+                      className="w-6 h-6 rounded-full border border-slate-300 bg-white hover:border-[#1E2C5E] hover:bg-[#1E2C5E] hover:text-white text-[#1E2C5E] text-[10px] font-bold inline-flex items-center justify-center transition"
+                    >
+                      {soc.label}
+                    </a>
+                  ) : (
+                    <span
+                      key={soc.label}
+                      title={soc.title}
+                      className="w-6 h-6 rounded-full border border-slate-300 bg-white text-[#1E2C5E] text-[10px] font-bold inline-flex items-center justify-center"
+                    >
+                      {soc.label}
+                    </span>
+                  )
+                )}
+              </div>
+              {footerInfo.socialHandle && (
+                <div
+                  className={`font-bold text-[10.5px] ${
+                    darkHeader ? 'text-[#F4C430]' : 'text-[#1E2C5E]'
+                  }`}
+                >
+                  {footerInfo.socialHandle}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-[10.5px] text-slate-400">
-            <span>Copyright © 2026 KelasBrevet. Seluruh hak cipta dilindungi.</span>
+          <div
+            className={`mt-4 pt-3 border-t flex flex-wrap items-center justify-between gap-2 text-[10.5px] ${
+              darkHeader
+                ? 'border-slate-800 text-slate-400'
+                : 'border-slate-200/80 text-slate-400'
+            }`}
+          >
+            <span>{footerInfo.copyrightText}</span>
           </div>
         </div>
       </footer>
 
       {/* ===================================================================== */}
-      {/* FLOATING SCROLL-TO-TOP BUTTON ON BOTTOM-RIGHT (Matches Coretax Image) */}
+      {/* POPUP MODAL: MENU DALAM PENGEMBANGAN (Portaled at z-[100])            */}
+      {/* ===================================================================== */}
+      {inDevModal &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] bg-slate-900/55 backdrop-blur-[2px] flex items-center justify-center p-4"
+            onClick={() => setInDevModal(null)}
+          >
+            <div
+              className="w-full max-w-md bg-white rounded-2xl border border-[#E2E8F0] shadow-[0_24px_60px_rgba(15,23,42,0.28)] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 py-4 bg-[#1E2C5E] text-white flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-lg bg-[#F4C430]/20 text-[#F4C430] flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </span>
+                  <h3 className="font-display font-bold text-sm sm:text-base">
+                    Informasi Layanan
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInDevModal(null)}
+                  className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                  aria-label="Tutup popup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 text-center space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-[#FEF9E2] border border-[#FDE68A] text-[#D97706] flex items-center justify-center">
+                  <Clock className="w-7 h-7" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <h4 className="font-display font-extrabold text-lg text-[#1B2958]">
+                    Menu ini sedang dalam pengembangan
+                  </h4>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#F1F5F9] text-[#1E2C5E] text-xs font-semibold">
+                    <span>{inDevModal.moduleLabel}</span>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                    <span className="truncate max-w-[220px]">{inDevModal.subLabel}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Fitur pada menu ini sedang disiapkan dan akan segera tersedia. Sementara ini,
+                  Anda dapat menggunakan menu simulasi <strong>e-Faktur</strong>,{' '}
+                  <strong>eBUPOT</strong>, <strong>SPT</strong>, dan <strong>Pembayaran</strong>.
+                </p>
+
+                <div className="pt-2 flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setInDevModal(null)}
+                    className="px-6 py-2.5 rounded-xl bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs transition cursor-pointer shadow-sm"
+                  >
+                    Mengerti, Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ===================================================================== */}
+      {/* FLOATING SCROLL-TO-TOP BUTTON ON BOTTOM-RIGHT                         */}
       {/* ===================================================================== */}
       {showScrollTop && (
         <button
@@ -1931,3 +2251,4 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
     </div>
   );
 };
+

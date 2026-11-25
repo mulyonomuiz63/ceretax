@@ -1336,10 +1336,51 @@ async function startServer() {
         });
       }
 
-      const branding = await mysqlRepo.saveBrandingSettings({ logoUrl, metaIconUrl, brandName });
+      let footerUpdates: Record<string, string> | undefined;
+      if (b.footer && typeof b.footer === 'object') {
+        const cleanText = (v: unknown, maxLen = 220) =>
+          typeof v === 'string' ? v.trim().slice(0, maxLen) : undefined;
+        const cleanUrl = (v: unknown) => {
+          if (typeof v !== 'string') return undefined;
+          const trimmed = v.trim().slice(0, 300);
+          if (!trimmed) return '';
+          if (/^javascript:/i.test(trimmed) || /^data:/i.test(trimmed)) return '';
+          return trimmed;
+        };
+        const f = b.footer as Record<string, unknown>;
+        footerUpdates = {};
+        const textFields = [
+          'orgTitle',
+          'orgSubtitle',
+          'address',
+          'phone',
+          'hotlineLabel',
+          'email',
+          'websitePrimary',
+          'websiteSecondary',
+          'socialHandle',
+          'copyrightText',
+        ];
+        for (const key of textFields) {
+          const cleaned = cleanText(f[key], key === 'address' ? 320 : 200);
+          if (cleaned !== undefined) footerUpdates[key] = cleaned;
+        }
+        const urlFields = ['facebookUrl', 'xUrl', 'instagramUrl', 'youtubeUrl'];
+        for (const key of urlFields) {
+          const cleaned = cleanUrl(f[key]);
+          if (cleaned !== undefined) footerUpdates[key] = cleaned;
+        }
+      }
+
+      const branding = await mysqlRepo.saveBrandingSettings({
+        logoUrl,
+        metaIconUrl,
+        brandName,
+        footer: footerUpdates,
+      });
       return res.json({ ok: true, branding });
     } catch (err) {
-      return handleDbError(res, err, 'Gagal menyimpan logo & icon meta.');
+      return handleDbError(res, err, 'Gagal menyimpan pengaturan branding & footer.');
     }
   });
 

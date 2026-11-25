@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, Check, Sun, Moon } from 'lucide-react';
 import { KelasBrevetLogo } from './KelasBrevetLogo.tsx';
+import { useBranding } from '../lib/brandingStore.ts';
+import { DEFAULT_FOOTER_SETTINGS } from '../types/tax.ts';
 
 interface LogoutPageProps {
   onGoToLogin: () => void;
@@ -38,6 +40,9 @@ export const LogoutPage: React.FC<LogoutPageProps> = ({
 }) => {
   const [darkTheme, setDarkTheme] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const branding = useBranding();
+  const copyrightText =
+    branding.footer?.copyrightText || DEFAULT_FOOTER_SETTINGS.copyrightText;
   const isId = language === 'id-ID';
 
   return (
@@ -220,7 +225,7 @@ export const LogoutPage: React.FC<LogoutPageProps> = ({
 
       {/* FOOTER */}
       <footer className="relative z-10 w-full py-5 text-center text-xs text-slate-500 border-t border-slate-200/60 bg-white/40 backdrop-blur-xs">
-        <p>© 2026 KelasBrevet. Seluruh hak cipta dilindungi.</p>
+        <p>{copyrightText}</p>
       </footer>
     </div>
   );
