@@ -20,6 +20,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Send,
   ShieldCheck,
   Trash2,
   Upload,
@@ -93,16 +94,16 @@ const EFAKTUR_SIDEBAR_GROUPS = [
 ];
 
 const DASHBOARD_STATUS_LEGEND = [
-  { key: 'APPROVED', label: 'APPROVED', color: 'bg-[#64748B]' },
-  { key: 'APPROVED_SIGN', label: 'APPROVED (SIGNED)', color: 'bg-[#3B5998]' },
-  { key: 'CANCELLED', label: 'CANCELLED', color: 'bg-[#0EA5E9]' },
-  { key: 'AMENDED', label: 'AMENDED', color: 'bg-[#10B981]' },
-  { key: 'DRAFT', label: 'CREATED', color: 'bg-[#84CC16]' },
-  { key: 'SAVED', label: 'SAVED', color: 'bg-[#A3E635]' },
-  { key: 'DELETED', label: 'DELETED', color: 'bg-[#FACC15]' },
-  { key: 'WAITING_FOR_AMENDMENT', label: 'WAITING_FOR_AMENDMENT', color: 'bg-[#F97316]' },
-  { key: 'WAITING_FOR_CANCELLATION', label: 'WAITING_FOR_CANCELLATION', color: 'bg-[#EF4444]' },
-];
+  { key: 'APPROVED_REPORTED', label: 'APPROVED_REPORTED', color: '#607D8B' },
+  { key: 'APPROVED_NOT_REPORTED', label: 'APPROVED_NOT_REPORTED', color: '#2B4C9B' },
+  { key: 'CANCELED', label: 'CANCELED', color: '#0099F7' },
+  { key: 'AMENDED', label: 'AMENDED', color: '#00B359' },
+  { key: 'CREATED', label: 'CREATED', color: '#8CE000' },
+  { key: 'SAVED_INVALID', label: 'SAVED_INVALID', color: '#A4B81E' },
+  { key: 'DELETED', label: 'DELETED', color: '#FDE057' },
+  { key: 'WAITING_FOR_CANCELLATION', label: 'WAITING_FOR_CANCELLATION', color: '#FF8C00' },
+  { key: 'WAITING_FOR_AMENDMENT', label: 'WAITING_FOR_AMENDMENT', color: '#F43F1C' },
+] as const;
 
 export const EFakturModule: React.FC<EFakturModuleProps> = ({
   subTab,
@@ -110,6 +111,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   onChangeSubTab,
   workspace,
   activeTaxpayer,
+  accountMode,
   onCreateInvoice,
   onInvoiceAction,
   onPrintDocument,
@@ -122,13 +124,28 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         ? 'dok_lain_keluaran'
         : subTab || 'dashboard';
 
+  const isPersonalAccount = accountMode === 'INDIVIDUAL';
+  const isImpersonateAccount = accountMode === 'CORPORATE';
+  const navyBtnCls =
+    'inline-flex items-center gap-1.5 bg-[#0D2357] hover:bg-[#091A42] text-white font-semibold text-[11.5px] px-3 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap';
+  const redBtnCls =
+    'inline-flex items-center gap-1.5 bg-[#DC5353] hover:bg-[#C64242] text-white font-semibold text-[11.5px] px-3 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap';
+  const infoBadgeCls =
+    'w-5 h-5 rounded-full bg-[#6B7280] hover:bg-[#4B5563] text-white inline-flex items-center justify-center cursor-pointer transition shrink-0';
+
   const [dashboardPeriod, setDashboardPeriod] = useState('2025-01');
+  const [hoveredPieStatus, setHoveredPieStatus] = useState<string | null>(null);
+  const [hiddenPieStatuses, setHiddenPieStatuses] = useState<string[]>([]);
+  const dashboardMonthInputRef = React.useRef<HTMLInputElement | null>(null);
   const [npwpFilter, setNpwpFilter] = useState('');
   const [nameFilter, setNameFilter] = useState('');
   const [txCodeFilter, setTxCodeFilter] = useState('ALL');
   const [invoiceNumFilter, setInvoiceNumFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('ALL');
+  const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [refFilter, setRefFilter] = useState('');
   const [creditFilter, setCreditFilter] = useState('ALL');
   const [showColumnFilters, setShowColumnFilters] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -158,7 +175,10 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setReturnTarget(null);
     setAmendTarget(null);
     setMonitoringOpen(false);
-  }, [resetKey, subTab]);
+    setBulkOpen(false);
+    setSelectedIds([]);
+    setPage(1);
+  }, [resetKey, subTab, activeTaxpayer.id]);
 
   // Inline Coretax Output Invoice Edit state
   const [editCollapsed, setEditCollapsed] = useState<Record<string, boolean>>({});
@@ -216,7 +236,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const activeTabTitle = useMemo(() => {
     switch (normalizedTab) {
       case 'dashboard':
-        return 'Dashboard e-Faktur';
+        return 'Dasbor e-Faktur';
       case 'output':
         return 'e-Faktur — Pajak Keluaran';
       case 'input':
@@ -226,19 +246,22 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       case 'retur_masukan':
         return 'e-Faktur — Retur Pajak Masukan';
       case 'dok_lain_keluaran':
-        return 'Dokumen Lain — Pajak Keluaran';
+        return 'Dokumen Lain Keluaran';
       case 'dok_lain_masukan':
-        return 'Dokumen Lain — Pajak Masukan';
+        return 'Dokumen Lain Masukan';
       case 'retur_dok_lain_keluaran':
-        return 'Dokumen Lain — Retur Dokumen Lain Keluaran';
+        return 'Retur Dokumen Lain Keluaran';
       case 'retur_dok_lain_masukan':
-        return 'Dokumen Lain — Retur Dokumen Lain Masukan';
+        return 'Retur Dokumen Lain Masukan';
       default:
         return 'e-Faktur';
     }
   }, [normalizedTab]);
 
-  const filteredInvoices = workspace.invoices.filter((inv) => {
+  // Strictly isolate e-Faktur data to the currently active taxpayer (Akun Utama vs Akun Perwakilan)
+  const accountInvoices = workspace.invoices.filter((inv) => inv.taxpayerId === activeTaxpayer.id);
+
+  const filteredInvoices = accountInvoices.filter((inv) => {
     if (normalizedTab === 'retur_keluaran') {
       if (
         !(
@@ -272,9 +295,23 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       if (inv.direction !== expectedDir) return false;
     }
 
-    if (statusFilter !== 'ALL' && inv.status !== statusFilter) return false;
+    if (statusFilter !== 'ALL') {
+      if (statusFilter === 'CREDITED') {
+        if (inv.isCredited === false || inv.status === 'CANCELLED') return false;
+      } else if (statusFilter === 'UNCREDITED') {
+        if (inv.isCredited !== false || inv.status === 'CANCELLED') return false;
+      } else if (inv.status !== statusFilter) {
+        return false;
+      }
+    }
     if (txCodeFilter !== 'ALL' && inv.transactionCode !== txCodeFilter) return false;
     if (monthFilter !== 'ALL' && String(inv.taxPeriodMonth) !== monthFilter) return false;
+    if (yearFilter.trim() && !String(inv.taxPeriodYear || '').includes(yearFilter.trim())) {
+      return false;
+    }
+    if (dateFilter.trim() && !(inv.invoiceDate || '').includes(dateFilter.trim())) {
+      return false;
+    }
     if (npwpFilter.trim() && !inv.counterpartyNpwp.toLowerCase().includes(npwpFilter.trim().toLowerCase())) {
       return false;
     }
@@ -285,6 +322,12 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       invoiceNumFilter.trim() &&
       !inv.invoiceNumber.toLowerCase().includes(invoiceNumFilter.trim().toLowerCase()) &&
       !inv.referenceCode.toLowerCase().includes(invoiceNumFilter.trim().toLowerCase())
+    ) {
+      return false;
+    }
+    if (
+      refFilter.trim() &&
+      !(inv.referenceCode || '').toLowerCase().includes(refFilter.trim().toLowerCase())
     ) {
       return false;
     }
@@ -300,36 +343,136 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setNameFilter('');
     setTxCodeFilter('ALL');
     setInvoiceNumFilter('');
+    setDateFilter('');
     setMonthFilter('ALL');
+    setYearFilter('');
     setStatusFilter('ALL');
+    setRefFilter('');
     setCreditFilter('ALL');
     setPage(1);
   };
 
-  // Dashboard metrics for selected period
+  // Dashboard metrics for selected period (isolated to active taxpayer)
   const [dashYear, dashMonth] = dashboardPeriod.split('-').map(Number);
-  const periodInvoices = workspace.invoices.filter(
+  const periodInvoices = accountInvoices.filter(
     (inv) => inv.taxPeriodYear === dashYear && inv.taxPeriodMonth === dashMonth
   );
   const periodPpnReturns = workspace.returns.filter(
     (r) =>
+      r.taxpayerId === activeTaxpayer.id &&
       r.returnType === 'SPT_MASA_PPN' &&
       r.taxYear === dashYear &&
       r.taxPeriodMonth === dashMonth
   );
   const periodPpnBillings = workspace.billings.filter(
-    (b) => b.kapCode === '411211' && b.taxPeriodLabel.includes(String(dashYear))
+    (b) =>
+      b.taxpayerId === activeTaxpayer.id &&
+      b.kapCode === '411211' &&
+      b.taxPeriodLabel.includes(String(dashYear))
   );
+
+  const hasSubmittedPeriodPpn = periodPpnReturns.some((r) => r.status === 'SUBMITTED');
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const inv of periodInvoices) {
-      counts[inv.status] = (counts[inv.status] || 0) + 1;
+      let bucket: string = 'CREATED';
+      if (inv.status === 'APPROVED') {
+        bucket = hasSubmittedPeriodPpn ? 'APPROVED_REPORTED' : 'APPROVED_NOT_REPORTED';
+      } else if (inv.status === 'CANCELLED') {
+        bucket = 'CANCELED';
+      } else if (inv.status === 'AMENDED') {
+        bucket = 'AMENDED';
+      } else if (inv.status === 'DRAFT') {
+        bucket = 'CREATED';
+      } else if (inv.status === 'WAITING_FOR_CANCELLATION') {
+        bucket = 'WAITING_FOR_CANCELLATION';
+      } else if (inv.status === 'WAITING_FOR_AMENDMENT') {
+        bucket = 'WAITING_FOR_AMENDMENT';
+      } else {
+        bucket = String(inv.status);
+      }
+      counts[bucket] = (counts[bucket] || 0) + 1;
     }
     return counts;
-  }, [periodInvoices]);
+  }, [periodInvoices, hasSubmittedPeriodPpn]);
+
+  const pieSlices = useMemo(() => {
+    const activeItems = DASHBOARD_STATUS_LEGEND.filter(
+      (item) => (statusCounts[item.key] || 0) > 0 && !hiddenPieStatuses.includes(item.key)
+    ).map((item) => ({
+      ...item,
+      count: statusCounts[item.key] || 0,
+    }));
+    const total = activeItems.reduce((sum, item) => sum + item.count, 0);
+    if (total === 0) return [];
+
+    const cx = 185;
+    const cy = 138;
+    const r = 84;
+    let currentAngle = -Math.PI / 2;
+
+    const rawSlices = activeItems.map((item) => {
+      const fraction = item.count / total;
+      const pct = Math.round(fraction * 100);
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + fraction * Math.PI * 2;
+      const midAngle = activeItems.length === 1 ? -Math.PI / 4 : (startAngle + endAngle) / 2;
+      currentAngle = endAngle;
+
+      const x1 = cx + r * Math.cos(startAngle);
+      const y1 = cy + r * Math.sin(startAngle);
+      const x2 = cx + r * Math.cos(endAngle);
+      const y2 = cy + r * Math.sin(endAngle);
+      const largeArc = fraction > 0.5 ? 1 : 0;
+      const pathD = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+
+      const lx1 = cx + r * Math.cos(midAngle);
+      const ly1 = cy + r * Math.sin(midAngle);
+      const lx2 = cx + (r + 22) * Math.cos(midAngle);
+      const ly2 = cy + (r + 22) * Math.sin(midAngle);
+      const isRight = Math.cos(midAngle) >= 0;
+
+      return {
+        ...item,
+        pct,
+        isFullCircle: activeItems.length === 1,
+        pathD,
+        lx1,
+        ly1,
+        lx2,
+        ly2,
+        isRight,
+      };
+    });
+
+    // Prevent label collisions on left and right sides
+    const adjustSide = (sideSlices: typeof rawSlices) => {
+      const sorted = [...sideSlices].sort((a, b) => a.ly2 - b.ly2);
+      const minGap = 18;
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i].ly2 - sorted[i - 1].ly2 < minGap) {
+          sorted[i].ly2 = sorted[i - 1].ly2 + minGap;
+        }
+      }
+      for (const s of sorted) {
+        s.ly2 = Math.max(16, Math.min(260, s.ly2));
+      }
+    };
+    adjustSide(rawSlices.filter((s) => s.isRight));
+    adjustSide(rawSlices.filter((s) => !s.isRight));
+
+    return rawSlices.map((s) => ({
+      ...s,
+      lx3: s.isRight ? Math.min(314, Math.max(s.lx2 + 20, 290)) : Math.max(56, Math.min(s.lx2 - 20, 80)),
+    }));
+  }, [statusCounts, hiddenPieStatuses]);
 
   const handleOpenInvoiceEditor = () => {
+    if (!isImpersonateAccount) {
+      setFakturSuccessToast('Pembuatan Faktur Pajak hanya dapat dilakukan pada akun perusahaan (Impersonate).');
+      return;
+    }
     setReferenceCode('');
     setCounterpartyNpwp('');
     setCounterpartyName('');
@@ -442,7 +585,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         : `DRAFT-${direction === 'OUTPUT' ? 'OUT' : 'IN'}-${String(workspace.invoices.length + 1).padStart(3, '0')}`;
 
     await onCreateInvoice({
-      taxpayerId: workspace.corporateTaxpayer.id,
+      taxpayerId: activeTaxpayer.id,
       direction,
       transactionCode: isExport ? '01' : txCode,
       invoiceNumber: invNum,
@@ -551,123 +694,185 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
             /* DASBOR e-FAKTUR (Exact Match to Official Coretax Screenshot)  */
             /* ============================================================= */
             <div className="space-y-4">
-              {/* Top Bar: Dashboard e-Faktur + Month/Year Picker */}
+              {/* Top Bar: Dasbor e-Faktur + Month/Year Picker */}
               <div className="bg-white border border-[#E2E8F0] rounded-lg px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
-                <h1 className="font-display font-bold text-[18px] text-[#1D2B53]">
-                  Dashboard e-Faktur
+                <h1 className="font-display font-bold text-[16px] text-[#1D2B53]">
+                  Dasbor e-Faktur
                 </h1>
-                <div className="inline-flex items-center border border-slate-300 rounded-md overflow-hidden bg-white">
-                  <input
-                    type="month"
-                    value={dashboardPeriod}
-                    onChange={(e) => setDashboardPeriod(e.target.value)}
-                    className="px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none font-mono-num"
-                  />
-                  <span className="px-2.5 py-2 bg-[#1D2B53] text-white">
+                <div
+                  onClick={() => {
+                    const el = dashboardMonthInputRef.current;
+                    if (!el) return;
+                    if (typeof el.showPicker === 'function') {
+                      try {
+                        el.showPicker();
+                      } catch {
+                        el.focus();
+                      }
+                    } else {
+                      el.focus();
+                    }
+                  }}
+                  className="relative inline-flex items-center border border-slate-300 rounded-[4px] overflow-hidden bg-white cursor-pointer hover:border-[#1D2B53] transition"
+                >
+                  <span className="px-3 py-1.5 text-[12px] font-medium text-slate-600 min-w-[140px] select-none">
+                    {MONTHS_ID[(dashMonth || 1) - 1]} {dashYear}
+                  </span>
+                  <span className="px-2.5 py-2 bg-[#1D2B53] text-white flex items-center justify-center">
                     <Calendar className="w-3.5 h-3.5" />
                   </span>
+                  <input
+                    ref={dashboardMonthInputRef}
+                    type="month"
+                    aria-label="Pilih Masa Pajak Dasbor"
+                    value={dashboardPeriod}
+                    onChange={(e) => {
+                      if (e.target.value) setDashboardPeriod(e.target.value);
+                    }}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
                 </div>
               </div>
 
               {/* 2-Column Dashboard Cards */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {/* Card 1: Dashboard Faktur Pajak */}
-                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[300px] flex flex-col min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-4">
-                    <h2 className="font-display font-bold text-sm text-[#1D2B53]">
-                      Dashboard Faktur Pajak
-                    </h2>
-                    <span className="text-[11px] text-slate-500 font-mono-num">
-                      {MONTHS_ID[(dashMonth || 1) - 1]} {dashYear}
-                    </span>
-                  </div>
+                {/* Card 1: Dasbor Faktur Pajak */}
+                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[340px] flex flex-col min-w-0">
+                  <h2 className="font-display font-semibold text-[13px] text-[#1D2B53] mb-3">
+                    Dasbor Faktur Pajak
+                  </h2>
 
                   {periodInvoices.length === 0 ? (
-                    <div className="text-center py-12 text-xs text-slate-500 flex items-center justify-center gap-1.5">
-                      <Info className="w-4 h-4 text-[#F4C430]" />
+                    <div className="flex-1 flex items-start justify-center pt-10 text-[12px] text-slate-600 gap-2">
+                      <span className="w-4 h-4 rounded-full bg-[#F4C430] text-white inline-flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">
+                        !
+                      </span>
                       <span>Tidak Ada Data Tersedia!</span>
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col justify-between space-y-4">
-                      {/* Top Metric Boxes - Full width across Card 1 with ample room */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-[#F8FAFC] border border-slate-200 rounded-lg p-3 min-w-0">
-                          <div className="text-[11px] text-slate-500 font-medium truncate">Total Faktur Masa</div>
-                          <div className="text-xl font-extrabold text-[#1D2B53] font-mono-num mt-0.5 truncate">
-                            {periodInvoices.length}
+                    <div className="flex-1 flex flex-col sm:flex-row items-center justify-between gap-3 min-w-0">
+                      {/* Interactive Coretax SVG Pie Chart with Leader Lines */}
+                      <div className="relative flex-1 w-full flex items-center justify-center min-w-0">
+                        {pieSlices.length === 0 ? (
+                          <div className="py-12 text-[12px] text-slate-500">
+                            Semua status disembunyikan. Klik legend untuk menampilkan kembali.
                           </div>
-                        </div>
-                        <div className="bg-[#F8FAFC] border border-slate-200 rounded-lg p-3 min-w-0">
-                          <div className="text-[11px] text-slate-500 font-medium truncate">Total PPN Keluaran</div>
-                          <div
-                            className="text-[13px] sm:text-sm font-extrabold text-[#1D2B53] font-mono-num mt-1 whitespace-nowrap truncate"
-                            title={formatRp(
-                              periodInvoices
-                                .filter(
-                                  (i) => i.direction === 'OUTPUT' && i.status !== 'CANCELLED'
-                                )
-                                .reduce((s, i) => s + i.ppnTotal, 0)
-                            )}
+                        ) : (
+                          <svg
+                            viewBox="0 0 370 276"
+                            className="w-full max-w-[370px] h-auto overflow-visible select-none"
+                            role="img"
+                            aria-label="Grafik Status Faktur Pajak"
                           >
-                            {formatRp(
-                              periodInvoices
-                                .filter(
-                                  (i) => i.direction === 'OUTPUT' && i.status !== 'CANCELLED'
-                                )
-                                .reduce((s, i) => s + i.ppnTotal, 0)
-                            )}
-                          </div>
-                        </div>
+                            {pieSlices.map((slice) => {
+                              const isHovered = hoveredPieStatus === slice.key;
+                              return (
+                                <g
+                                  key={slice.key}
+                                  className="cursor-pointer transition-opacity"
+                                  opacity={hoveredPieStatus && !isHovered ? 0.55 : 1}
+                                  onMouseEnter={() => setHoveredPieStatus(slice.key)}
+                                  onMouseLeave={() => setHoveredPieStatus(null)}
+                                >
+                                  {slice.isFullCircle ? (
+                                    <circle
+                                      cx={185}
+                                      cy={138}
+                                      r={isHovered ? 88 : 84}
+                                      fill={slice.color}
+                                    />
+                                  ) : (
+                                    <path
+                                      d={slice.pathD}
+                                      fill={slice.color}
+                                      stroke="#FFFFFF"
+                                      strokeWidth={0.6}
+                                    />
+                                  )}
+                                  <polyline
+                                    points={`${slice.lx1.toFixed(1)},${slice.ly1.toFixed(1)} ${slice.lx2.toFixed(1)},${slice.ly2.toFixed(1)} ${slice.lx3.toFixed(1)},${slice.ly2.toFixed(1)}`}
+                                    fill="none"
+                                    stroke={slice.color}
+                                    strokeWidth="1.2"
+                                    opacity="0.85"
+                                  />
+                                  <text
+                                    x={slice.isRight ? slice.lx3 + 4 : slice.lx3 - 4}
+                                    y={slice.ly2 + 3.5}
+                                    textAnchor={slice.isRight ? 'start' : 'end'}
+                                    className="fill-[#1E293B] text-[10px] font-semibold font-mono-num"
+                                  >
+                                    {slice.count} ({slice.pct}%)
+                                  </text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        )}
+
+                        {hoveredPieStatus && (() => {
+                          const hoveredItem = pieSlices.find((s) => s.key === hoveredPieStatus);
+                          if (!hoveredItem) return null;
+                          return (
+                            <div className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 bg-[#1D2B53] text-white text-[11px] px-2.5 py-1 rounded shadow-md whitespace-nowrap flex items-center gap-1.5">
+                              <span
+                                className="w-2.5 h-2.5 rounded-[2px] shrink-0"
+                                style={{ backgroundColor: hoveredItem.color }}
+                              />
+                              <span className="font-semibold">{hoveredItem.label}:</span>
+                              <span className="font-mono-num">
+                                {hoveredItem.count} ({hoveredItem.pct}%)
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
 
-                      {/* Bottom Split: Status Progress Bars on Left + Status Legend on Right */}
-                      <div className="flex flex-col sm:flex-row gap-4 items-stretch justify-between">
-                        <div className="flex-1 space-y-2 pt-1 min-w-0">
-                          {(['APPROVED', 'DRAFT', 'AMENDED', 'CANCELLED'] as const).map((st) => {
-                            const count = statusCounts[st] || 0;
-                            const pct =
-                              periodInvoices.length > 0
-                                ? Math.round((count / periodInvoices.length) * 100)
-                                : 0;
-                            return (
-                              <div key={st} className="space-y-1">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="font-semibold text-slate-700">{st}</span>
-                                  <span className="font-mono-num text-slate-500">
-                                    {count} ({pct}%)
-                                  </span>
-                                </div>
-                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${
-                                      st === 'APPROVED'
-                                        ? 'bg-[#3B5998]'
-                                        : st === 'DRAFT'
-                                          ? 'bg-[#84CC16]'
-                                          : st === 'AMENDED'
-                                            ? 'bg-[#10B981]'
-                                            : 'bg-[#0EA5E9]'
-                                    }`}
-                                    style={{ width: `${pct}%` }}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
+                      {/* Right Status Legend Box (Exact Official Coretax 9 Statuses) */}
+                      <div className="w-full sm:w-[146px] shrink-0 self-start mt-2">
+                        <div className="text-[11px] font-bold text-[#1D2B53] mb-1.5 pl-0.5">
+                          Status
                         </div>
-
-                        {/* Right Status Legend Box (Matching Screenshot) */}
-                        <div className="w-full sm:w-[145px] shrink-0 bg-[#F8FAFC] border border-slate-200 rounded-md p-2.5">
-                          <div className="text-[11px] font-bold text-[#1D2B53] mb-2">Status</div>
-                          <ul className="space-y-1.5 text-[10px] text-slate-600">
-                            {DASHBOARD_STATUS_LEGEND.map((item) => (
-                              <li key={item.key} className="flex items-center gap-1.5 truncate">
-                                <span className={`w-2.5 h-2.5 rounded-[2px] shrink-0 ${item.color}`} />
-                                <span className="truncate" title={item.label}>
-                                  {item.label}
-                                </span>
-                              </li>
-                            ))}
+                        <div className="bg-[#F3F4F6] rounded-[4px] px-2.5 py-2">
+                          <ul className="space-y-1.5 text-[9.5px]">
+                            {DASHBOARD_STATUS_LEGEND.map((item) => {
+                              const count = statusCounts[item.key] || 0;
+                              const isHidden = hiddenPieStatuses.includes(item.key);
+                              return (
+                                <li key={item.key}>
+                                  <button
+                                    type="button"
+                                    title={`${item.label} (${count})`}
+                                    onClick={() => {
+                                      setHiddenPieStatuses((prev) =>
+                                        prev.includes(item.key)
+                                          ? prev.filter((k) => k !== item.key)
+                                          : [...prev, item.key]
+                                      );
+                                    }}
+                                    onMouseEnter={() => {
+                                      if (count > 0 && !isHidden) setHoveredPieStatus(item.key);
+                                    }}
+                                    onMouseLeave={() => setHoveredPieStatus(null)}
+                                    className={`w-full flex items-center gap-1.5 text-left truncate cursor-pointer transition ${
+                                      isHidden
+                                        ? 'opacity-40 line-through text-slate-400'
+                                        : count > 0
+                                          ? 'text-slate-600 hover:text-[#1D2B53]'
+                                          : 'text-slate-400'
+                                    }`}
+                                  >
+                                    <span
+                                      className="w-2.5 h-2.5 rounded-[2px] shrink-0"
+                                      style={{ backgroundColor: item.color }}
+                                    />
+                                    <span className="truncate uppercase tracking-tight">
+                                      {item.label}
+                                    </span>
+                                  </button>
+                                </li>
+                              );
+                            })}
                           </ul>
                         </div>
                       </div>
@@ -675,14 +880,16 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                   )}
                 </div>
 
-                {/* Card 2: Dashboard Pembayaran dan Pelaporan SPT Masa PPN */}
-                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[300px] flex flex-col min-w-0">
-                  <h2 className="font-display font-bold text-sm text-[#1D2B53] mb-4">
-                    Dashboard Pembayaran dan Pelaporan SPT Masa PPN
+                {/* Card 2: Dasbor Pembayaran dan Pelaporan SPT Masa PPN */}
+                <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[340px] flex flex-col min-w-0">
+                  <h2 className="font-display font-semibold text-[13px] text-[#1D2B53] mb-3">
+                    Dasbor Pembayaran dan Pelaporan SPT Masa PPN
                   </h2>
                   {periodPpnReturns.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-xs text-slate-500 gap-1.5">
-                      <Info className="w-4 h-4 text-[#F4C430]" />
+                    <div className="flex-1 flex items-start justify-center pt-10 text-[12px] text-slate-600 gap-2">
+                      <span className="w-4 h-4 rounded-full bg-[#F4C430] text-white inline-flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">
+                        !
+                      </span>
                       <span>Tidak Ada Data Tersedia!</span>
                     </div>
                   ) : (
@@ -718,14 +925,16 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Full-Width Card: Dashboard Pembayaran sebelum Pelaporan SPT Masa PPN */}
-              <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[150px] flex flex-col">
-                <h2 className="font-display font-bold text-sm text-[#1D2B53] mb-3">
-                  Dashboard Pembayaran sebelum Pelaporan SPT Masa PPN
+              {/* Bottom Full-Width Card: Dasbor Pembayaran sebelum Pelaporan SPT Masa PPN */}
+              <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 min-h-[155px] flex flex-col">
+                <h2 className="font-display font-semibold text-[13px] text-[#1D2B53] mb-3">
+                  Dasbor Pembayaran sebelum Pelaporan SPT Masa PPN
                 </h2>
                 {periodPpnBillings.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-xs text-slate-500 gap-1.5 py-6">
-                    <Info className="w-4 h-4 text-[#F4C430]" />
+                  <div className="flex-1 flex items-center justify-center text-[12px] text-slate-600 gap-2 py-6">
+                    <span className="w-4 h-4 rounded-full bg-[#F4C430] text-white inline-flex items-center justify-center text-[10px] font-extrabold shrink-0">
+                      !
+                    </span>
                     <span>Tidak Ada Data Tersedia!</span>
                   </div>
                 ) : (
@@ -1201,225 +1410,600 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                 </div>
               </div>
 
-              {/* Official Coretax Navy Action Bar + Right-aligned Upload Faktur & Hapus Dokumen */}
-              <div className="px-5 pt-3.5 pb-1 flex flex-wrap items-center justify-between gap-2 relative">
-                <div className="flex flex-wrap items-center gap-2">
-                {normalizedTab === 'input' ? (
-                  <>
+              {/* Official Coretax Action Bar — Exact Per-Submenu & Per-Account (Impersonate vs Akun Pribadi) */}
+              {(() => {
+                const isRightAlignedOnlyBar =
+                  normalizedTab === 'input' || normalizedTab === 'retur_keluaran';
+
+                const monitoringButton = (
+                  <div className="relative">
                     <button
                       type="button"
-                      onClick={() =>
-                        setFakturSuccessToast(
-                          'Menu Pajak Masukan digunakan untuk mengelola dan mengkreditkan Faktur Pajak dari Penjual.'
-                        )
-                      }
-                      className="w-8 h-8 rounded-full border border-[#1E2C5E] text-[#1E2C5E] hover:bg-[#1E2C5E]/10 flex items-center justify-center cursor-pointer transition shrink-0"
-                      title="Informasi Pajak Masukan"
-                    >
-                      <Info className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (selectedIds.length === 0) {
-                          setFakturSuccessToast('Pilih faktur terlebih dahulu');
-                          return;
-                        }
-                        for (const id of selectedIds) {
-                          await onInvoiceAction(id, 'TOGGLE_CREDIT', { isCredited: true });
-                        }
-                        setFakturSuccessToast(`${selectedIds.length} Faktur berhasil dikreditkan`);
-                        setSelectedIds([]);
+                      onClick={() => {
+                        setMonitoringOpen((p) => !p);
+                        setBulkOpen(false);
                       }}
-                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
+                      className={navyBtnCls}
                     >
-                      <span>Kreditkan Faktur</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (selectedIds.length === 0) {
-                          setFakturSuccessToast('Pilih faktur terlebih dahulu');
-                          return;
-                        }
-                        for (const id of selectedIds) {
-                          await onInvoiceAction(id, 'TOGGLE_CREDIT', { isCredited: false });
-                        }
-                        setFakturSuccessToast(`${selectedIds.length} Faktur diubah menjadi Tidak Dapat Dikreditkan`);
-                        setSelectedIds([]);
-                      }}
-                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                    >
-                      <span>Tidak Kreditkan Faktur</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (selectedIds.length === 0) {
-                          setFakturSuccessToast('Pilih faktur terlebih dahulu');
-                          return;
-                        }
-                        for (const id of selectedIds) {
-                          await onInvoiceAction(id, 'TOGGLE_CREDIT', { isCredited: true });
-                        }
-                        setFakturSuccessToast(`${selectedIds.length} Faktur dikembalikan ke status Approved`);
-                        setSelectedIds([]);
-                      }}
-                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Kembali ke status Approved</span>
-                    </button>
-                  </>
-                ) : !isReturTab ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleOpenInvoiceEditor}
-                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-[#F4C430]" />
-                      <span>
-                        {normalizedTab === 'output'
-                          ? 'Buat Faktur'
-                          : normalizedTab === 'dok_lain_keluaran'
-                            ? 'Catat Dokumen Lain Keluaran (PEB)'
-                            : 'Catat Dokumen Lain Masukan'}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                    >
-                      <span>Impor Data</span>
+                      <Info className="w-3.5 h-3.5" />
+                      <span>Monitoring</span>
                       <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                     </button>
-                  </>
-                ) : null}
-
-                {/* Monitoring Dropdown */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMonitoringOpen((p) => !p);
-                      setBulkOpen(false);
-                    }}
-                    className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                  >
-                    <Info className="w-3.5 h-3.5" />
-                    <span>Monitoring</span>
-                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                  </button>
-                  {monitoringOpen && (
-                    <div className="absolute left-0 top-full mt-1.5 w-64 bg-white border border-[#E2E8F0] rounded-lg shadow-xl p-3 z-30 text-xs space-y-1.5">
-                      <div className="font-bold text-[#1E2C5E] pb-1 border-b border-slate-100">
-                        Ringkasan Status Faktur
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Total Faktur Tampil</span>
-                        <strong className="font-mono-num">{filteredInvoices.length}</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">APPROVED</span>
-                        <strong className="font-mono-num text-emerald-700">
-                          {filteredInvoices.filter((i) => i.status === 'APPROVED').length}
-                        </strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">DRAFT (Belum Upload)</span>
-                        <strong className="font-mono-num text-amber-700">
-                          {filteredInvoices.filter((i) => i.status === 'DRAFT').length}
-                        </strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">AMENDED / CANCELLED</span>
-                        <strong className="font-mono-num text-blue-700">
-                          {
-                            filteredInvoices.filter(
-                              (i) => i.status === 'AMENDED' || i.status === 'CANCELLED'
-                            ).length
-                          }
-                        </strong>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Bulk Process Dropdown */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBulkOpen((p) => !p);
-                      setMonitoringOpen(false);
-                    }}
-                    className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    <span>Bulk Process</span>
-                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                  </button>
-                  {bulkOpen && (
-                    <div className="absolute left-0 top-full mt-1.5 w-60 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1.5 z-30 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const firstDraft = filteredInvoices.find(
-                            (i) => selectedIds.includes(i.id) && i.status === 'DRAFT'
-                          ) || filteredInvoices.find((i) => i.status === 'DRAFT');
-                          setBulkOpen(false);
-                          if (firstDraft) setSignTarget(firstDraft);
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
+                    {monitoringOpen && (
+                      <div
+                        className={`absolute ${
+                          isRightAlignedOnlyBar ? 'right-0' : 'left-0'
+                        } top-full mt-1.5 w-64 bg-white border border-[#E2E8F0] rounded-lg shadow-xl p-3 z-30 text-xs space-y-1.5`}
                       >
-                        Upload / Tandatangani Faktur DRAFT
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          resetTableFilters();
-                          setSelectedIds([]);
-                          setBulkOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-600 cursor-pointer"
-                      >
-                        Reset Semua Filter &amp; Pilihan
-                      </button>
-                    </div>
-                  )}
-                </div>
-                </div>
-
-                {/* Right-aligned Coretax Upload Faktur & Hapus Dokumen Buttons */}
-                {normalizedTab === 'output' && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={selectedDraftInvoices.length === 0}
-                      onClick={() => setBulkSignTargets(selectedDraftInvoices)}
-                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] disabled:opacity-45 text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-[#F7CA36]" />
-                      <span>Upload Faktur{selectedDraftInvoices.length > 0 ? ` (${selectedDraftInvoices.length})` : ''}</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={selectedDraftInvoices.length === 0}
-                      onClick={async () => {
-                        for (const inv of selectedDraftInvoices) {
-                          await onInvoiceAction(inv.id, 'DELETE');
-                        }
-                        setSelectedIds([]);
-                      }}
-                      className="inline-flex items-center gap-1.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-45 text-white font-semibold text-xs px-3.5 py-2 rounded-[7px] transition cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Hapus Dokumen</span>
-                    </button>
+                        <div className="font-bold text-[#1E2C5E] pb-1 border-b border-slate-100">
+                          Ringkasan Status Faktur
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Total Faktur Tampil</span>
+                          <strong className="font-mono-num">{filteredInvoices.length}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">APPROVED</span>
+                          <strong className="font-mono-num text-emerald-700">
+                            {filteredInvoices.filter((i) => i.status === 'APPROVED').length}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">DRAFT (Belum Upload)</span>
+                          <strong className="font-mono-num text-amber-700">
+                            {filteredInvoices.filter((i) => i.status === 'DRAFT').length}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">AMENDED / CANCELLED</span>
+                          <strong className="font-mono-num text-blue-700">
+                            {
+                              filteredInvoices.filter(
+                                (i) => i.status === 'AMENDED' || i.status === 'CANCELLED'
+                              ).length
+                            }
+                          </strong>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+
+                const bulkProcessButton = (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBulkOpen((p) => !p);
+                        setMonitoringOpen(false);
+                      }}
+                      className={navyBtnCls}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Bulk Process</span>
+                      <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                    </button>
+                    {bulkOpen && (
+                      <div
+                        className={`absolute ${
+                          isRightAlignedOnlyBar ? 'right-0' : 'left-0'
+                        } top-full mt-1.5 w-60 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1.5 z-30 text-xs`}
+                      >
+                        {isImpersonateAccount && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const firstDraft =
+                                filteredInvoices.find(
+                                  (i) => selectedIds.includes(i.id) && i.status === 'DRAFT'
+                                ) || filteredInvoices.find((i) => i.status === 'DRAFT');
+                              setBulkOpen(false);
+                              if (firstDraft) setSignTarget(firstDraft);
+                            }}
+                            className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
+                          >
+                            Upload / Tandatangani Faktur DRAFT
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetTableFilters();
+                            setSelectedIds([]);
+                            setBulkOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-600 cursor-pointer"
+                        >
+                          Reset Semua Filter &amp; Pilihan
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+
+                const handleUploadSelectedDrafts = () => {
+                  if (selectedDraftInvoices.length === 0) {
+                    setFakturSuccessToast('Pilih faktur berstatus DRAFT terlebih dahulu untuk di-upload.');
+                    return;
+                  }
+                  setBulkSignTargets(selectedDraftInvoices);
+                };
+
+                const handleDeleteSelectedDrafts = async () => {
+                  if (selectedDraftInvoices.length === 0) {
+                    setFakturSuccessToast('Pilih dokumen berstatus DRAFT terlebih dahulu untuk dihapus.');
+                    return;
+                  }
+                  for (const inv of selectedDraftInvoices) {
+                    await onInvoiceAction(inv.id, 'DELETE');
+                  }
+                  setFakturSuccessToast(`${selectedDraftInvoices.length} dokumen berhasil dihapus.`);
+                  setSelectedIds([]);
+                };
+
+                const handleCreditSelected = async (isCredited: boolean, customMsg?: string) => {
+                  if (selectedIds.length === 0) {
+                    setFakturSuccessToast('Pilih faktur terlebih dahulu.');
+                    return;
+                  }
+                  for (const id of selectedIds) {
+                    await onInvoiceAction(id, 'TOGGLE_CREDIT', { isCredited });
+                  }
+                  setFakturSuccessToast(
+                    customMsg ||
+                      (isCredited
+                        ? `${selectedIds.length} Faktur berhasil dikreditkan.`
+                        : `${selectedIds.length} Faktur diubah menjadi Tidak Dikreditkan.`)
+                  );
+                  setSelectedIds([]);
+                };
+
+                const handleCreateReturAction = () => {
+                  const candidate = filteredInvoices[0];
+                  if (candidate) {
+                    setReturnTarget(candidate);
+                    setReturnAmount(candidate.returnAmount || Math.round(candidate.ppnTotal * 0.2));
+                  } else {
+                    setFakturSuccessToast(
+                      'Belum ada faktur/dokumen pada akun ini untuk dibuatkan Nota Retur.'
+                    );
+                  }
+                };
+
+                // 6. Dokumen Lain Masukan on Impersonate uses exact 2-row left-aligned toolbar
+                if (isImpersonateAccount && normalizedTab === 'dok_lain_masukan') {
+                  return (
+                    <div className="px-5 pt-3.5 pb-1 flex flex-col gap-1.5 relative">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleOpenInvoiceEditor}
+                          className={navyBtnCls}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Buat Dokumen Lain Masukan</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFakturSuccessToast(
+                              'Sinkronisasi Create From Interface (PIB / Bea Cukai) siap digunakan.'
+                            )
+                          }
+                          className={navyBtnCls}
+                        >
+                          <span>Create From Interface</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFakturSuccessToast(
+                              'Sinkronisasi Create From Payments (SSP/NTPN) siap digunakan.'
+                            )
+                          }
+                          className={navyBtnCls}
+                        >
+                          <span>Create From Payments</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFakturSuccessToast('Fitur Impor Data XML Dokumen Lain Masukan siap digunakan.')
+                          }
+                          className={navyBtnCls}
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Impor Data</span>
+                          <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                        </button>
+                        {monitoringButton}
+                        {bulkProcessButton}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFakturSuccessToast(
+                              'Pilih Dokumen Lain Masukan terlebih dahulu untuk pengkreditan, upload, atau penghapusan.'
+                            )
+                          }
+                          className={infoBadgeCls}
+                          title="Informasi Dokumen Lain Masukan"
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleCreditSelected(
+                              true,
+                              `${selectedIds.length} Dokumen dikembalikan ke status Approved.`
+                            )
+                          }
+                          className={navyBtnCls}
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Kembali ke status Approved</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCreditSelected(true)}
+                          className={navyBtnCls}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Kreditkan Faktur</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCreditSelected(false)}
+                          className={navyBtnCls}
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Tidak Kreditkan Faktur</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleUploadSelectedDrafts}
+                          className={navyBtnCls}
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Upload Faktur</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDeleteSelectedDrafts}
+                          className={redBtnCls}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Hapus Dokumen</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Retur action bar applies to:
+                // - retur_masukan & retur_dok_lain_masukan (both Impersonate & Akun Pribadi)
+                // - retur_dok_lain_keluaran (Impersonate only; Akun Pribadi shows Monitoring + Bulk Process only)
+                const showReturFullBar =
+                  normalizedTab === 'retur_masukan' ||
+                  normalizedTab === 'retur_dok_lain_masukan' ||
+                  (isImpersonateAccount && normalizedTab === 'retur_dok_lain_keluaran');
+
+                return (
+                  <div
+                    className={`px-5 pt-3.5 pb-1 flex flex-wrap items-center gap-2 relative ${
+                      isRightAlignedOnlyBar ? 'justify-end' : 'justify-between'
+                    }`}
+                  >
+                    {/* LEFT GROUP (or single RIGHT group when isRightAlignedOnlyBar) */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {showReturFullBar ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleCreateReturAction}
+                            className={navyBtnCls}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Buat Retur</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFakturSuccessToast('Fitur Impor Data Retur siap digunakan saat file XML tersedia.')
+                            }
+                            className={navyBtnCls}
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Impor Data</span>
+                            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                          </button>
+                        </>
+                      ) : isImpersonateAccount && normalizedTab === 'input' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFakturSuccessToast(
+                                'Menu Pajak Masukan digunakan untuk mengelola dan mengkreditkan Faktur Pajak dari Penjual.'
+                              )
+                            }
+                            className={infoBadgeCls}
+                            title="Informasi Pajak Masukan"
+                          >
+                            <Info className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCreditSelected(true)}
+                            className={navyBtnCls}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Kreditkan Faktur</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCreditSelected(false)}
+                            className={navyBtnCls}
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Tidak Kreditkan Faktur</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCreditSelected(
+                                true,
+                                `${selectedIds.length} Faktur dikembalikan ke status Approved.`
+                              )
+                            }
+                            className={navyBtnCls}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Kembali ke status Approved</span>
+                          </button>
+                        </>
+                      ) : isImpersonateAccount && normalizedTab === 'retur_keluaran' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFakturSuccessToast(
+                                'Pilih Retur Pajak Keluaran terlebih dahulu apabila ingin membatalkan retur.'
+                              )
+                            }
+                            className={infoBadgeCls}
+                            title="Informasi Retur Pajak Keluaran"
+                          >
+                            <Info className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (selectedIds.length === 0) {
+                                setFakturSuccessToast('Pilih retur pajak keluaran terlebih dahulu untuk dibatalkan.');
+                                return;
+                              }
+                              setFakturSuccessToast(`${selectedIds.length} Retur Pajak Keluaran dibatalkan.`);
+                              setSelectedIds([]);
+                            }}
+                            className={redBtnCls}
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Batalkan Retur</span>
+                          </button>
+                        </>
+                      ) : isImpersonateAccount && normalizedTab === 'output' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleOpenInvoiceEditor}
+                            className={navyBtnCls}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Buat Faktur</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFakturSuccessToast('Fitur Impor Data XML Faktur Pajak siap digunakan.')
+                            }
+                            className={navyBtnCls}
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Impor Data</span>
+                            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                          </button>
+                        </>
+                      ) : isImpersonateAccount && normalizedTab === 'dok_lain_keluaran' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleOpenInvoiceEditor}
+                            className={navyBtnCls}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Buat Faktur</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFakturSuccessToast(
+                                'Sinkronisasi Prepopulated Data (PEB / Bea Cukai) selesai dijalankan.'
+                              )
+                            }
+                            className={navyBtnCls}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Prepopulated Data</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFakturSuccessToast('Fitur Impor Data XML Dokumen Lain Keluaran siap digunakan.')
+                            }
+                            className={navyBtnCls}
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Impor Data</span>
+                            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                          </button>
+                        </>
+                      ) : null}
+
+                      {monitoringButton}
+                      {bulkProcessButton}
+                    </div>
+
+                    {/* RIGHT GROUP: Retur Upload & Delete */}
+                    {showReturFullBar && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFakturSuccessToast(
+                              normalizedTab === 'retur_masukan'
+                                ? 'Pilih baris Retur Pajak Masukan terlebih dahulu untuk Upload Retur atau Delete Retur.'
+                                : 'Pilih baris Retur Dokumen Lain terlebih dahulu untuk Upload Retur atau Hapus Dokumen.'
+                            )
+                          }
+                          className={infoBadgeCls}
+                          title="Informasi Retur"
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedIds.length === 0) {
+                              setFakturSuccessToast('Pilih retur terlebih dahulu untuk di-upload.');
+                              return;
+                            }
+                            setFakturSuccessToast(`${selectedIds.length} Retur berhasil di-upload.`);
+                            setSelectedIds([]);
+                          }}
+                          className={navyBtnCls}
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Upload Retur</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedIds.length === 0) {
+                              setFakturSuccessToast('Pilih dokumen retur terlebih dahulu untuk dihapus.');
+                              return;
+                            }
+                            setFakturSuccessToast(`${selectedIds.length} draft retur berhasil dihapus.`);
+                            setSelectedIds([]);
+                          }}
+                          className={redBtnCls}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>
+                            {normalizedTab === 'retur_masukan' ? 'Delete Retur' : 'Hapus Dokumen'}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* RIGHT GROUP: Pajak Keluaran (Impersonate only) */}
+                    {isImpersonateAccount && normalizedTab === 'output' && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFakturSuccessToast(
+                              'Pilih faktur Pajak Keluaran berstatus DRAFT untuk Upload Faktur atau Hapus Dokumen.'
+                            )
+                          }
+                          className={infoBadgeCls}
+                          title="Informasi Pajak Keluaran"
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleUploadSelectedDrafts}
+                          className={navyBtnCls}
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>
+                            Upload Faktur
+                            {selectedDraftInvoices.length > 0 ? ` (${selectedDraftInvoices.length})` : ''}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDeleteSelectedDrafts}
+                          className={redBtnCls}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Hapus Dokumen</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* RIGHT GROUP: Dokumen Lain Keluaran (Impersonate only) */}
+                    {isImpersonateAccount && normalizedTab === 'dok_lain_keluaran' && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFakturSuccessToast(
+                              'Pilih Dokumen Lain Keluaran untuk Upload Faktur, Batalkan Faktur, atau Delete Invoices.'
+                            )
+                          }
+                          className={infoBadgeCls}
+                          title="Informasi Dokumen Lain Keluaran"
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleUploadSelectedDrafts}
+                          className={navyBtnCls}
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Upload Faktur</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const approvedSelected = filteredInvoices.filter(
+                              (i) => selectedIds.includes(i.id) && i.status === 'APPROVED'
+                            );
+                            if (approvedSelected.length === 0) {
+                              setFakturSuccessToast(
+                                'Pilih dokumen berstatus APPROVED terlebih dahulu untuk dibatalkan.'
+                              );
+                              return;
+                            }
+                            for (const inv of approvedSelected) {
+                              await onInvoiceAction(inv.id, 'CANCEL');
+                            }
+                            setFakturSuccessToast(`${approvedSelected.length} Dokumen berhasil dibatalkan.`);
+                            setSelectedIds([]);
+                          }}
+                          className={navyBtnCls}
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Batalkan Faktur</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDeleteSelectedDrafts}
+                          className={redBtnCls}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete Invoices</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Official Coretax Icon Toolbar */}
               <div className="px-5">
@@ -1510,7 +2094,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           </th>
                           {normalizedTab === 'input' ? (
                             <>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 w-16" />
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 w-10" />
                               <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 <span className="inline-flex items-center gap-1">
                                   NPWP Penjual <ArrowUpDown className="w-3 h-3 opacity-60" />
@@ -1534,22 +2118,17 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
                                 </span>
                               </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                <span className="inline-flex items-center gap-1">
-                                  Tahun Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
-                                </span>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Tahun
                               </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Masa Pajak Pengkreditan
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Tahun Pajak Pengkreditan
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 Status Faktur
-                              </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                Status Pengkreditan
-                              </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                Masa Pengkreditan
-                              </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                Tahun Pengkreditan
                               </th>
                               <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
                                 Harga Jual/Penggantian/DPP
@@ -1569,23 +2148,295 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                               <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 Referensi
                               </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 Nomor SP2D
                               </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 Valid
                               </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 Dilaporkan
                               </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap">
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
                                 Dilaporkan oleh Penjual
+                              </th>
+                            </>
+                          ) : normalizedTab === 'retur_keluaran' || normalizedTab === 'retur_masukan' ? (
+                            <>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 w-10" />
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  {normalizedTab === 'retur_masukan' ? 'NPWP Penjual' : 'NPWP Pembeli'}
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                {normalizedTab === 'retur_masukan' ? 'Nama Penjual' : 'Nama Pembeli'}
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Nomor Faktur <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Tanggal Faktur <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Nomor Retur <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Tanggal Retur <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Tahun
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Status <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              {normalizedTab === 'retur_masukan' && (
+                                <>
+                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                    ESignStatus
+                                  </th>
+                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                    <span className="inline-flex items-center gap-1">
+                                      Dikreditkan (Y/N) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                    </span>
+                                  </th>
+                                </>
+                              )}
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Harga Jual/Penggantian/DPP
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                DPP Nilai Lain/DPP
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPnBM
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Perekam
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                                Dilaporkan
+                              </th>
+                            </>
+                          ) : normalizedTab === 'dok_lain_keluaran' ? (
+                            <>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 w-10" />
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                NPWP Pembeli
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Nama Pembeli
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Nomor Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Tanggal Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Jenis Transaksi <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Tahun
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Status Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                DPP
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPnBM
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Keterangan
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Perekam
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                                Dilaporkan
+                              </th>
+                            </>
+                          ) : normalizedTab === 'dok_lain_masukan' ? (
+                            <>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 w-10" />
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  NPWP Penjual <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Nama Penjual
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Nomor Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Tanggal Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Jenis Transaksi
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Tahun
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Masa Pajak Pengkreditan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Tahun Pajak Pengkreditan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                DPP
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPnBM
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Status
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Valid
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Dilaporkan
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Keterangan
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Perekam
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                                <span className="inline-flex items-center gap-1">
+                                  Dibuat Oleh <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                            </>
+                          ) : normalizedTab === 'retur_dok_lain_keluaran' ||
+                            normalizedTab === 'retur_dok_lain_masukan' ? (
+                            <>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 w-10" />
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  {normalizedTab === 'retur_dok_lain_masukan' ? 'NPWP Penjual' : 'NPWP Pembeli'}
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                {normalizedTab === 'retur_dok_lain_masukan' ? 'Nama Penjual' : 'Nama Pembeli'}
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Nomor Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Nomor Retur <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  {normalizedTab === 'retur_dok_lain_masukan' ? 'Tanggal Retur' : 'Tanggal Dokumen'}
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Tahun
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Status <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              {normalizedTab === 'retur_dok_lain_masukan' && (
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                  Dikreditkan (Y/N)
+                                </th>
+                              )}
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                DPP
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                PPnBM
+                              </th>
+                              {normalizedTab === 'retur_dok_lain_masukan' && (
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                  Keterangan
+                                </th>
+                              )}
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                Perekam
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                                Dilaporkan
                               </th>
                             </>
                           ) : (
                             <>
-                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                                Aksi
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50 w-10">
+                                {normalizedTab === 'output' ? '' : 'Aksi'}
                               </th>
                               <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 <span className="inline-flex items-center gap-1">
@@ -1618,15 +2469,18 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 </span>
                               </th>
                               {normalizedTab === 'output' && (
-                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                   Tahun
                                 </th>
                               )}
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                                Status Faktur
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                <span className="inline-flex items-center gap-1">
+                                  Status Faktur
+                                  {normalizedTab === 'output' && <ArrowUpDown className="w-3 h-3 opacity-60" />}
+                                </span>
                               </th>
                               {normalizedTab === 'output' && (
-                                <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                   ESignStatus
                                 </th>
                               )}
@@ -1650,17 +2504,14 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                     Referensi
                                   </th>
-                                  <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                     Metode Input
                                   </th>
-                                  <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                     Dilaporkan oleh Penjual
                                   </th>
-                                  <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                                  <th className="px-3 py-2.5 text-left whitespace-nowrap">
                                     Dilaporkan oleh Pemungut PPN
-                                  </th>
-                                  <th className="px-3 py-2.5 text-center whitespace-nowrap">
-                                    IsShowClearName
                                   </th>
                                 </>
                               )}
@@ -1678,10 +2529,25 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           )}
                         </tr>
 
-                        {/* Inline White Filter Row (Exact Coretax Pajak Keluaran Screenshot) */}
+                        {/* Inline White Filter Row (Exact Official Coretax Column Alignment) */}
                         {showColumnFilters && (
                           <tr className="bg-white border-b border-[#E2E8F0]">
-                            <th className="px-2 py-2 border-r border-slate-100" />
+                            <th className="px-2 py-2 border-r border-slate-100 text-center">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  paginatedInvoices.length > 0 &&
+                                  paginatedInvoices.every((i) => selectedIds.includes(i.id))
+                                }
+                                onChange={() => {
+                                  if (paginatedInvoices.every((i) => selectedIds.includes(i.id))) {
+                                    setSelectedIds([]);
+                                  } else {
+                                    setSelectedIds(paginatedInvoices.map((i) => i.id));
+                                  }
+                                }}
+                              />
+                            </th>
                             {normalizedTab === 'input' ? (
                               <>
                                 <th className="px-2 py-2 border-r border-slate-100" />
@@ -1700,51 +2566,85 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                     <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                                   </div>
                                 </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100">
                                   <input
                                     type="text"
-                                    value={nameFilter}
+                                    value={invoiceNumFilter}
                                     onChange={(e) => {
-                                      setNameFilter(e.target.value);
+                                      setInvoiceNumFilter(e.target.value);
                                       setPage(1);
                                     }}
                                     placeholder=""
-                                    className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
                                   />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[155px]">
+                                    <input
+                                      type="text"
+                                      value={dateFilter}
+                                      onChange={(e) => {
+                                        setDateFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDateFilter('');
+                                        setPage(1);
+                                      }}
+                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
+                                      title="Hapus filter tanggal"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <select
+                                      value={monthFilter}
+                                      onChange={(e) => {
+                                        setMonthFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    >
+                                      <option value="ALL">Semua Masa</option>
+                                      {MONTHS_ID.map((m, idx) => (
+                                        <option key={m} value={String(idx + 1)}>
+                                          {m}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
                                 </th>
                                 <th className="px-2 py-2 border-r border-slate-100">
                                   <div className="flex items-center gap-1">
                                     <input
                                       type="text"
-                                      value={invoiceNumFilter}
+                                      value={yearFilter}
                                       onChange={(e) => {
-                                        setInvoiceNumFilter(e.target.value);
+                                        setYearFilter(e.target.value);
                                         setPage(1);
                                       }}
-                                      placeholder=""
-                                      className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                      placeholder="2026"
+                                      className="w-full min-w-[72px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
                                     />
-                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <span className="p-1 rounded-full bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Filter className="w-3 h-3" />
+                                    </span>
                                   </div>
                                 </th>
                                 <th className="px-2 py-2 border-r border-slate-100" />
-                                <th className="px-2 py-2 border-r border-slate-100">
-                                  <select
-                                    value={monthFilter}
-                                    onChange={(e) => {
-                                      setMonthFilter(e.target.value);
-                                      setPage(1);
-                                    }}
-                                    className="w-full min-w-[95px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
-                                  >
-                                    <option value="ALL">Semua Masa</option>
-                                    {MONTHS_ID.map((m, idx) => (
-                                      <option key={m} value={String(idx + 1)}>
-                                        {m}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </th>
                                 <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100">
                                   <select
@@ -1753,29 +2653,15 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                       setStatusFilter(e.target.value);
                                       setPage(1);
                                     }}
-                                    className="w-full min-w-[105px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    className="w-full min-w-[125px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
                                   >
-                                    <option value="ALL">Semua Status</option>
+                                    <option value="ALL">Pilih Status Faktur</option>
                                     <option value="APPROVED">APPROVED</option>
+                                    <option value="CREDITED">CREDITED</option>
+                                    <option value="UNCREDITED">UNCREDITED</option>
                                     <option value="CANCELLED">CANCELLED</option>
                                   </select>
                                 </th>
-                                <th className="px-2 py-2 border-r border-slate-100">
-                                  <select
-                                    value={creditFilter}
-                                    onChange={(e) => {
-                                      setCreditFilter(e.target.value);
-                                      setPage(1);
-                                    }}
-                                    className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
-                                  >
-                                    <option value="ALL">Semua Pengkreditan</option>
-                                    <option value="CREDITED">Dapat Dikreditkan</option>
-                                    <option value="UNCREDITED">Tidak Dapat Dikreditkan</option>
-                                  </select>
-                                </th>
-                                <th className="px-2 py-2 border-r border-slate-100" />
-                                <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100" />
@@ -1786,6 +2672,918 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2 border-r border-slate-100" />
                                 <th className="px-2 py-2" />
+                              </>
+                            ) : normalizedTab === 'output' ? (
+                              <>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={npwpFilter}
+                                      onChange={(e) => {
+                                        setNpwpFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    value={txCodeFilter}
+                                    onChange={(e) => {
+                                      setTxCodeFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Kode Transaksi</option>
+                                    {FAKTUR_TRANSACTION_CODES.map((c) => (
+                                      <option key={c.code} value={c.code}>
+                                        {c.code}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <input
+                                    type="text"
+                                    value={invoiceNumFilter}
+                                    onChange={(e) => {
+                                      setInvoiceNumFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    placeholder=""
+                                    className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[155px]">
+                                    <input
+                                      type="text"
+                                      value={dateFilter}
+                                      onChange={(e) => {
+                                        setDateFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDateFilter('');
+                                        setPage(1);
+                                      }}
+                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
+                                      title="Hapus filter tanggal"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <select
+                                      value={monthFilter}
+                                      onChange={(e) => {
+                                        setMonthFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[105px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    >
+                                      <option value="ALL">Semua Masa</option>
+                                      {MONTHS_ID.map((m, idx) => (
+                                        <option key={m} value={String(idx + 1)}>
+                                          {m}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={yearFilter}
+                                      onChange={(e) => {
+                                        setYearFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder="2026"
+                                      className="w-full min-w-[72px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded-full bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Filter className="w-3 h-3" />
+                                    </span>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <select
+                                      value={statusFilter}
+                                      onChange={(e) => {
+                                        setStatusFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[155px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    >
+                                      <option value="ALL">CREATED, APPROVED, SAVED_INVALID</option>
+                                      <option value="DRAFT">DRAFT</option>
+                                      <option value="APPROVED">APPROVED</option>
+                                      <option value="WAITING_FOR_AMENDMENT">WAITING_FOR_AMENDMENT</option>
+                                      <option value="AMENDED">AMENDED</option>
+                                      <option value="WAITING_FOR_CANCELLATION">WAITING_FOR_CANCELLATION</option>
+                                      <option value="CANCELLED">CANCELLED</option>
+                                    </select>
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <input
+                                    type="text"
+                                    value={refFilter}
+                                    onChange={(e) => {
+                                      setRefFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    placeholder=""
+                                    className="w-full min-w-[100px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2" />
+                              </>
+                            ) : normalizedTab === 'retur_keluaran' || normalizedTab === 'retur_masukan' ? (
+                              <>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={npwpFilter}
+                                      onChange={(e) => {
+                                        setNpwpFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={invoiceNumFilter}
+                                      onChange={(e) => {
+                                        setInvoiceNumFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[145px]">
+                                    <input
+                                      type="text"
+                                      value={dateFilter}
+                                      onChange={(e) => {
+                                        setDateFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDateFilter('');
+                                        setPage(1);
+                                      }}
+                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={refFilter}
+                                      onChange={(e) => {
+                                        setRefFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[145px]">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      readOnly
+                                      className="w-full border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <span className="p-1 rounded bg-[#F1F5F9] text-slate-400 shrink-0">
+                                      <X className="w-3 h-3" />
+                                    </span>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <select
+                                      value={monthFilter}
+                                      onChange={(e) => {
+                                        setMonthFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    >
+                                      <option value="ALL">Pilih Masa Pajak</option>
+                                      {MONTHS_ID.map((m, idx) => (
+                                        <option key={m} value={String(idx + 1)}>
+                                          {m}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    {normalizedTab === 'retur_masukan' && (
+                                      <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={yearFilter}
+                                      onChange={(e) => {
+                                        setYearFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder="2026"
+                                      className="w-full min-w-[72px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded-full bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Filter className="w-3 h-3" />
+                                    </span>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={statusFilter === 'ALL' ? '' : statusFilter}
+                                      onChange={(e) => {
+                                        setStatusFilter(e.target.value.trim() || 'ALL');
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[95px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                {normalizedTab === 'retur_masukan' && (
+                                  <>
+                                    <th className="px-2 py-2 border-r border-slate-100" />
+                                    <th className="px-2 py-2 border-r border-slate-100">
+                                      <select
+                                        value={creditFilter}
+                                        onChange={(e) => {
+                                          setCreditFilter(e.target.value);
+                                          setPage(1);
+                                        }}
+                                        className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                      >
+                                        <option value="ALL">Pilih Dikreditkan (Y/N)</option>
+                                        <option value="CREDITED">Ya</option>
+                                        <option value="UNCREDITED">Tidak</option>
+                                      </select>
+                                    </th>
+                                  </>
+                                )}
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  {normalizedTab === 'retur_keluaran' && <Filter className="w-3 h-3 text-slate-400" />}
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  {normalizedTab === 'retur_keluaran' && <Filter className="w-3 h-3 text-slate-400" />}
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  {normalizedTab === 'retur_keluaran' && <Filter className="w-3 h-3 text-slate-400" />}
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  {normalizedTab === 'retur_keluaran' && <Filter className="w-3 h-3 text-slate-400" />}
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      readOnly
+                                      className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Dilaporkan</option>
+                                    <option value="YES">Ya</option>
+                                    <option value="NO">Tidak</option>
+                                  </select>
+                                </th>
+                              </>
+                            ) : normalizedTab === 'dok_lain_keluaran' ? (
+                              <>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={npwpFilter}
+                                      onChange={(e) => {
+                                        setNpwpFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={invoiceNumFilter}
+                                      onChange={(e) => {
+                                        setInvoiceNumFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[145px]">
+                                    <input
+                                      type="text"
+                                      value={dateFilter}
+                                      onChange={(e) => {
+                                        setDateFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDateFilter('');
+                                        setPage(1);
+                                      }}
+                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    value={txCodeFilter}
+                                    onChange={(e) => {
+                                      setTxCodeFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[125px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Jenis Transaksi</option>
+                                    {FAKTUR_TRANSACTION_CODES.map((c) => (
+                                      <option key={c.code} value={c.code}>
+                                        {c.code}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    value={monthFilter}
+                                    onChange={(e) => {
+                                      setMonthFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Masa Pajak</option>
+                                    {MONTHS_ID.map((m, idx) => (
+                                      <option key={m} value={String(idx + 1)}>
+                                        {m}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={yearFilter}
+                                      onChange={(e) => {
+                                        setYearFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[75px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={statusFilter === 'ALL' ? '' : statusFilter}
+                                      onChange={(e) => {
+                                        setStatusFilter(e.target.value.trim() || 'ALL');
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[95px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Keterangan</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      readOnly
+                                      className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Dilaporkan</option>
+                                    <option value="YES">Ya</option>
+                                    <option value="NO">Tidak</option>
+                                  </select>
+                                </th>
+                              </>
+                            ) : normalizedTab === 'dok_lain_masukan' ? (
+                              <>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={npwpFilter}
+                                      onChange={(e) => {
+                                        setNpwpFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={invoiceNumFilter}
+                                      onChange={(e) => {
+                                        setInvoiceNumFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[145px]">
+                                    <input
+                                      type="text"
+                                      value={dateFilter}
+                                      onChange={(e) => {
+                                        setDateFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDateFilter('');
+                                        setPage(1);
+                                      }}
+                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    value={txCodeFilter}
+                                    onChange={(e) => {
+                                      setTxCodeFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[125px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Jenis Transaksi</option>
+                                    {FAKTUR_TRANSACTION_CODES.map((c) => (
+                                      <option key={c.code} value={c.code}>
+                                        {c.code}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    value={monthFilter}
+                                    onChange={(e) => {
+                                      setMonthFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Masa Pajak</option>
+                                    {MONTHS_ID.map((m, idx) => (
+                                      <option key={m} value={String(idx + 1)}>
+                                        {m}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={yearFilter}
+                                      onChange={(e) => {
+                                        setYearFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[75px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[155px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Masa Pajak Pengkreditan</option>
+                                    {MONTHS_ID.map((m, idx) => (
+                                      <option key={m} value={String(idx + 1)}>
+                                        {m}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      readOnly
+                                      className="w-full min-w-[85px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={statusFilter === 'ALL' ? '' : statusFilter}
+                                      onChange={(e) => {
+                                        setStatusFilter(e.target.value.trim() || 'ALL');
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[105px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Valid</option>
+                                    <option value="VALID">Valid</option>
+                                    <option value="INVALID">Tidak Valid</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Dilaporkan</option>
+                                    <option value="YES">Ya</option>
+                                    <option value="NO">Tidak</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Keterangan</option>
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      readOnly
+                                      className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      readOnly
+                                      className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                              </>
+                            ) : normalizedTab === 'retur_dok_lain_keluaran' ||
+                              normalizedTab === 'retur_dok_lain_masukan' ? (
+                              <>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={npwpFilter}
+                                      onChange={(e) => {
+                                        setNpwpFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={invoiceNumFilter}
+                                      onChange={(e) => {
+                                        setInvoiceNumFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={refFilter}
+                                      onChange={(e) => {
+                                        setRefFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[145px]">
+                                    <input
+                                      type="text"
+                                      value={dateFilter}
+                                      onChange={(e) => {
+                                        setDateFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDateFilter('');
+                                        setPage(1);
+                                      }}
+                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    value={monthFilter}
+                                    onChange={(e) => {
+                                      setMonthFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Masa Pajak</option>
+                                    {MONTHS_ID.map((m, idx) => (
+                                      <option key={m} value={String(idx + 1)}>
+                                        {m}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={yearFilter}
+                                      onChange={(e) => {
+                                        setYearFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[75px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={statusFilter === 'ALL' ? '' : statusFilter}
+                                      onChange={(e) => {
+                                        setStatusFilter(e.target.value.trim() || 'ALL');
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[95px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                {normalizedTab === 'retur_dok_lain_masukan' && (
+                                  <th className="px-2 py-2 border-r border-slate-100">
+                                    <select
+                                      value={creditFilter}
+                                      onChange={(e) => {
+                                        setCreditFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                    >
+                                      <option value="ALL">Pilih Dikreditkan (Y/N)</option>
+                                      <option value="CREDITED">Ya</option>
+                                      <option value="UNCREDITED">Tidak</option>
+                                    </select>
+                                  </th>
+                                )}
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <Filter className="w-3 h-3 text-slate-400" />
+                                </th>
+                                {normalizedTab === 'retur_dok_lain_masukan' && (
+                                  <th className="px-2 py-2 border-r border-slate-100">
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="text"
+                                        placeholder=""
+                                        readOnly
+                                        className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                      />
+                                      <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                    </div>
+                                  </th>
+                                )}
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder=""
+                                      readOnly
+                                      className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2">
+                                  <select
+                                    defaultValue="ALL"
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal focus:outline-none focus:border-[#1E2C5E]"
+                                  >
+                                    <option value="ALL">Pilih Dilaporkan</option>
+                                    <option value="YES">Ya</option>
+                                    <option value="NO">Tidak</option>
+                                  </select>
+                                </th>
                               </>
                             ) : (
                               <>
@@ -1864,8 +3662,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                     ))}
                                   </select>
                                 </th>
-                                <th colSpan={isInputTab || isReturTab ? 4 : 3} className="px-2 py-2 border-r border-slate-100" />
-                                <th className="px-2 py-2">
+                                <th className="px-2 py-2 border-r border-slate-100">
                                   <select
                                     value={statusFilter}
                                     onChange={(e) => {
@@ -1883,6 +3680,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                     <option value="CANCELLED">CANCELLED</option>
                                   </select>
                                 </th>
+                                <th colSpan={isInputTab || isReturTab ? 4 : 3} className="px-2 py-2" />
                               </>
                             )}
                           </tr>
@@ -1892,7 +3690,25 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       <tbody className="divide-y divide-[#EEF2F6] bg-white">
                         {paginatedInvoices.length === 0 ? (
                           <tr>
-                            <td colSpan={normalizedTab === 'input' ? 22 : 13} className="px-4 py-8 text-left text-slate-500">
+                            <td
+                              colSpan={
+                                normalizedTab === 'input'
+                                  ? 21
+                                  : normalizedTab === 'output' || normalizedTab === 'dok_lain_masukan'
+                                    ? 20
+                                    : normalizedTab === 'retur_masukan'
+                                      ? 19
+                                      : normalizedTab === 'retur_keluaran' ||
+                                          normalizedTab === 'retur_dok_lain_masukan'
+                                        ? 17
+                                        : normalizedTab === 'dok_lain_keluaran'
+                                          ? 16
+                                          : normalizedTab === 'retur_dok_lain_keluaran'
+                                            ? 15
+                                            : 13
+                              }
+                              className="px-4 py-3 text-left text-[12px] text-[#334155] bg-[#F1F5F9]/75"
+                            >
                               Tidak ada data yang ditemukan.
                             </td>
                           </tr>
@@ -1929,7 +3745,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => downloadFakturPajakPdf(inv, workspace.corporateTaxpayer)}
+                                        onClick={() => downloadFakturPajakPdf(inv, activeTaxpayer)}
                                         className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
                                         title="Download Faktur Pajak (PDF)"
                                       >
@@ -1955,29 +3771,30 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   <td className="px-3 py-2.5 text-center font-mono-num whitespace-nowrap">
                                     {inv.taxPeriodYear || 2026}
                                   </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap">
-                                    <span
-                                      className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status] || 'bg-slate-100 text-slate-700 border-slate-300'}`}
-                                    >
-                                      {inv.status}
-                                    </span>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 text-center">
+                                    {inv.isCredited !== false
+                                      ? MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'
+                                      : '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center font-mono-num whitespace-nowrap">
+                                    {inv.isCredited !== false ? inv.taxPeriodYear || 2026 : '-'}
                                   </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap">
                                     <span
                                       className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${
-                                        inv.isCredited !== false
-                                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                          : 'bg-slate-100 text-slate-600 border-slate-300'
+                                        inv.status === 'CANCELLED'
+                                          ? STATUS_BADGE.CANCELLED
+                                          : inv.isCredited === false
+                                            ? 'bg-slate-100 text-slate-600 border-slate-300'
+                                            : 'bg-emerald-50 text-emerald-800 border-emerald-300'
                                       }`}
                                     >
-                                      {inv.isCredited !== false ? 'Dapat Dikreditkan' : 'Tidak Dapat Dikreditkan'}
+                                      {inv.status === 'CANCELLED'
+                                        ? 'CANCELLED'
+                                        : inv.isCredited === false
+                                          ? 'UNCREDITED'
+                                          : 'CREDITED'}
                                     </span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 text-center">
-                                    {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center font-mono-num whitespace-nowrap">
-                                    {inv.taxPeriodYear || 2026}
                                   </td>
                                   <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
                                     {formatRp(inv.dppTotal)}
@@ -1992,7 +3809,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                     0
                                   </td>
                                   <td className="px-3 py-2.5 text-left text-slate-800 whitespace-nowrap font-medium">
-                                    {(inv as any).creatorName || (workspace.corporateTaxpayer as any).representativeName || workspace.individualTaxpayer.name || 'BAYU TRI RAHARDJO'}
+                                    {(inv as any).creatorName || (activeTaxpayer as any).representativeName || workspace.individualTaxpayer.name || 'BAYU TRI RAHARDJO'}
                                   </td>
                                   <td className="px-3 py-2.5 text-left text-slate-700 whitespace-nowrap font-mono-num">
                                     {inv.referenceCode || 'Invoice No. 244/INV/MTI/XI/2026'}
@@ -2010,6 +3827,286 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   </td>
                                   <td className="px-3 py-2.5 text-center text-slate-700 font-semibold whitespace-nowrap">
                                     NO
+                                  </td>
+                                </>
+                              ) : normalizedTab === 'retur_keluaran' || normalizedTab === 'retur_masukan' ? (
+                                <>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setReturnTarget(inv);
+                                          setReturnAmount(inv.returnAmount || Math.round(inv.ppnTotal * 0.2));
+                                        }}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#1D2B53] text-[#F4C430] text-[10.5px] font-bold cursor-pointer"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                        <span>Retur</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => downloadFakturPajakPdf(inv, activeTaxpayer)}
+                                        className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                        title="Download PDF"
+                                      >
+                                        <FileText className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                    {inv.counterpartyNpwp}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
+                                    {inv.counterpartyName}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {inv.invoiceNumber}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.invoiceDate || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-slate-700">
+                                    {inv.returnNoteNumber || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-slate-700">
+                                    {inv.returnDate || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                    {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.taxPeriodYear || 2026}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}>
+                                      {inv.status}
+                                    </span>
+                                  </td>
+                                  {normalizedTab === 'retur_masukan' && (
+                                    <>
+                                      <td className="px-3 py-2.5 whitespace-nowrap text-emerald-700 font-medium">
+                                        {inv.status === 'APPROVED' ? 'Done' : 'Pending'}
+                                      </td>
+                                      <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                        {inv.isCredited !== false ? 'Ya' : 'Tidak'}
+                                      </td>
+                                    </>
+                                  )}
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppOtherValue || Math.round(inv.dppTotal * (11 / 12)))}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {formatRp(inv.returnAmount > 0 ? inv.returnAmount : inv.ppnTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    0
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
+                                    {workspace.individualTaxpayer.name}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
+                                    Tidak
+                                  </td>
+                                </>
+                              ) : normalizedTab === 'dok_lain_keluaran' ? (
+                                <>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadFakturPajakPdf(inv, activeTaxpayer)}
+                                      className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                      title="Download PDF"
+                                    >
+                                      <FileText className="w-3 h-3" />
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                    {inv.counterpartyNpwp}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
+                                    {inv.counterpartyName}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {inv.invoiceNumber}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.invoiceDate || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.transactionCode}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                    {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.taxPeriodYear || 2026}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}>
+                                      {inv.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {formatRp(inv.ppnTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    0
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
+                                    {inv.referenceCode || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
+                                    {workspace.individualTaxpayer.name}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
+                                    Tidak
+                                  </td>
+                                </>
+                              ) : normalizedTab === 'dok_lain_masukan' ? (
+                                <>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadFakturPajakPdf(inv, activeTaxpayer)}
+                                      className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                      title="Download PDF"
+                                    >
+                                      <FileText className="w-3 h-3" />
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                    {inv.counterpartyNpwp}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
+                                    {inv.counterpartyName}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {inv.invoiceNumber}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.invoiceDate || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.transactionCode}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                    {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.taxPeriodYear || 2026}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                    {inv.isCredited !== false
+                                      ? MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'
+                                      : '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.isCredited !== false ? inv.taxPeriodYear || 2026 : '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {formatRp(inv.ppnTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    0
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}>
+                                      {inv.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-300">
+                                      VALID
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
+                                    Tidak
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
+                                    {inv.referenceCode || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
+                                    {workspace.individualTaxpayer.name}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
+                                    {workspace.individualTaxpayer.name}
+                                  </td>
+                                </>
+                              ) : normalizedTab === 'retur_dok_lain_keluaran' ||
+                                normalizedTab === 'retur_dok_lain_masukan' ? (
+                                <>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadFakturPajakPdf(inv, activeTaxpayer)}
+                                      className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                      title="Download PDF"
+                                    >
+                                      <FileText className="w-3 h-3" />
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                    {inv.counterpartyNpwp}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
+                                    {inv.counterpartyName}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {inv.invoiceNumber}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-slate-700">
+                                    {inv.returnNoteNumber || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {normalizedTab === 'retur_dok_lain_masukan'
+                                      ? inv.returnDate || inv.invoiceDate || '-'
+                                      : inv.invoiceDate || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                    {MONTHS_ID[Math.max(0, inv.taxPeriodMonth - 1)] || 'November'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                                    {inv.taxPeriodYear || 2026}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[inv.status]}`}>
+                                      {inv.status}
+                                    </span>
+                                  </td>
+                                  {normalizedTab === 'retur_dok_lain_masukan' && (
+                                    <td className="px-3 py-2.5 whitespace-nowrap text-slate-700">
+                                      {inv.isCredited !== false ? 'Ya' : 'Tidak'}
+                                    </td>
+                                  )}
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {formatRp(inv.returnAmount > 0 ? inv.returnAmount : inv.ppnTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    0
+                                  </td>
+                                  {normalizedTab === 'retur_dok_lain_masukan' && (
+                                    <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
+                                      {inv.referenceCode || '-'}
+                                    </td>
+                                  )}
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
+                                    {workspace.individualTaxpayer.name}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
+                                    Tidak
                                   </td>
                                 </>
                               ) : (
@@ -2206,9 +4303,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-600">
                                     False
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
-                                    -
                                   </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
                                     -
