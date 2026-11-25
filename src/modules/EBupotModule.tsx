@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowUpDown,
+  Calendar,
   ChevronDown,
   ChevronRight,
   Download,
@@ -165,14 +166,14 @@ const SUBTAB_CONFIG: Record<
   },
   penyetoran_sendiri: {
     shortTitle: 'Penyetoran Sendiri',
-    headingPrefix: 'EBUPOT PENYETORAN SENDIRI',
-    createBtnLabel: 'Create Penyetoran Sendiri',
+    headingPrefix: 'EBUPOT SP',
+    createBtnLabel: 'Create eBupot SP',
     slipType: 'BPPU_23',
   },
   digunggung: {
     shortTitle: 'Pemotongan Secara Digunggung',
-    headingPrefix: 'EBUPOT DIGUNGGUNG',
-    createBtnLabel: 'Create eBupot Digunggung',
+    headingPrefix: 'EBUPOT CY',
+    createBtnLabel: 'Create eBupot CY',
     slipType: 'BPPU_23',
   },
   dokumen_dipersamakan: {
@@ -182,25 +183,25 @@ const SUBTAB_CONFIG: Record<
     slipType: 'BPPU_23',
   },
   bp21: {
-    shortTitle: 'BP 21',
+    shortTitle: 'BP 21 - Bukti Pemotongan Selain Pegawai Tetap',
     headingPrefix: 'EBUPOT BP21',
     createBtnLabel: 'Create eBupot BP21',
     slipType: 'BP21',
   },
   bp26: {
-    shortTitle: 'BP 26',
+    shortTitle: 'BP 26 - Bukti Pemotongan Wajib Pajak Luar Negeri',
     headingPrefix: 'EBUPOT BP26',
     createBtnLabel: 'Create eBupot BP26',
     slipType: 'BP21',
   },
   bpa1: {
-    shortTitle: 'BP A1',
+    shortTitle: 'BP A1 - Bukti Pemotongan A1 Masa Pajak Terakhir',
     headingPrefix: 'EBUPOT BPA1',
     createBtnLabel: 'Create eBupot BPA1',
     slipType: 'BPA1',
   },
   bpa2: {
-    shortTitle: 'BP A2',
+    shortTitle: 'BP A2 - Bukti Pemotongan A2 Masa Pajak Terakhir',
     headingPrefix: 'EBUPOT BPA2',
     createBtnLabel: 'Create eBupot BPA2',
     slipType: 'BPA1',
@@ -241,26 +242,45 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const isBpa = subTab === 'bpa1' || subTab === 'bpa2';
   const isBpa2 = subTab === 'bpa2';
 
-  // Reset detail views / modals when navigating or clicking menu
+  // Reset detail views / modals when navigating, clicking menu, or switching account
   useEffect(() => {
     setDetailSlip(null);
     setCreateOpen(false);
     setEditingSlip(null);
     setMonitoringOpen(false);
-  }, [resetKey, subTab]);
+    setDokChosenFile(null);
+    setDokXmlMonitoringOpen(false);
+    setSelectedIds([]);
+    setPage(1);
+  }, [resetKey, subTab, activeTaxpayer.id]);
 
-  // Bukti Potong Saya filters (matches image_1c836f06.png)
+  // Bukti Potong Saya filters (matches official Coretax layout)
   const [mySlipTypeFilter, setMySlipTypeFilter] = useState<string>('ALL');
   const [myMonthFilter, setMyMonthFilter] = useState<string>('ALL');
-  const [myYearFilter, setMyYearFilter] = useState<string>('2025');
+  const [myYearFilter, setMyYearFilter] = useState<string>('');
+  const [myStatusFilter, setMyStatusFilter] = useState<string>('ALL');
   const [myNumFilter, setMyNumFilter] = useState('');
   const [myNpwpFilter, setMyNpwpFilter] = useState('');
 
-  // Column inline filters for issuance tables (matches image_19fd99c0.png)
+  // Column inline filters for issuance tables (matches official Coretax eBupot layout)
   const [showFilters, setShowFilters] = useState(true);
   const [numFilter, setNumFilter] = useState('');
+  const [statusColFilter, setStatusColFilter] = useState('ALL');
+  const [tteFilter, setTteFilter] = useState('');
+  const [nitkuFilter, setNitkuFilter] = useState('');
+  const [taxTypeColFilter, setTaxTypeColFilter] = useState('');
   const [recipientFilter, setRecipientFilter] = useState('');
+  const [nameColFilter, setNameColFilter] = useState('');
   const [objCodeFilter, setObjCodeFilter] = useState('');
+  const [facilityFilter, setFacilityFilter] = useState('ALL');
+  const [reportedInSptFilter, setReportedInSptFilter] = useState('ALL');
+  const [inObjectionFilter, setInObjectionFilter] = useState('ALL');
+  const [objectionCompletedFilter, setObjectionCompletedFilter] = useState('ALL');
+  const [objectionRejectedFilter, setObjectionRejectedFilter] = useState('ALL');
+  const [inRevocationReviewFilter, setInRevocationReviewFilter] = useState('ALL');
+  const [revocationAcceptedFilter, setRevocationAcceptedFilter] = useState('ALL');
+  const [inRefundProcessFilter, setInRefundProcessFilter] = useState('ALL');
+  const [bpaStartMonthFilter, setBpaStartMonthFilter] = useState('ALL');
   const [periodMonthFilter, setPeriodMonthFilter] = useState('ALL');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -268,6 +288,37 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   // XML Import state
   const [xmlContent, setXmlContent] = useState(SAMPLE_XML_TEMPLATE);
   const [xmlStatus, setXmlStatus] = useState<string | null>(null);
+
+  // Dokumen Dipersamakan (Upload Berformat Standar) states
+  const dokFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [dokChosenFile, setDokChosenFile] = useState<File | null>(null);
+  const [dokXmlMonitoringOpen, setDokXmlMonitoringOpen] = useState(false);
+  const [dokUploadLogs, setDokUploadLogs] = useState<
+    Array<{
+      id: string;
+      taxpayerId: string;
+      fileName: string;
+      uploadedAt: string;
+      count: number;
+      status: 'SUKSES' | 'GAGAL';
+    }>
+  >([]);
+  const [dokNomorFilter, setDokNomorFilter] = useState('');
+  const [dokTanggalFilter, setDokTanggalFilter] = useState('');
+  const [dokTglPotongFilter, setDokTglPotongFilter] = useState('');
+  const [dokPeriodFilter, setDokPeriodFilter] = useState('ALL');
+  const [dokStatusFilter, setDokStatusFilter] = useState('ALL');
+  const [dokRateFilter, setDokRateFilter] = useState('');
+  const [dokFacilityFilter, setDokFacilityFilter] = useState('ALL');
+  const [dokRecipientNpwpFilter, setDokRecipientNpwpFilter] = useState('');
+  const [dokRecipientNameFilter, setDokRecipientNameFilter] = useState('');
+  const [dokRecipientIncomeNameFilter, setDokRecipientIncomeNameFilter] = useState('');
+  const [dokIssuerNpwpFilter, setDokIssuerNpwpFilter] = useState('');
+  const [dokIssuerNameFilter, setDokIssuerNameFilter] = useState('');
+  const [dokIssuerAccountIdFilter, setDokIssuerAccountIdFilter] = useState('');
+  const [dokObjCodeFilter, setDokObjCodeFilter] = useState('');
+  const [dokNitkuFilter, setDokNitkuFilter] = useState('');
+  const [dokKapFilter, setDokKapFilter] = useState('');
 
   // Create inline form state (Coretax e-Bupot PDF fields)
   const [formCollapsed, setFormCollapsed] = useState<Record<string, boolean>>({});
@@ -292,19 +343,36 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
   const activeConfig = SUBTAB_CONFIG[subTab] || SUBTAB_CONFIG.bppu;
   const currentSlipType: SlipType = activeConfig.slipType;
 
-  // Slips for "Bukti Potong Saya" (issued slips relevant to active taxpayer)
+  // Slips for "Bukti Potong Saya" (strictly isolated per active taxpayer account)
   const mySlips = useMemo(() => {
     return workspace.slips.filter((s) => {
-      if (s.status !== 'ISSUED') return false;
+      if (s.status !== 'ISSUED' && s.status !== 'CANCELLED') return false;
       const belongsToAccount =
         accountMode === 'INDIVIDUAL'
-          ? s.recipientNikNpwp === workspace.individualTaxpayer.nikNpwp || s.slipType === 'BPA1'
-          : s.issuerId === workspace.corporateTaxpayer.id ||
-            s.recipientNikNpwp === workspace.corporateTaxpayer.nikNpwp;
+          ? s.recipientNikNpwp === activeTaxpayer.nikNpwp
+          : s.issuerId === activeTaxpayer.id || s.recipientNikNpwp === activeTaxpayer.nikNpwp;
       if (!belongsToAccount) return false;
-      if (mySlipTypeFilter !== 'ALL' && s.slipType !== mySlipTypeFilter) return false;
+      if (mySlipTypeFilter !== 'ALL') {
+        if (mySlipTypeFilter === 'BPNR') {
+          if (s.subMenuKey !== 'bpnr') return false;
+        } else if (mySlipTypeFilter === 'BPPU_23') {
+          if (s.slipType !== 'BPPU_23' || (s.subMenuKey && s.subMenuKey !== 'bppu')) return false;
+        } else if (mySlipTypeFilter === 'BP26') {
+          if (!(s.slipType === 'BP21' && (s.subMenuKey === 'bp26' || s.objectCode.startsWith('27-'))))
+            return false;
+        } else if (mySlipTypeFilter === 'BP21') {
+          if (!(s.slipType === 'BP21' && !s.objectCode.startsWith('27-') && s.subMenuKey !== 'bp26'))
+            return false;
+        } else if (s.slipType !== mySlipTypeFilter) {
+          return false;
+        }
+      }
       if (myMonthFilter !== 'ALL' && String(s.taxPeriodMonth) !== myMonthFilter) return false;
       if (myYearFilter.trim() && String(s.taxPeriodYear) !== myYearFilter.trim()) return false;
+      if (myStatusFilter !== 'ALL') {
+        if (myStatusFilter === 'NORMAL' && s.status !== 'ISSUED') return false;
+        if (myStatusFilter === 'DIBATALKAN' && s.status !== 'CANCELLED') return false;
+      }
       if (myNumFilter.trim() && !s.slipNumber.toLowerCase().includes(myNumFilter.trim().toLowerCase()))
         return false;
       if (
@@ -317,31 +385,83 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
     });
   }, [
     workspace.slips,
-    workspace.individualTaxpayer.nikNpwp,
-    workspace.corporateTaxpayer.id,
-    workspace.corporateTaxpayer.nikNpwp,
+    activeTaxpayer.id,
+    activeTaxpayer.nikNpwp,
     accountMode,
     mySlipTypeFilter,
     myMonthFilter,
     myYearFilter,
+    myStatusFilter,
     myNumFilter,
     myNpwpFilter,
   ]);
 
+  // Strictly isolate eBupot issuance data to the currently active taxpayer account
+  const accountIssuedSlips = useMemo(
+    () => workspace.slips.filter((s) => s.issuerId === activeTaxpayer.id),
+    [workspace.slips, activeTaxpayer.id]
+  );
+
+  const matchesSubTab = (s: WithholdingSlip) => {
+    if (s.slipType !== currentSlipType) return false;
+    if (subTab === 'bp26') return s.subMenuKey === 'bp26' || s.objectCode.startsWith('27-');
+    if (subTab === 'bp21')
+      return s.subMenuKey ? s.subMenuKey === 'bp21' : !s.objectCode.startsWith('27-');
+    if (subTab === 'bpa2') return s.subMenuKey === 'bpa2';
+    if (subTab === 'bpa1') return !s.subMenuKey || s.subMenuKey === 'bpa1';
+    if (currentSlipType === 'BPPU_23') {
+      if (subTab === 'bppu') return !s.subMenuKey || s.subMenuKey === 'bppu';
+      return s.subMenuKey === subTab;
+    }
+    return true;
+  };
+
   // Slips for issuance tabs (Belum Terbit / Telah Terbit / Tidak Valid)
   const visibleSlips = useMemo(() => {
     const targetStatus = statusView === 'INVALID' ? 'CANCELLED' : statusView;
-    return workspace.slips.filter((s) => {
-      if (s.slipType !== currentSlipType || s.status !== targetStatus) return false;
-      if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
-      if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
+    return accountIssuedSlips.filter((s) => {
+      if (s.status !== targetStatus || !matchesSubTab(s)) return false;
+      if (isBpa && bpaStartMonthFilter !== 'ALL' && bpaStartMonthFilter !== 'Januari') return false;
       if (periodMonthFilter !== 'ALL' && String(s.taxPeriodMonth) !== periodMonthFilter) return false;
       if (numFilter.trim() && !s.slipNumber.toLowerCase().includes(numFilter.trim().toLowerCase()))
         return false;
+      if (statusColFilter !== 'ALL') {
+        const sLabel =
+          s.status === 'UNISSUED'
+            ? 'DISIMPAN_TIDAK_VALID'
+            : s.status === 'CANCELLED'
+              ? 'DIBATALKAN'
+              : 'NORMAL';
+        if (statusColFilter !== sLabel) return false;
+      }
+      if (tteFilter.trim()) {
+        const tteVal = s.status === 'ISSUED' ? 'done' : '';
+        if (!tteVal.includes(tteFilter.trim().toLowerCase())) return false;
+      }
+      if (nitkuFilter.trim()) {
+        const nitkuStr = (s.nitku || `${s.issuerNpwp}000000`).toLowerCase();
+        if (!nitkuStr.includes(nitkuFilter.trim().toLowerCase())) return false;
+      }
+      if (taxTypeColFilter.trim()) {
+        const tType = (
+          s.taxType ||
+          (s.objectCode.startsWith('27-')
+            ? 'Pasal 26'
+            : s.slipType === 'BPPU_23'
+              ? 'Pasal 23'
+              : 'Pasal 21')
+        ).toLowerCase();
+        if (!tType.includes(taxTypeColFilter.trim().toLowerCase())) return false;
+      }
       if (
         recipientFilter.trim() &&
         !s.recipientNikNpwp.toLowerCase().includes(recipientFilter.trim().toLowerCase()) &&
         !s.recipientName.toLowerCase().includes(recipientFilter.trim().toLowerCase())
+      )
+        return false;
+      if (
+        nameColFilter.trim() &&
+        !s.recipientName.toLowerCase().includes(nameColFilter.trim().toLowerCase())
       )
         return false;
       if (
@@ -350,40 +470,145 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
         !s.objectName.toLowerCase().includes(objCodeFilter.trim().toLowerCase())
       )
         return false;
+      if (facilityFilter !== 'ALL') {
+        const fac = s.taxFacility || 'Tanpa Fasilitas';
+        if (fac !== facilityFilter) return false;
+      }
+      if (statusView === 'ISSUED') {
+        const matchBool = (filterVal: string, propVal?: boolean) => {
+          if (filterVal === 'ALL') return true;
+          return filterVal === 'TRUE' ? Boolean(propVal) : !propVal;
+        };
+        if (!matchBool(reportedInSptFilter, s.reportedInSpt)) return false;
+        if (!matchBool(inObjectionFilter, s.inObjectionProcess)) return false;
+        if (!matchBool(objectionCompletedFilter, s.objectionCompleted)) return false;
+        if (!matchBool(objectionRejectedFilter, s.objectionRejectedFormal)) return false;
+        if (!matchBool(inRevocationReviewFilter, s.inObjectionRevocationReview)) return false;
+        if (!matchBool(revocationAcceptedFilter, s.objectionRevocationAccepted)) return false;
+        if (!matchBool(inRefundProcessFilter, s.inRefundProcess)) return false;
+      }
       return true;
     });
   }, [
-    workspace.slips,
+    accountIssuedSlips,
     currentSlipType,
     subTab,
     statusView,
+    isBpa,
+    bpaStartMonthFilter,
     periodMonthFilter,
     numFilter,
+    statusColFilter,
+    tteFilter,
+    nitkuFilter,
+    taxTypeColFilter,
     recipientFilter,
+    nameColFilter,
     objCodeFilter,
+    facilityFilter,
+    reportedInSptFilter,
+    inObjectionFilter,
+    objectionCompletedFilter,
+    objectionRejectedFilter,
+    inRevocationReviewFilter,
+    revocationAcceptedFilter,
+    inRefundProcessFilter,
   ]);
 
   const paginatedSlips = visibleSlips.slice((page - 1) * pageSize, page * pageSize);
   const paginatedMySlips = mySlips.slice((page - 1) * pageSize, page * pageSize);
 
-  const unissuedCount = workspace.slips.filter((s) => {
-    if (s.slipType !== currentSlipType || s.status !== 'UNISSUED') return false;
-    if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
-    if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
-    return true;
-  }).length;
-  const issuedCount = workspace.slips.filter((s) => {
-    if (s.slipType !== currentSlipType || s.status !== 'ISSUED') return false;
-    if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
-    if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
-    return true;
-  }).length;
-  const invalidCount = workspace.slips.filter((s) => {
-    if (s.slipType !== currentSlipType || s.status !== 'CANCELLED') return false;
-    if (subTab === 'bp26' && !s.objectCode.startsWith('27-')) return false;
-    if (subTab === 'bp21' && s.objectCode.startsWith('27-')) return false;
-    return true;
-  }).length;
+  // Dokumen Dipersamakan slips (strictly isolated to active taxpayer account)
+  const dokSlips = useMemo(() => {
+    return accountIssuedSlips.filter((s) => {
+      if (s.subMenuKey !== 'dokumen_dipersamakan') return false;
+      const docDate = (s.createdAt || '').slice(0, 10);
+      const cutDate = (s.signedAt || s.createdAt || '').slice(0, 10);
+      const kapVal = s.objectCode.startsWith('28-') ? '411128' : '411124';
+      const nitkuVal = s.nitku || `${s.issuerNpwp}000000`;
+      if (dokNomorFilter.trim() && !s.slipNumber.toLowerCase().includes(dokNomorFilter.trim().toLowerCase()))
+        return false;
+      if (dokTanggalFilter.trim() && !docDate.includes(dokTanggalFilter.trim())) return false;
+      if (dokTglPotongFilter.trim() && !cutDate.includes(dokTglPotongFilter.trim())) return false;
+      if (dokPeriodFilter !== 'ALL' && String(s.taxPeriodMonth) !== dokPeriodFilter) return false;
+      if (dokStatusFilter !== 'ALL') {
+        const st = s.status === 'CANCELLED' ? 'DIBATALKAN' : 'NORMAL';
+        if (st !== dokStatusFilter) return false;
+      }
+      if (dokRateFilter.trim() && !String(s.ratePercent).includes(dokRateFilter.trim())) return false;
+      if (dokFacilityFilter !== 'ALL' && (s.taxFacility || 'Tanpa Fasilitas') !== dokFacilityFilter)
+        return false;
+      if (
+        dokRecipientNpwpFilter.trim() &&
+        !s.recipientNikNpwp.toLowerCase().includes(dokRecipientNpwpFilter.trim().toLowerCase())
+      )
+        return false;
+      if (
+        dokRecipientNameFilter.trim() &&
+        !s.recipientName.toLowerCase().includes(dokRecipientNameFilter.trim().toLowerCase())
+      )
+        return false;
+      if (
+        dokRecipientIncomeNameFilter.trim() &&
+        !s.recipientName.toLowerCase().includes(dokRecipientIncomeNameFilter.trim().toLowerCase())
+      )
+        return false;
+      if (
+        dokIssuerNpwpFilter.trim() &&
+        !s.issuerNpwp.toLowerCase().includes(dokIssuerNpwpFilter.trim().toLowerCase())
+      )
+        return false;
+      if (
+        dokIssuerNameFilter.trim() &&
+        !s.issuerName.toLowerCase().includes(dokIssuerNameFilter.trim().toLowerCase())
+      )
+        return false;
+      if (
+        dokIssuerAccountIdFilter.trim() &&
+        !s.issuerNpwp.toLowerCase().includes(dokIssuerAccountIdFilter.trim().toLowerCase())
+      )
+        return false;
+      if (dokObjCodeFilter.trim() && !s.objectCode.toLowerCase().includes(dokObjCodeFilter.trim().toLowerCase()))
+        return false;
+      if (dokNitkuFilter.trim() && !nitkuVal.toLowerCase().includes(dokNitkuFilter.trim().toLowerCase()))
+        return false;
+      if (dokKapFilter.trim() && !kapVal.includes(dokKapFilter.trim())) return false;
+      return true;
+    });
+  }, [
+    accountIssuedSlips,
+    dokNomorFilter,
+    dokTanggalFilter,
+    dokTglPotongFilter,
+    dokPeriodFilter,
+    dokStatusFilter,
+    dokRateFilter,
+    dokFacilityFilter,
+    dokRecipientNpwpFilter,
+    dokRecipientNameFilter,
+    dokRecipientIncomeNameFilter,
+    dokIssuerNpwpFilter,
+    dokIssuerNameFilter,
+    dokIssuerAccountIdFilter,
+    dokObjCodeFilter,
+    dokNitkuFilter,
+    dokKapFilter,
+  ]);
+  const paginatedDokSlips = dokSlips.slice((page - 1) * pageSize, page * pageSize);
+  const accountDokLogs = useMemo(
+    () => dokUploadLogs.filter((log) => log.taxpayerId === activeTaxpayer.id),
+    [dokUploadLogs, activeTaxpayer.id]
+  );
+
+  const unissuedCount = accountIssuedSlips.filter(
+    (s) => s.status === 'UNISSUED' && matchesSubTab(s)
+  ).length;
+  const issuedCount = accountIssuedSlips.filter(
+    (s) => s.status === 'ISSUED' && matchesSubTab(s)
+  ).length;
+  const invalidCount = accountIssuedSlips.filter(
+    (s) => s.status === 'CANCELLED' && matchesSubTab(s)
+  ).length;
 
   // Live calculation preview for create modal (100% preserves Modul 3 TER / Psl 17 / PPh 23)
   const computeSlipValues = () => {
@@ -542,17 +767,20 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
     }
 
     await onCreateSlip({
-      issuerId: workspace.corporateTaxpayer.id,
-      issuerNpwp: workspace.corporateTaxpayer.nikNpwp,
-      issuerName: workspace.corporateTaxpayer.name,
+      issuerId: activeTaxpayer.id,
+      issuerNpwp: activeTaxpayer.nikNpwp,
+      issuerName: activeTaxpayer.name,
       recipientNikNpwp: recipientNik,
       recipientName,
       slipType: currentSlipType,
-      slipNumber: `DRAFT-${currentSlipType}-${workspace.slips.length + 1}`,
+      subMenuKey: subTab,
+      slipNumber: `DRAFT-${subTab.toUpperCase()}-${workspace.slips.length + 1}`,
       taxPeriodMonth: currentSlipType === 'BPA1' ? 12 : month,
       taxPeriodYear: year,
       objectCode: calc.objectCode,
       objectName: calc.objectName,
+      taxType: 'taxType' in calc ? calc.taxType : subTab === 'bpnr' ? 'Pasal 26' : undefined,
+      taxFacility: taxFacility === 'N/A' ? 'Tanpa Fasilitas' : taxFacility,
       ptkpStatus: ptkp,
       grossAmount,
       positionAllowance: calc.positionAllowance,
@@ -588,14 +816,133 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadDokFormat = () => {
+    const sampleXml = `<?xml version="1.0" encoding="UTF-8"?>
+<DokumenDipersamakanUnifikasi>
+  <Dokumen>
+    <NomorDokumen>DOC-UNI-${new Date().getFullYear()}-0001</NomorDokumen>
+    <MasaPajak>11</MasaPajak>
+    <TahunPajak>2026</TahunPajak>
+    <NPWPPenerima>${activeTaxpayer.nikNpwp}</NPWPPenerima>
+    <NamaPenerima>${activeTaxpayer.name}</NamaPenerima>
+    <KodeObjekPajak>24-104-29</KodeObjekPajak>
+    <DPP>10000000</DPP>
+    <Tarif>2</Tarif>
+    <PPh>200000</PPh>
+  </Dokumen>
+</DokumenDipersamakanUnifikasi>`;
+    const blob = new Blob([sampleXml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Format_Dokumen_Dipersamakan_PPh_Unifikasi.xml';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUploadDokFile = async () => {
+    if (!dokChosenFile) {
+      setSubmitBanner('Pilih berkas format standar terlebih dahulu melalui tombol + Choose.');
+      return;
+    }
+    try {
+      const rawText = await dokChosenFile.text();
+      const docMatches = [...rawText.matchAll(/<Dokumen>([\s\S]*?)<\/Dokumen>/gi)];
+      const getTag = (block: string, tag: string, fallback: string) => {
+        const m = block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+        return m ? m[1].trim() : fallback;
+      };
+      let imported = 0;
+      if (docMatches.length > 0) {
+        for (const m of docMatches) {
+          const block = m[1];
+          const nomor = getTag(block, 'NomorDokumen', `DOC-UNI-${Date.now()}-${imported + 1}`);
+          const masa = Number(getTag(block, 'MasaPajak', '11')) || 11;
+          const tahun = Number(getTag(block, 'TahunPajak', '2026')) || 2026;
+          const npwpPen = getTag(block, 'NPWPPenerima', activeTaxpayer.nikNpwp);
+          const namaPen = getTag(block, 'NamaPenerima', activeTaxpayer.name);
+          const objCode = getTag(block, 'KodeObjekPajak', '24-104-29');
+          const dpp = Number(getTag(block, 'DPP', '10000000')) || 10000000;
+          const rate = Number(getTag(block, 'Tarif', '2')) || 2;
+          const tax = Number(getTag(block, 'PPh', String(Math.round((dpp * rate) / 100)))) || Math.round((dpp * rate) / 100);
+          await onCreateSlip({
+            issuerId: activeTaxpayer.id,
+            issuerNpwp: activeTaxpayer.nikNpwp,
+            issuerName: activeTaxpayer.name,
+            recipientNikNpwp: npwpPen,
+            recipientName: namaPen,
+            slipType: 'BPPU_23',
+            subMenuKey: 'dokumen_dipersamakan',
+            slipNumber: nomor,
+            taxPeriodMonth: masa,
+            taxPeriodYear: tahun,
+            objectCode: objCode,
+            objectName: 'Dokumen yang Dipersamakan dengan Bukti Pemotongan/Pemungutan',
+            taxType: objCode.startsWith('28-') ? 'Pasal 4 ayat (2)' : 'Pasal 23',
+            taxFacility: 'Tanpa Fasilitas',
+            ptkpStatus: 'TK/0',
+            grossAmount: dpp,
+            netAmount: dpp,
+            ratePercent: rate,
+            taxWithheld: tax,
+          });
+          imported += 1;
+        }
+      } else {
+        await onCreateSlip({
+          issuerId: activeTaxpayer.id,
+          issuerNpwp: activeTaxpayer.nikNpwp,
+          issuerName: activeTaxpayer.name,
+          recipientNikNpwp: activeTaxpayer.nikNpwp,
+          recipientName: activeTaxpayer.name,
+          slipType: 'BPPU_23',
+          subMenuKey: 'dokumen_dipersamakan',
+          slipNumber: `DOC-UNI-${new Date().getFullYear()}-${String(dokSlips.length + 1).padStart(4, '0')}`,
+          taxPeriodMonth: 11,
+          taxPeriodYear: 2026,
+          objectCode: '24-104-29',
+          objectName: `Dokumen Dipersamakan (${dokChosenFile.name})`,
+          taxType: 'Pasal 23',
+          taxFacility: 'Tanpa Fasilitas',
+          ptkpStatus: 'TK/0',
+          grossAmount: 10000000,
+          netAmount: 10000000,
+          ratePercent: 2,
+          taxWithheld: 200000,
+        });
+        imported = 1;
+      }
+
+      setDokUploadLogs((prev) => [
+        {
+          id: `XML-${Date.now()}`,
+          taxpayerId: activeTaxpayer.id,
+          fileName: dokChosenFile.name,
+          uploadedAt: new Date().toLocaleString('id-ID'),
+          count: imported,
+          status: 'SUKSES',
+        },
+        ...prev,
+      ]);
+      setSubmitBanner(
+        `Berhasil mengunggah ${imported} Dokumen Dipersamakan dari berkas "${dokChosenFile.name}".`
+      );
+      setDokChosenFile(null);
+      if (dokFileInputRef.current) dokFileInputRef.current.value = '';
+    } catch {
+      setSubmitBanner('Gagal memproses berkas unggahan. Pastikan format XML sesuai standar.');
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) {
-      alert('Pilih bukti potong terlebih dahulu untuk dihapus.');
+      setSubmitBanner('Pilih bukti potong terlebih dahulu untuk dihapus.');
       return;
     }
     for (const id of selectedIds) {
       await onDeleteSlip(id);
     }
+    setSubmitBanner(`${selectedIds.length} bukti potong berhasil dihapus.`);
     setSelectedIds([]);
   };
 
@@ -616,7 +963,35 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
       ? 'NOT ISSUED'
       : statusView === 'ISSUED'
         ? 'ISSUED'
-        : 'INVALID';
+        : 'TIDAK VALID';
+
+  const isSelfOrLumpSum = subTab === 'penyetoran_sendiri' || subTab === 'digunggung';
+  const showCheckboxCol = statusView !== 'INVALID';
+  const showActionCol = true;
+  const showTteCol = subTab !== 'bpmp' && !isSelfOrLumpSum && statusView !== 'INVALID';
+  const showRecipientCols = !isSelfOrLumpSum;
+  const showFacilityCol = subTab !== 'bpa2';
+  const showIssuedExtraCols = statusView === 'ISSUED';
+  const showObjectionCols = showIssuedExtraCols && !isSelfOrLumpSum && subTab !== 'bpmp';
+  const showRefundCol = showIssuedExtraCols && (subTab === 'bppu' || subTab === 'bpnr');
+  const totalTableCols =
+    (showCheckboxCol ? 1 : 0) +
+    (showActionCol ? 1 : 0) +
+    (isBpa ? 2 : 1) +
+    1 +
+    1 +
+    (showTteCol ? 1 : 0) +
+    1 +
+    1 +
+    1 +
+    (showRecipientCols ? 2 : 0) +
+    1 +
+    1 +
+    (isBpa ? 1 : 0) +
+    (showFacilityCol ? 1 : 0) +
+    (showIssuedExtraCols ? 3 : 0) +
+    (showObjectionCols ? 5 : 0) +
+    (showRefundCol ? 1 : 0);
 
   return (
     <div className="space-y-4">
@@ -643,56 +1018,74 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
           </p>
         </div>
       ) : subTab === 'bukti_potong_saya' ? (
-        <div className="space-y-4">
-          <h1 className="font-display font-bold text-[20px] text-[#1E2C5E] text-center">
+        <div className="bg-white border border-[#E2E8F0] rounded-[8px] p-5 space-y-4">
+          <h1 className="font-display font-medium text-[22px] text-[#1D2B53] text-center">
             Bukti Potong Saya
           </h1>
 
           {/* Official Coretax Filter Form Card */}
-          <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-5 space-y-3 text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-12 items-center gap-3">
-              <label className="md:col-span-3 font-medium text-slate-700">
-                Jenis Bukti Potong <span className="text-red-500">*</span>
+          <div className="bg-white border border-[#D8E1EC] rounded-[6px] px-5 py-4 space-y-2.5 text-[12px]">
+            {/* Row 1: Jenis Bukti Potong * + Cari */}
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="w-full sm:w-[155px] font-medium text-slate-600 shrink-0">
+                Jenis Bukti Potong <span className="text-slate-500">*</span>
               </label>
-              <div className="md:col-span-6">
+              <div className="relative flex-1 min-w-[220px] max-w-[440px]">
                 <select
                   value={mySlipTypeFilter}
                   onChange={(e) => {
                     setMySlipTypeFilter(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 bg-white text-slate-800 focus:outline-none focus:border-[#1E2C5E]"
+                  className="w-full appearance-none border border-[#CBD5E1] rounded-[4px] pl-3 pr-14 py-1.5 bg-white text-slate-700 focus:outline-none focus:border-[#102558]"
                 >
-                  <option value="ALL">Semua Jenis Bukti Potong (BPPU, BPMP, BP21, BPA1)</option>
-                  <option value="BPPU_23">BPPU (PPh 23 Unifikasi)</option>
+                  <option value="ALL">Semua Jenis Bukti Potong</option>
+                  <option value="BPPU_23">BPPU</option>
+                  <option value="BPNR">BPNR</option>
                   <option value="BPMP">BPMP (Bulanan Pegawai Tetap)</option>
-                  <option value="BP21">BP 21 (Selain Pegawai Tetap)</option>
-                  <option value="BPA1">BP A1 (Masa Pajak Terakhir / Tahunan)</option>
+                  <option value="BP21">BP 21</option>
+                  <option value="BP26">BP 26</option>
+                  <option value="BPA1">BP A1</option>
                 </select>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  {mySlipTypeFilter !== 'ALL' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMySlipTypeFilter('ALL');
+                        setPage(1);
+                      }}
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                      title="Hapus pilihan jenis bukti potong"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                </div>
               </div>
-              <div className="md:col-span-3">
-                <button
-                  type="button"
-                  onClick={() => setPage(1)}
-                  className="bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold px-5 py-2 rounded-[6px] transition cursor-pointer"
-                >
-                  Cari
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setPage(1)}
+                className="bg-[#102558] hover:bg-[#0B1B42] text-white font-semibold text-[12px] px-4 py-1.5 rounded-[4px] transition cursor-pointer"
+              >
+                Cari
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 items-center gap-3">
-              <label className="md:col-span-3 font-medium text-slate-700">
-                Masa Pajak <span className="text-red-500">*</span>
+            {/* Row 2: Masa Pajak * */}
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="w-full sm:w-[155px] font-medium text-slate-600 shrink-0">
+                Masa Pajak <span className="text-slate-500">*</span>
               </label>
-              <div className="md:col-span-3">
+              <div className="relative w-[135px]">
                 <select
                   value={myMonthFilter}
                   onChange={(e) => {
                     setMyMonthFilter(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 bg-white text-slate-800 focus:outline-none focus:border-[#1E2C5E]"
+                  className="w-full appearance-none border border-[#CBD5E1] rounded-[4px] pl-3 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:border-[#102558]"
                 >
                   <option value="ALL">Semua Masa</option>
                   {MONTHS_ID.map((m, idx) => (
@@ -701,14 +1094,16 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                     </option>
                   ))}
                 </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 items-center gap-3">
-              <label className="md:col-span-3 font-medium text-slate-700">
-                Tahun Pajak <span className="text-red-500">*</span>
+            {/* Row 3: Tahun Pajak * */}
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="w-full sm:w-[155px] font-medium text-slate-600 shrink-0">
+                Tahun Pajak <span className="text-slate-500">*</span>
               </label>
-              <div className="md:col-span-3">
+              <div className="inline-flex items-stretch">
                 <input
                   type="text"
                   value={myYearFilter}
@@ -716,9 +1111,31 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                     setMyYearFilter(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="2025"
-                  className="w-full border border-[#CBD5E1] rounded-[6px] px-3 py-2 font-mono-num text-slate-800 focus:outline-none focus:border-[#1E2C5E]"
+                  placeholder="2026"
+                  className="w-[175px] border border-[#CBD5E1] rounded-l-[4px] px-3 py-1.5 font-mono-num text-slate-700 focus:outline-none focus:border-[#102558]"
                 />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMyYearFilter((prev) => (prev ? prev : '2026'));
+                    setPage(1);
+                  }}
+                  className="bg-[#102558] hover:bg-[#0B1B42] text-white px-2.5 flex items-center justify-center cursor-pointer transition"
+                  title="Pilih Tahun Pajak"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMyYearFilter('');
+                    setPage(1);
+                  }}
+                  className="bg-[#547582] hover:bg-[#43606B] text-white px-2.5 rounded-r-[4px] flex items-center justify-center cursor-pointer transition"
+                  title="Hapus Tahun Pajak"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </div>
@@ -728,7 +1145,8 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
             onRefresh={() => {
               setMySlipTypeFilter('ALL');
               setMyMonthFilter('ALL');
-              setMyYearFilter('2025');
+              setMyYearFilter('');
+              setMyStatusFilter('ALL');
               setMyNumFilter('');
               setMyNpwpFilter('');
               setPage(1);
@@ -736,14 +1154,27 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
             onExportCsv={() =>
               downloadCsvFile(
                 `Bukti_Potong_Saya_${activeTaxpayer.nikNpwp}.csv`,
-                ['Masa Pajak', 'Nomor Pemotongan', 'Status', 'NPWP Pemotong', 'Nama Pemotong', 'Kode Objek', 'DPP', 'PPh Dipotong'],
+                [
+                  'Masa Pajak',
+                  'Nomor Pemotongan',
+                  'Status',
+                  'NPWP Pemotong',
+                  'Nama Pemotong',
+                  'Kode Objek Pajak',
+                  'Jenis Pajak',
+                  'Sifat Pajak Penghasilan',
+                  'Dasar Pengenaan Pajak (Rp)',
+                  'Pajak Penghasilan (Rp)',
+                ],
                 mySlips.map((s) => [
                   `${MONTHS_ID[Math.max(0, s.taxPeriodMonth - 1)]} ${s.taxPeriodYear}`,
                   s.slipNumber,
-                  s.status,
+                  s.status === 'CANCELLED' ? 'Dibatalkan' : 'Normal',
                   s.issuerNpwp,
                   s.issuerName,
                   s.objectCode,
+                  s.taxType || (s.objectCode.startsWith('27-') ? 'Pasal 26' : s.slipType === 'BPPU_23' ? 'Pasal 23' : 'Pasal 21'),
+                  s.objectCode.startsWith('28-') ? 'Final' : 'Tidak Final',
                   s.grossAmount,
                   s.taxWithheld,
                 ])
@@ -752,14 +1183,27 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
             onExportExcel={() =>
               downloadCsvFile(
                 `Bukti_Potong_Saya_${activeTaxpayer.nikNpwp}.csv`,
-                ['Masa Pajak', 'Nomor Pemotongan', 'Status', 'NPWP Pemotong', 'Nama Pemotong', 'Kode Objek', 'DPP', 'PPh Dipotong'],
+                [
+                  'Masa Pajak',
+                  'Nomor Pemotongan',
+                  'Status',
+                  'NPWP Pemotong',
+                  'Nama Pemotong',
+                  'Kode Objek Pajak',
+                  'Jenis Pajak',
+                  'Sifat Pajak Penghasilan',
+                  'Dasar Pengenaan Pajak (Rp)',
+                  'Pajak Penghasilan (Rp)',
+                ],
                 mySlips.map((s) => [
                   `${MONTHS_ID[Math.max(0, s.taxPeriodMonth - 1)]} ${s.taxPeriodYear}`,
                   s.slipNumber,
-                  s.status,
+                  s.status === 'CANCELLED' ? 'Dibatalkan' : 'Normal',
                   s.issuerNpwp,
                   s.issuerName,
                   s.objectCode,
+                  s.taxType || (s.objectCode.startsWith('27-') ? 'Pasal 26' : s.slipType === 'BPPU_23' ? 'Pasal 23' : 'Pasal 21'),
+                  s.objectCode.startsWith('28-') ? 'Final' : 'Tidak Final',
                   s.grossAmount,
                   s.taxWithheld,
                 ])
@@ -770,13 +1214,13 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
             filterActive={showFilters}
           />
 
-          {/* Official Golden-Yellow Coretax Table */}
+          {/* Official Golden-Yellow Coretax Table (11 Exact Columns) */}
           <div className="border border-[#E2E8F0] rounded-[8px] overflow-hidden bg-white">
             <div className="overflow-x-auto">
               <table className="w-full text-[11.5px] border-collapse">
                 <thead>
                   <tr className="bg-[#FCD34D] text-[#1E293B] font-bold border-b border-[#EAB308]/40">
-                    <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">Aksi</th>
+                    <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 w-10" />
                     <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                       <span className="inline-flex items-center gap-1">
                         Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
@@ -787,26 +1231,43 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         Nomor Pemotongan <ArrowUpDown className="w-3 h-3 opacity-60" />
                       </span>
                     </th>
-                    <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">Status</th>
+                    <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                      Status
+                    </th>
                     <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                       <span className="inline-flex items-center gap-1">
                         NPWP Pemotong <ArrowUpDown className="w-3 h-3 opacity-60" />
                       </span>
                     </th>
                     <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                      Nama Pemotong
+                      <span className="inline-flex items-center gap-1">
+                        Nama Pemotong <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
                     </th>
                     <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                      Kode Objek Pajak
+                      <span className="inline-flex items-center gap-1">
+                        Kode Objek Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
                     </th>
                     <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                      Jenis Pajak
+                      <span className="inline-flex items-center gap-1">
+                        Jenis Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
+                    </th>
+                    <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                      <span className="inline-flex items-center gap-1">
+                        Sifat Pajak Penghasilan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
                     </th>
                     <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                      Dasar Pengenaan Pajak (Rp)
+                      <span className="inline-flex items-center gap-1">
+                        Dasar Pengenaan Pajak (Rp) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
                     </th>
                     <th className="px-3 py-2.5 text-right whitespace-nowrap">
-                      PPh Dipotong (Rp)
+                      <span className="inline-flex items-center gap-1">
+                        Pajak Penghasilan (Rp) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      </span>
                     </th>
                   </tr>
                   {showFilters && (
@@ -822,13 +1283,26 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               setMyNumFilter(e.target.value);
                               setPage(1);
                             }}
-                            placeholder="Nomor..."
-                            className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal"
+                            placeholder=""
+                            className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#102558]"
                           />
                           <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                         </div>
                       </th>
-                      <th className="px-2 py-2 border-r border-slate-100" />
+                      <th className="px-2 py-2 border-r border-slate-100">
+                        <select
+                          value={myStatusFilter}
+                          onChange={(e) => {
+                            setMyStatusFilter(e.target.value);
+                            setPage(1);
+                          }}
+                          className="w-full min-w-[115px] border border-[#CBD5E1] bg-white rounded-[5px] px-1.5 py-1 text-[11px] font-normal text-slate-600 focus:outline-none focus:border-[#102558]"
+                        >
+                          <option value="ALL">Pilih Status</option>
+                          <option value="NORMAL">Normal</option>
+                          <option value="DIBATALKAN">Dibatalkan</option>
+                        </select>
+                      </th>
                       <th className="px-2 py-2 border-r border-slate-100">
                         <div className="flex items-center gap-1">
                           <input
@@ -838,70 +1312,94 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               setMyNpwpFilter(e.target.value);
                               setPage(1);
                             }}
-                            placeholder="NPWP/Nama..."
-                            className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal"
+                            placeholder=""
+                            className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[5px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#102558]"
                           />
                           <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                         </div>
                       </th>
-                      <th colSpan={5} className="px-2 py-2" />
+                      <th className="px-2 py-2 border-r border-slate-100" />
+                      <th className="px-2 py-2 border-r border-slate-100" />
+                      <th className="px-2 py-2 border-r border-slate-100" />
+                      <th className="px-2 py-2 border-r border-slate-100" />
+                      <th className="px-2 py-2 border-r border-slate-100" />
+                      <th className="px-2 py-2" />
                     </tr>
                   )}
                 </thead>
                 <tbody className="divide-y divide-[#EEF2F6]">
                   {paginatedMySlips.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-4 py-8 text-left text-slate-500">
+                      <td colSpan={11} className="px-4 py-8 text-left text-slate-500">
                         Tidak ada data yang ditemukan.
                       </td>
                     </tr>
                   ) : (
-                    paginatedMySlips.map((slip) => (
-                      <tr key={slip.id} className="hover:bg-[#F8FAFC]">
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => onPrintDocument({ type: 'BPA1', slip })}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-[4px] border border-[#CBD5E1] bg-white hover:bg-[#1E2C5E] hover:text-white text-[#1E2C5E] font-semibold text-[11px] transition cursor-pointer"
-                              title="Lihat Bukti Potong"
-                            >
-                              <Eye className="w-3 h-3" />
-                              <span>Lihat</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => downloadBuktiPotongPdf(slip, workspace.corporateTaxpayer)}
-                              className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                              title="Download Bukti Potong (PDF Resmi)"
-                            >
-                              <FileText className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
-                        </td>
-                        <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
-                          {slip.slipNumber}
-                        </td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px]">
-                            TERBIT
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{slip.issuerNpwp}</td>
-                        <td className="px-3 py-2.5 font-semibold whitespace-nowrap">{slip.issuerName}</td>
-                        <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{slip.objectCode}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">{slip.slipType}</td>
-                        <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
-                          {formatRp(slip.grossAmount)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
-                          {formatRp(slip.taxWithheld)}
-                        </td>
-                      </tr>
-                    ))
+                    paginatedMySlips.map((slip) => {
+                      const derivedTaxType =
+                        slip.taxType ||
+                        (slip.objectCode.startsWith('27-')
+                          ? 'Pasal 26'
+                          : slip.slipType === 'BPPU_23'
+                            ? 'Pasal 23'
+                            : 'Pasal 21');
+                      const derivedNature = slip.objectCode.startsWith('28-')
+                        ? 'Final'
+                        : 'Tidak Final';
+                      return (
+                        <tr key={slip.id} className="hover:bg-[#F8FAFC]">
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => onPrintDocument({ type: 'BPA1', slip })}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-[4px] border border-[#CBD5E1] bg-white hover:bg-[#1E2C5E] hover:text-white text-[#1E2C5E] font-semibold text-[11px] transition cursor-pointer"
+                                title="Lihat Bukti Potong"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>Lihat</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => downloadBuktiPotongPdf(slip, workspace.corporateTaxpayer)}
+                                className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                title="Download Bukti Potong (PDF Resmi)"
+                              >
+                                <FileText className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
+                          </td>
+                          <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                            {slip.slipNumber}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            {slip.status === 'CANCELLED' ? (
+                              <span className="px-2 py-0.5 rounded bg-red-50 border border-red-200 text-red-700 font-bold text-[10px]">
+                                Dibatalkan
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px]">
+                                Normal
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{slip.issuerNpwp}</td>
+                          <td className="px-3 py-2.5 font-semibold whitespace-nowrap">{slip.issuerName}</td>
+                          <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{slip.objectCode}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">{derivedTaxType}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">{derivedNature}</td>
+                          <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                            {formatRp(slip.grossAmount)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                            {formatRp(slip.taxWithheld)}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1003,6 +1501,816 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                 <Upload className="w-3.5 h-3.5 text-[#F4C430]" />
                 <span>Validasi &amp; Impor XML Sekarang</span>
               </button>
+            </div>
+          </div>
+        </div>
+      ) : subTab === 'dokumen_dipersamakan' ? (
+        /* =================================================================== */
+        /* VIEW B2: DOKUMEN YANG DIPERSAMAKAN (FULL-WIDTH CORETAX UPLOAD UI)   */
+        /* =================================================================== */
+        <div className="bg-white border border-[#E2E8F0] rounded-[8px] overflow-hidden shadow-xs">
+          {submitBanner && (
+            <div className="mx-5 mt-4 bg-[#D8F1FD] border border-[#9CDDFB] text-[#0E4A6B] px-4 py-2.5 rounded text-xs flex items-center justify-between gap-2">
+              <span className="font-medium">{submitBanner}</span>
+              <button
+                type="button"
+                onClick={() => setSubmitBanner(null)}
+                className="font-bold underline cursor-pointer shrink-0"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
+
+          {/* Header Row: 2-line Official Title + 3 Exact Buttons */}
+          <div className="px-5 py-4 border-b border-[#E5EAF2] flex flex-wrap items-center justify-between gap-3">
+            <h1 className="font-display font-semibold text-[15px] leading-snug text-[#1E293B] uppercase tracking-tight">
+              UNGGAH DOKUMEN YANG DIPERSAMAKAN DENGAN BUKTI PEMOTONGAN
+              <br />
+              DAN/ATAU PEMUNGUTAN PPh UNIFIKASI BERFORMAT STANDAR
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleDownloadDokFormat}
+                className="inline-flex items-center gap-1.5 bg-[#0D2357] hover:bg-[#091A42] text-white font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Format Data</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedIds.length === 0) {
+                    setSubmitBanner('Pilih dokumen terlebih dahulu untuk dibatalkan.');
+                    return;
+                  }
+                  setCancelSignOpen(true);
+                }}
+                className={`inline-flex items-center gap-1.5 font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap ${
+                  selectedIds.length > 0
+                    ? 'bg-[#DC5353] hover:bg-[#C64242] text-white'
+                    : 'bg-[#BDBDBD] hover:bg-[#A6A6A6] text-white'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Batal{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDokXmlMonitoringOpen((p) => !p)}
+                className="inline-flex items-center gap-1.5 bg-[#6B7280] hover:bg-[#525A66] text-white font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap"
+              >
+                <Info className="w-3.5 h-3.5" />
+                <span>XML Monitoring</span>
+              </button>
+            </div>
+          </div>
+
+          {/* XML Monitoring Collapsible Panel (Scoped to Active Account) */}
+          {dokXmlMonitoringOpen && (
+            <div className="mx-5 mt-4 border border-[#DCE2EC] rounded-[6px] bg-[#F8FAFC] p-4 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <strong className="text-[#1E2C5E]">
+                  XML Monitoring — {activeTaxpayer.name} ({activeTaxpayer.nikNpwp})
+                </strong>
+                <button
+                  type="button"
+                  onClick={() => setDokXmlMonitoringOpen(false)}
+                  className="text-slate-500 hover:text-slate-700 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {accountDokLogs.length === 0 ? (
+                <p className="text-slate-500">Belum ada riwayat unggahan XML pada akun ini.</p>
+              ) : (
+                <div className="overflow-x-auto bg-white border border-[#E2E8F0] rounded">
+                  <table className="w-full text-[11px]">
+                    <thead className="bg-slate-100 text-slate-700">
+                      <tr>
+                        <th className="px-3 py-1.5 text-left">Batch ID</th>
+                        <th className="px-3 py-1.5 text-left">Nama File</th>
+                        <th className="px-3 py-1.5 text-left">Waktu Unggah</th>
+                        <th className="px-3 py-1.5 text-right">Jumlah Data</th>
+                        <th className="px-3 py-1.5 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {accountDokLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td className="px-3 py-1.5 font-mono-num">{log.id}</td>
+                          <td className="px-3 py-1.5 font-medium">{log.fileName}</td>
+                          <td className="px-3 py-1.5">{log.uploadedAt}</td>
+                          <td className="px-3 py-1.5 text-right font-mono-num">{log.count}</td>
+                          <td className="px-3 py-1.5 text-center">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[10px]">
+                              {log.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PrimeNG-style File Upload Box (+ Choose, Upload, Cancel) */}
+          <div className="px-5 pt-4 pb-3">
+            <div className="border border-[#DCE2EC] rounded-[4px] overflow-hidden">
+              <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-3 py-2.5 flex flex-wrap items-center gap-2">
+                <input
+                  ref={dokFileInputRef}
+                  type="file"
+                  accept=".xml,.csv,text/xml,text/csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setDokChosenFile(f);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => dokFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 bg-[#0D2357] hover:bg-[#091A42] text-white font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Choose</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUploadDokFile}
+                  className={`inline-flex items-center gap-1.5 font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer ${
+                    dokChosenFile
+                      ? 'bg-[#0D2357] hover:bg-[#091A42] text-white'
+                      : 'bg-[#6C7A96] hover:bg-[#5B6882] text-white'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDokChosenFile(null);
+                    if (dokFileInputRef.current) dokFileInputRef.current.value = '';
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-[#6C7A96] hover:bg-[#5B6882] text-white font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Cancel</span>
+                </button>
+              </div>
+              <div className="min-h-[48px] bg-white px-4 py-3 flex items-center text-xs text-slate-600">
+                {dokChosenFile ? (
+                  <div className="flex items-center justify-between w-full gap-3">
+                    <div className="flex items-center gap-2">
+                      <FileCode2 className="w-4 h-4 text-[#0D2357]" />
+                      <span className="font-semibold text-slate-800">{dokChosenFile.name}</span>
+                      <span className="text-[11px] text-slate-400">
+                        ({(dokChosenFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 font-semibold text-[10px]">
+                      Siap diunggah
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {/* Icon Toolbar */}
+          <div className="px-5">
+            <CoretaxIconToolbar
+              onRefresh={() => {
+                setDokNomorFilter('');
+                setDokTanggalFilter('');
+                setDokTglPotongFilter('');
+                setDokPeriodFilter('ALL');
+                setDokStatusFilter('ALL');
+                setDokRateFilter('');
+                setDokFacilityFilter('ALL');
+                setDokRecipientNpwpFilter('');
+                setDokRecipientNameFilter('');
+                setDokRecipientIncomeNameFilter('');
+                setDokIssuerNpwpFilter('');
+                setDokIssuerNameFilter('');
+                setDokIssuerAccountIdFilter('');
+                setDokObjCodeFilter('');
+                setDokNitkuFilter('');
+                setDokKapFilter('');
+                setSelectedIds([]);
+                setPage(1);
+              }}
+              onExportCsv={() =>
+                downloadCsvFile(
+                  `Dokumen_Dipersamakan_${activeTaxpayer.nikNpwp}.csv`,
+                  [
+                    'Nomor Dokumen',
+                    'Tanggal Dokumen',
+                    'Tanggal Pemotongan',
+                    'Masa Pajak',
+                    'Status',
+                    'Dasar Pengenaan Pajak (Rp)',
+                    'Tingkat (%)',
+                    'Pajak Penghasilan (Rp)',
+                    'Fasilitas Pajak',
+                    'NPWP / NIK Penerima Penghasilan',
+                    'Nama Penerima',
+                    'Nama Penerima Penghasilan',
+                    'NPWP Pemberi Penghasilan',
+                    'Nama Pemberi Penghasilan',
+                    'Identitas Akun PemberiPenghasilan',
+                    'Kode Objek Pajak',
+                    'NITKU/Nomor Identitas Sub Unit Organisasi',
+                    'KAP',
+                  ],
+                  dokSlips.map((s) => [
+                    s.slipNumber,
+                    (s.createdAt || '').slice(0, 10),
+                    (s.signedAt || s.createdAt || '').slice(0, 10),
+                    `${MONTHS_ID[Math.max(0, s.taxPeriodMonth - 1)]} ${s.taxPeriodYear}`,
+                    s.status === 'CANCELLED' ? 'Dibatalkan' : 'Normal',
+                    s.grossAmount,
+                    s.ratePercent,
+                    s.taxWithheld,
+                    s.taxFacility || 'Tanpa Fasilitas',
+                    s.recipientNikNpwp,
+                    s.recipientName,
+                    s.recipientName,
+                    s.issuerNpwp,
+                    s.issuerName,
+                    s.issuerNpwp,
+                    s.objectCode,
+                    s.nitku || `${s.issuerNpwp}000000`,
+                    s.objectCode.startsWith('28-') ? '411128' : '411124',
+                  ])
+                )
+              }
+              onExportExcel={() =>
+                downloadCsvFile(
+                  `Dokumen_Dipersamakan_${activeTaxpayer.nikNpwp}.csv`,
+                  [
+                    'Nomor Dokumen',
+                    'Tanggal Dokumen',
+                    'Tanggal Pemotongan',
+                    'Masa Pajak',
+                    'Status',
+                    'Dasar Pengenaan Pajak (Rp)',
+                    'Tingkat (%)',
+                    'Pajak Penghasilan (Rp)',
+                    'Fasilitas Pajak',
+                    'NPWP / NIK Penerima Penghasilan',
+                    'Nama Penerima',
+                    'Nama Penerima Penghasilan',
+                    'NPWP Pemberi Penghasilan',
+                    'Nama Pemberi Penghasilan',
+                    'Identitas Akun PemberiPenghasilan',
+                    'Kode Objek Pajak',
+                    'NITKU/Nomor Identitas Sub Unit Organisasi',
+                    'KAP',
+                  ],
+                  dokSlips.map((s) => [
+                    s.slipNumber,
+                    (s.createdAt || '').slice(0, 10),
+                    (s.signedAt || s.createdAt || '').slice(0, 10),
+                    `${MONTHS_ID[Math.max(0, s.taxPeriodMonth - 1)]} ${s.taxPeriodYear}`,
+                    s.status === 'CANCELLED' ? 'Dibatalkan' : 'Normal',
+                    s.grossAmount,
+                    s.ratePercent,
+                    s.taxWithheld,
+                    s.taxFacility || 'Tanpa Fasilitas',
+                    s.recipientNikNpwp,
+                    s.recipientName,
+                    s.recipientName,
+                    s.issuerNpwp,
+                    s.issuerName,
+                    s.issuerNpwp,
+                    s.objectCode,
+                    s.nitku || `${s.issuerNpwp}000000`,
+                    s.objectCode.startsWith('28-') ? '411128' : '411124',
+                  ])
+                )
+              }
+              onPrintPdf={() => window.print()}
+              onToggleFilter={() => setShowFilters((p) => !p)}
+              filterActive={showFilters}
+            />
+          </div>
+
+          {/* Official 20-Column Golden-Yellow Table */}
+          <div className="px-5 pb-4">
+            <div className="border border-[#E2E8F0] rounded-[8px] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead>
+                    <tr className="bg-[#FCD34D] text-[#1E293B] font-bold border-b border-[#EAB308]/40">
+                      <th className="px-2.5 py-2.5 w-9 text-center border-r border-white/50 sticky left-0 bg-[#FCD34D] z-10">
+                        {!showFilters && (
+                          <input
+                            type="checkbox"
+                            checked={
+                              paginatedDokSlips.length > 0 &&
+                              selectedIds.length === paginatedDokSlips.length
+                            }
+                            onChange={() => {
+                              if (
+                                selectedIds.length === paginatedDokSlips.length &&
+                                paginatedDokSlips.length > 0
+                              ) {
+                                setSelectedIds([]);
+                              } else {
+                                setSelectedIds(paginatedDokSlips.map((s) => s.id));
+                              }
+                            }}
+                          />
+                        )}
+                      </th>
+                      <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky left-9 bg-[#FCD34D] z-10 w-10" />
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          Nomor Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          Tanggal Dokumen <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          Tanggal Pemotongan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          Masa Pajak <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        Status
+                      </th>
+                      <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                        Dasar Pengenaan Pajak (Rp)
+                      </th>
+                      <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          Tingkat (%) <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                        Pajak Penghasilan (Rp)
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        Fasilitas Pajak
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          NPWP / NIK Penerima Penghasilan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        Nama Penerima
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          Nama Penerima Penghasilan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          NPWP Pemberi Penghasilan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        Nama Pemberi Penghasilan
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          Identitas Akun PemberiPenghasilan <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        Kode Objek Pajak
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        <span className="inline-flex items-center gap-1">
+                          NITKU/Nomor Identitas Sub Unit Organisasi <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                      <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          KAP <ArrowUpDown className="w-3 h-3 opacity-60" />
+                        </span>
+                      </th>
+                    </tr>
+
+                    {showFilters && (
+                      <tr className="bg-white border-b border-[#E2E8F0]">
+                        <th className="px-2 py-2 text-center border-r border-slate-100 sticky left-0 bg-white z-10">
+                          <input
+                            type="checkbox"
+                            checked={
+                              paginatedDokSlips.length > 0 &&
+                              selectedIds.length === paginatedDokSlips.length
+                            }
+                            onChange={() => {
+                              if (
+                                selectedIds.length === paginatedDokSlips.length &&
+                                paginatedDokSlips.length > 0
+                              ) {
+                                setSelectedIds([]);
+                              } else {
+                                setSelectedIds(paginatedDokSlips.map((s) => s.id));
+                              }
+                            }}
+                          />
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100 sticky left-9 bg-white z-10" />
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokNomorFilter}
+                              onChange={(e) => {
+                                setDokNomorFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[100px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokTanggalFilter}
+                              onChange={(e) => {
+                                setDokTanggalFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[95px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <span className="p-1 rounded bg-[#EFF4FA] text-[#1E3A8A] shrink-0">
+                              <Calendar className="w-3 h-3" />
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDokTanggalFilter('');
+                                setPage(1);
+                              }}
+                              className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 cursor-pointer shrink-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokTglPotongFilter}
+                              onChange={(e) => {
+                                setDokTglPotongFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[95px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <span className="p-1 rounded bg-[#EFF4FA] text-[#1E3A8A] shrink-0">
+                              <Calendar className="w-3 h-3" />
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDokTglPotongFilter('');
+                                setPage(1);
+                              }}
+                              className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 cursor-pointer shrink-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <div className="relative flex-1 min-w-[125px]">
+                              <select
+                                value={dokPeriodFilter}
+                                onChange={(e) => {
+                                  setDokPeriodFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                className="w-full appearance-none border border-[#CBD5E1] bg-white rounded-[4px] pl-2 pr-9 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                              >
+                                <option value="ALL">Semua Masa</option>
+                                {MONTHS_ID.map((m, idx) => (
+                                  <option key={m} value={String(idx + 1)}>
+                                    {m} 2026
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                {dokPeriodFilter !== 'ALL' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDokPeriodFilter('ALL');
+                                      setPage(1);
+                                    }}
+                                    className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                                <ChevronDown className="w-3 h-3 text-slate-400 pointer-events-none" />
+                              </div>
+                            </div>
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <select
+                            value={dokStatusFilter}
+                            onChange={(e) => {
+                              setDokStatusFilter(e.target.value);
+                              setPage(1);
+                            }}
+                            className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                          >
+                            <option value="ALL">Pilih Status</option>
+                            <option value="NORMAL">Normal</option>
+                            <option value="DIBATALKAN">Dibatalkan</option>
+                          </select>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <Filter className="w-3 h-3 text-slate-400" />
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokRateFilter}
+                              onChange={(e) => {
+                                setDokRateFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[85px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <Filter className="w-3 h-3 text-slate-400" />
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <select
+                            value={dokFacilityFilter}
+                            onChange={(e) => {
+                              setDokFacilityFilter(e.target.value);
+                              setPage(1);
+                            }}
+                            className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                          >
+                            <option value="ALL">Pilih Fasilitas Pajak</option>
+                            <option value="Tanpa Fasilitas">Tanpa Fasilitas</option>
+                          </select>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokRecipientNpwpFilter}
+                              onChange={(e) => {
+                                setDokRecipientNpwpFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokRecipientNameFilter}
+                              onChange={(e) => {
+                                setDokRecipientNameFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokRecipientIncomeNameFilter}
+                              onChange={(e) => {
+                                setDokRecipientIncomeNameFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokIssuerNpwpFilter}
+                              onChange={(e) => {
+                                setDokIssuerNpwpFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokIssuerNameFilter}
+                              onChange={(e) => {
+                                setDokIssuerNameFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[130px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokIssuerAccountIdFilter}
+                              onChange={(e) => {
+                                setDokIssuerAccountIdFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[140px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokObjCodeFilter}
+                              onChange={(e) => {
+                                setDokObjCodeFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[105px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 border-r border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokNitkuFilter}
+                              onChange={(e) => {
+                                setDokNitkuFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[155px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                        <th className="px-2 py-2">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={dokKapFilter}
+                              onChange={(e) => {
+                                setDokKapFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[85px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                            />
+                            <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                          </div>
+                        </th>
+                      </tr>
+                    )}
+                  </thead>
+                  <tbody className="divide-y divide-[#EEF2F6] bg-white">
+                    {paginatedDokSlips.length === 0 ? (
+                      <tr>
+                        <td colSpan={20} className="px-4 py-8 text-left text-slate-500">
+                          Tidak ada data yang ditemukan.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedDokSlips.map((slip) => {
+                        const docDate = (slip.createdAt || '').slice(0, 10);
+                        const cutDate = (slip.signedAt || slip.createdAt || '').slice(0, 10);
+                        const kapVal = slip.objectCode.startsWith('28-') ? '411128' : '411124';
+                        const nitkuVal = slip.nitku || `${slip.issuerNpwp}000000`;
+                        return (
+                          <tr key={slip.id} className="hover:bg-[#F8FAFC]">
+                            <td className="px-2.5 py-2.5 text-center sticky left-0 bg-white">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(slip.id)}
+                                onChange={() => toggleSelect(slip.id)}
+                              />
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap sticky left-9 bg-white">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => downloadBuktiPotongPdf(slip, activeTaxpayer)}
+                                  className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                  title="Download Dokumen Dipersamakan (PDF)"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                              {slip.slipNumber}
+                            </td>
+                            <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{docDate}</td>
+                            <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{cutDate}</td>
+                            <td className="px-3 py-2.5 whitespace-nowrap">
+                              {MONTHS_ID[Math.max(0, slip.taxPeriodMonth - 1)]} {slip.taxPeriodYear}
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap">
+                              {slip.status === 'CANCELLED' ? (
+                                <span className="px-2 py-0.5 rounded bg-rose-50 border border-rose-200 text-rose-700 font-bold text-[10px]">
+                                  Dibatalkan
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px]">
+                                  Normal
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                              {formatRp(slip.grossAmount)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                              {slip.ratePercent}%
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                              {formatRp(slip.taxWithheld)}
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap">
+                              {slip.taxFacility || 'Tanpa Fasilitas'}
+                            </td>
+                            <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                              {slip.recipientNikNpwp}
+                            </td>
+                            <td className="px-3 py-2.5 font-semibold whitespace-nowrap">
+                              {slip.recipientName}
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap">{slip.recipientName}</td>
+                            <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                              {slip.issuerNpwp}
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap">{slip.issuerName}</td>
+                            <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">
+                              {slip.issuerNpwp}
+                            </td>
+                            <td className="px-3 py-2.5 font-mono-num font-semibold text-[#1E2C5E] whitespace-nowrap">
+                              {slip.objectCode}
+                            </td>
+                            <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{nitkuVal}</td>
+                            <td className="px-3 py-2.5 font-mono-num whitespace-nowrap">{kapVal}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <CoretaxPagination
+                totalItems={dokSlips.length}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
             </div>
           </div>
         </div>
@@ -2030,7 +3338,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                             NITKU/Nomor Identitas Sub Unit Organisasi*
                           </label>
                           <select className="col-span-7 border border-[#CBD5E1] rounded-[3px] px-2.5 py-1.5 bg-white">
-                            <option value="000000">{workspace.corporateTaxpayer.nikNpwp}000000 — Pusat</option>
+                            <option value="000000">{activeTaxpayer.nikNpwp}000000 — Pusat</option>
                           </select>
                         </div>
                       </div>
@@ -2077,42 +3385,42 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                 </button>
               </div>
             )}
-            {/* Top Header Row: Uppercase Coretax Title + 6 Action Buttons */}
-            <div className="px-5 py-4 border-b border-[#E5EAF2] flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="font-display font-bold text-[15px] text-[#1E2C5E] uppercase tracking-tight">
+            {/* Top Header Row: Uppercase Coretax Title + 6 Exact Action Buttons */}
+            <div className="px-5 py-4 border-b border-[#E5EAF2] flex flex-wrap items-start justify-between gap-3">
+              <div className="pt-1">
+                <h1 className="font-display font-semibold text-[16px] text-[#1E293B] uppercase tracking-tight">
                   {activeConfig.headingPrefix} {statusHeadingSuffix}
                 </h1>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
                 {statusView === 'UNISSUED' && (
                   <>
                     <button
                       type="button"
                       onClick={() => {
                         setEditingSlip(null);
-                        setRecipientNik('');
-                        setRecipientName('');
+                        setRecipientNik(isSelfOrLumpSum ? activeTaxpayer.nikNpwp : '');
+                        setRecipientName(isSelfOrLumpSum ? activeTaxpayer.name : '');
                         setRecipientPosition('');
                         setGrossAmount(0);
                         setRefDocNumber('');
                         setRefDocDate('');
                         setCreateOpen(true);
                       }}
-                      className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-[#0D2357] hover:bg-[#091A42] text-white font-semibold text-[11.5px] px-3 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ {activeConfig.createBtnLabel}</span>
+                      <span>{activeConfig.createBtnLabel}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={handleBulkDelete}
-                      className={`inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-[6px] transition cursor-pointer shadow-xs ${
+                      className={`inline-flex items-center gap-1.5 font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap ${
                         selectedIds.length > 0
-                          ? 'bg-[#D9534F] hover:bg-[#C9302C] text-white'
-                          : 'bg-[#E2E8F0] hover:bg-[#CBD5E1] text-slate-600'
+                          ? 'bg-[#DC5353] hover:bg-[#C64242] text-white'
+                          : 'bg-[#BDBDBD] hover:bg-[#A6A6A6] text-white'
                       }`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -2123,15 +3431,15 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                       type="button"
                       onClick={() => {
                         if (selectedIds.length === 0) {
-                          alert('Pilih bukti potong terlebih dahulu untuk diterbitkan.');
+                          setSubmitBanner('Pilih bukti potong terlebih dahulu untuk diterbitkan.');
                           return;
                         }
                         setSignOpen(true);
                       }}
-                      className={`inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-[6px] transition cursor-pointer shadow-xs ${
+                      className={`inline-flex items-center gap-1.5 font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap ${
                         selectedIds.length > 0
-                          ? 'bg-[#2F7D4A] hover:bg-[#25633A] text-white'
-                          : 'bg-[#E2E8F0] hover:bg-[#CBD5E1] text-slate-600'
+                          ? 'bg-[#0D2357] hover:bg-[#091A42] text-white'
+                          : 'bg-[#BDBDBD] hover:bg-[#A6A6A6] text-white'
                       }`}
                     >
                       <Send className="w-3.5 h-3.5" />
@@ -2149,11 +3457,11 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                       setImportMenuOpen(false);
                       setBulkMenuOpen(false);
                     }}
-                    className="inline-flex items-center gap-1 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-[#0D2357] hover:bg-[#091A42] text-white font-semibold text-[11.5px] px-3 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap"
                   >
                     <Info className="w-3.5 h-3.5" />
                     <span>Monitoring</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-3 h-3 opacity-80" />
                   </button>
                   {monitoringOpen && (
                     <div className="absolute right-0 top-full mt-1.5 w-60 bg-white border border-[#E2E8F0] rounded-lg shadow-xl p-3 z-30 text-xs space-y-1.5">
@@ -2179,16 +3487,25 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                 {statusView === 'ISSUED' && (
                   <button
                     type="button"
-                    disabled={selectedIds.length === 0}
-                    onClick={() => setCancelSignOpen(true)}
-                    className="inline-flex items-center gap-1.5 bg-[#C85A5A] hover:bg-[#B24949] disabled:opacity-50 text-white font-semibold text-xs px-3.5 py-2 rounded-[6px] transition cursor-pointer"
+                    onClick={() => {
+                      if (selectedIds.length === 0) {
+                        setSubmitBanner('Pilih bukti potong terlebih dahulu untuk dibatalkan.');
+                        return;
+                      }
+                      setCancelSignOpen(true);
+                    }}
+                    className={`inline-flex items-center gap-1.5 font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap ${
+                      selectedIds.length > 0
+                        ? 'bg-[#DC5353] hover:bg-[#C64242] text-white'
+                        : 'bg-[#BDBDBD] hover:bg-[#A6A6A6] text-white'
+                    }`}
                   >
                     <X className="w-3.5 h-3.5" />
                     <span>Batal{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}</span>
                   </button>
                 )}
 
-                {/* Impor Data Dropdown (only on UNISSUED) */}
+                {/* Impor data Dropdown (only on UNISSUED) */}
                 {statusView === 'UNISSUED' && (
                   <div className="relative">
                     <button
@@ -2198,11 +3515,11 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         setMonitoringOpen(false);
                         setBulkMenuOpen(false);
                       }}
-                      className="inline-flex items-center gap-1 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-[#0D2357] hover:bg-[#091A42] text-white font-semibold text-[11.5px] px-3 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap"
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      <Info className="w-3.5 h-3.5" />
                       <span>Impor data</span>
-                      <ChevronDown className="w-3 h-3" />
+                      <ChevronDown className="w-3 h-3 opacity-80" />
                     </button>
                     {importMenuOpen && (
                       <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1 z-30 text-xs">
@@ -2240,24 +3557,26 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                       setMonitoringOpen(false);
                       setImportMenuOpen(false);
                     }}
-                    className="inline-flex items-center gap-1 bg-[#1E2C5E] hover:bg-[#16224A] text-white font-semibold text-xs px-3 py-2 rounded-[6px] transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-[#0D2357] hover:bg-[#091A42] text-white font-semibold text-[11.5px] px-3 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap"
                   >
                     <Layers className="w-3.5 h-3.5" />
                     <span>Bulk Process</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-3 h-3 opacity-80" />
                   </button>
                   {bulkMenuOpen && (
                     <div className="absolute right-0 top-full mt-1.5 w-56 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1 z-30 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedIds(paginatedSlips.map((s) => s.id));
-                          setBulkMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
-                      >
-                        Pilih Semua Baris di Halaman
-                      </button>
+                      {showCheckboxCol && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedIds(paginatedSlips.map((s) => s.id));
+                            setBulkMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
+                        >
+                          Pilih Semua Baris di Halaman
+                        </button>
+                      )}
                       {statusView === 'UNISSUED' && paginatedSlips.length > 0 && (
                         <button
                           type="button"
@@ -2292,6 +3611,34 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           Batalkan Bukti Potong Terpilih
                         </button>
                       )}
+                      {statusView === 'INVALID' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            downloadCsvFile(
+                              `eBupot_${currentSlipType}_TIDAK_VALID.csv`,
+                              ['Masa Pajak', 'Nomor Pemotongan', 'Status', 'NITKU', 'Jenis Pajak', 'Kode Objek', 'NIK/NPWP', 'Nama', 'DPP', 'PPh', 'Fasilitas Pajak'],
+                              visibleSlips.map((s) => [
+                                `${MONTHS_ID[Math.max(0, s.taxPeriodMonth - 1)]} ${s.taxPeriodYear}`,
+                                s.slipNumber,
+                                'Dibatalkan',
+                                s.nitku || `${s.issuerNpwp}000000`,
+                                s.taxType || (s.slipType === 'BPPU_23' ? 'Pasal 23' : 'Pasal 21'),
+                                s.objectCode,
+                                s.recipientNikNpwp,
+                                s.recipientName,
+                                s.grossAmount,
+                                s.taxWithheld,
+                                s.taxFacility || 'Tanpa Fasilitas',
+                              ])
+                            );
+                            setBulkMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
+                        >
+                          Unduh Daftar Tidak Valid (CSV)
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2303,8 +3650,22 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
               <CoretaxIconToolbar
                 onRefresh={() => {
                   setNumFilter('');
+                  setStatusColFilter('ALL');
+                  setTteFilter('');
+                  setNitkuFilter('');
+                  setTaxTypeColFilter('');
                   setRecipientFilter('');
+                  setNameColFilter('');
                   setObjCodeFilter('');
+                  setFacilityFilter('ALL');
+                  setReportedInSptFilter('ALL');
+                  setInObjectionFilter('ALL');
+                  setObjectionCompletedFilter('ALL');
+                  setObjectionRejectedFilter('ALL');
+                  setInRevocationReviewFilter('ALL');
+                  setRevocationAcceptedFilter('ALL');
+                  setInRefundProcessFilter('ALL');
+                  setBpaStartMonthFilter('ALL');
                   setPeriodMonthFilter('ALL');
                   setPage(1);
                 }}
@@ -2355,20 +3716,26 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                   <table className="w-full text-[11px] border-collapse">
                     <thead>
                       <tr className="bg-[#FCD34D] text-[#1E293B] font-bold border-b border-[#EAB308]/40">
-                        <th className="px-2.5 py-2.5 w-9 text-center border-r border-white/50 sticky left-0 bg-[#FCD34D] z-10">
-                          {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
-                            <input
-                              type="checkbox"
-                              checked={
-                                paginatedSlips.length > 0 &&
-                                selectedIds.length === paginatedSlips.length
-                              }
-                              onChange={toggleAllVisible}
-                            />
-                          )}
-                        </th>
-                        {!isBpa && (
-                          <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky left-9 bg-[#FCD34D] z-10 w-20" />
+                        {showCheckboxCol && (
+                          <th className="px-2.5 py-2.5 w-9 text-center border-r border-white/50 sticky left-0 bg-[#FCD34D] z-10">
+                            {!showFilters && (
+                              <input
+                                type="checkbox"
+                                checked={
+                                  paginatedSlips.length > 0 &&
+                                  selectedIds.length === paginatedSlips.length
+                                }
+                                onChange={toggleAllVisible}
+                              />
+                            )}
+                          </th>
+                        )}
+                        {showActionCol && (
+                          <th
+                            className={`px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50 sticky ${
+                              showCheckboxCol ? 'left-9' : 'left-0'
+                            } bg-[#FCD34D] z-10 w-10`}
+                          />
                         )}
                         {isBpa ? (
                           <>
@@ -2400,7 +3767,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                           Status
                         </th>
-                        {subTab !== 'bpmp' && (
+                        {showTteCol && (
                           <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                             <span className="inline-flex items-center gap-1">
                               Status Tanda Tangan Elektronik <ArrowUpDown className="w-3 h-3 opacity-60" />
@@ -2418,20 +3785,20 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           </span>
                         </th>
                         <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                          <span className="inline-flex items-center gap-1">
-                            Kode Objek Pajak {!isBpa && <ArrowUpDown className="w-3 h-3 opacity-60" />}
-                          </span>
+                          Kode Objek Pajak
                         </th>
-                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                          <span className="inline-flex items-center gap-1">
-                            Nomor Identitas WP <ArrowUpDown className="w-3 h-3 opacity-60" />
-                          </span>
-                        </th>
-                        <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                          <span className="inline-flex items-center gap-1">
-                            Nama {!isBpa && <ArrowUpDown className="w-3 h-3 opacity-60" />}
-                          </span>
-                        </th>
+                        {showRecipientCols && (
+                          <>
+                            <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                              <span className="inline-flex items-center gap-1">
+                                Nomor Identitas WP <ArrowUpDown className="w-3 h-3 opacity-60" />
+                              </span>
+                            </th>
+                            <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                              Nama
+                            </th>
+                          </>
+                        )}
                         <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
                           Dasar Pengenaan Pajak (Rp)
                         </th>
@@ -2439,56 +3806,101 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                           Pajak Penghasilan (Rp)
                         </th>
                         {isBpa && (
-                          <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
+                          <th
+                            className={`px-3 py-2.5 text-right whitespace-nowrap ${
+                              showFacilityCol || showIssuedExtraCols ? 'border-r border-white/50' : ''
+                            }`}
+                          >
                             Income Tax (Rp) For December/Last Period
                           </th>
                         )}
-                        {subTab !== 'bpa2' && (
-                          <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                        {showFacilityCol && (
+                          <th
+                            className={`px-3 py-2.5 text-left whitespace-nowrap ${
+                              showIssuedExtraCols ? 'border-r border-white/50' : ''
+                            }`}
+                          >
                             Fasilitas Pajak
                           </th>
                         )}
-                        {statusView === 'ISSUED' && isBpa && (
+                        {showIssuedExtraCols && (
                           <>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                            <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                               Dilaporkan Dalam SPT
                             </th>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                              Dalam Proses Keberatan
-                            </th>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                              Selesai Proses Keberatan
-                            </th>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                              Keberatan tidak memenuhi persyaratan (Tolak Formal)
-                            </th>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                              Dalam Proses Reviu Pencabutan Permohonan Keberatan
-                            </th>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
-                              Pencabutan Keberatan Diterima
-                            </th>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                            {showObjectionCols && (
+                              <>
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                  Dalam Proses Keberatan
+                                </th>
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                  Selesai Proses Keberatan
+                                </th>
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                  Keberatan tidak memenuhi persyaratan (Tolak Formal)
+                                </th>
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                  Dalam Proses Reviu Pencabutan Permohonan Keberatan
+                                </th>
+                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
+                                  Pencabutan Keberatan Diterima
+                                </th>
+                              </>
+                            )}
+                            <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                               SPT Telah/Sedang Diperiksa
                             </th>
-                            <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
+                            <th
+                              className={`px-3 py-2.5 text-left whitespace-nowrap ${
+                                showRefundCol ? 'border-r border-white/50' : ''
+                              }`}
+                            >
                               SPT Dalam Penanganan Hukum
                             </th>
+                            {showRefundCol && (
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                                Sedang Dalam Proses Pengembalian
+                              </th>
+                            )}
                           </>
                         )}
                       </tr>
 
                       {showFilters && (
                         <tr className="bg-white border-b border-[#E2E8F0]">
-                          <th className="px-2 py-1.5 border-r border-slate-100 sticky left-0 bg-white z-10" />
-                          {!isBpa && (
-                            <th className="px-2 py-1.5 border-r border-slate-100 sticky left-9 bg-white z-10" />
+                          {showCheckboxCol && (
+                            <th className="px-2 py-2 text-center border-r border-slate-100 sticky left-0 bg-white z-10">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  paginatedSlips.length > 0 &&
+                                  selectedIds.length === paginatedSlips.length
+                                }
+                                onChange={toggleAllVisible}
+                              />
+                            </th>
+                          )}
+                          {showActionCol && (
+                            <th
+                              className={`px-2 py-2 border-r border-slate-100 sticky ${
+                                showCheckboxCol ? 'left-9' : 'left-0'
+                              } bg-white z-10`}
+                            />
                           )}
                           {isBpa ? (
                             <>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <select className="w-full min-w-[155px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih {isBpa2 ? 'Masa Pajak Awal' : 'Masa Awal Periode Penghasilan'}</option>
+                              <th className="px-2 py-2 border-r border-slate-100">
+                                <select
+                                  value={bpaStartMonthFilter}
+                                  onChange={(e) => {
+                                    setBpaStartMonthFilter(e.target.value);
+                                    setPage(1);
+                                  }}
+                                  className="w-full min-w-[165px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                >
+                                  <option value="ALL">
+                                    Pilih {isBpa2 ? 'Masa Pajak Awal' : 'Masa Awal Periode Penghasilan'}
+                                  </option>
                                   {MONTHS_ID.map((m) => (
                                     <option key={m} value={m}>
                                       {m}
@@ -2496,50 +3908,86 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   ))}
                                 </select>
                               </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
+                              <th className="px-2 py-2 border-r border-slate-100">
                                 <div className="flex items-center gap-1">
+                                  <div className="relative flex-1 min-w-[130px]">
+                                    <select
+                                      value={periodMonthFilter}
+                                      onChange={(e) => {
+                                        setPeriodMonthFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full appearance-none border border-[#CBD5E1] bg-white rounded-[4px] pl-2 pr-9 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                                    >
+                                      <option value="ALL">Semua Masa</option>
+                                      {MONTHS_ID.map((m, idx) => (
+                                        <option key={m} value={String(idx + 1)}>
+                                          {m} 2026
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                      {periodMonthFilter !== 'ALL' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setPeriodMonthFilter('ALL');
+                                            setPage(1);
+                                          }}
+                                          className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                                          title="Hapus filter masa pajak akhir"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                      <ChevronDown className="w-3 h-3 text-slate-400 pointer-events-none" />
+                                    </div>
+                                  </div>
+                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                </div>
+                              </th>
+                            </>
+                          ) : (
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <div className="flex items-center gap-1">
+                                <div className="relative flex-1 min-w-[125px]">
                                   <select
                                     value={periodMonthFilter}
                                     onChange={(e) => {
                                       setPeriodMonthFilter(e.target.value);
                                       setPage(1);
                                     }}
-                                    className="w-full min-w-[125px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal"
+                                    className="w-full appearance-none border border-[#CBD5E1] bg-white rounded-[4px] pl-2 pr-9 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
                                   >
-                                    <option value="ALL">November 2026</option>
+                                    <option value="ALL">Semua Masa</option>
                                     {MONTHS_ID.map((m, idx) => (
                                       <option key={m} value={String(idx + 1)}>
                                         {m} 2026
                                       </option>
                                     ))}
                                   </select>
-                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                    {periodMonthFilter !== 'ALL' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setPeriodMonthFilter('ALL');
+                                          setPage(1);
+                                        }}
+                                        className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                                        title="Hapus filter masa pajak"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                    <ChevronDown className="w-3 h-3 text-slate-400 pointer-events-none" />
+                                  </div>
                                 </div>
-                              </th>
-                            </>
-                          ) : (
-                            <th className="px-2 py-1.5 border-r border-slate-100">
-                              <div className="flex items-center gap-1">
-                                <select
-                                  value={periodMonthFilter}
-                                  onChange={(e) => {
-                                    setPeriodMonthFilter(e.target.value);
-                                    setPage(1);
-                                  }}
-                                  className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1.5 py-1 text-[10.5px] font-normal"
-                                >
-                                  <option value="ALL">Semua Masa</option>
-                                  {MONTHS_ID.map((m, idx) => (
-                                    <option key={m} value={String(idx + 1)}>
-                                      {m}
-                                    </option>
-                                  ))}
-                                </select>
                                 <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                               </div>
                             </th>
                           )}
-                          <th className="px-2 py-1.5 border-r border-slate-100">
+                          <th className="px-2 py-2 border-r border-slate-100">
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
@@ -2549,54 +3997,74 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   setPage(1);
                                 }}
                                 placeholder=""
-                                className="w-full min-w-[100px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                className="w-full min-w-[105px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
                               />
                               <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                             </div>
                           </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
-                            <div className="flex items-center gap-1">
-                              <select className="w-full min-w-[95px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                <option>Pilih Status</option>
-                                <option>Disimpan Tidak Valid</option>
-                                <option>Normal</option>
-                              </select>
-                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                            </div>
+                          <th className="px-2 py-2 border-r border-slate-100">
+                            <select
+                              value={statusColFilter}
+                              onChange={(e) => {
+                                setStatusColFilter(e.target.value);
+                                setPage(1);
+                              }}
+                              className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                            >
+                              <option value="ALL">Pilih Status</option>
+                              <option value="DISIMPAN_TIDAK_VALID">Disimpan Tidak Valid</option>
+                              <option value="NORMAL">Normal</option>
+                              <option value="DIBATALKAN">Dibatalkan</option>
+                            </select>
                           </th>
-                          {subTab !== 'bpmp' && (
-                            <th className="px-2 py-1.5 border-r border-slate-100">
+                          {showTteCol && (
+                            <th className="px-2 py-2 border-r border-slate-100">
                               <div className="flex items-center gap-1">
                                 <input
                                   type="text"
+                                  value={tteFilter}
+                                  onChange={(e) => {
+                                    setTteFilter(e.target.value);
+                                    setPage(1);
+                                  }}
                                   placeholder=""
-                                  className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                  className="w-full min-w-[105px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
                                 />
                                 <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                               </div>
                             </th>
                           )}
-                          <th className="px-2 py-1.5 border-r border-slate-100">
+                          <th className="px-2 py-2 border-r border-slate-100">
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
+                                value={nitkuFilter}
+                                onChange={(e) => {
+                                  setNitkuFilter(e.target.value);
+                                  setPage(1);
+                                }}
                                 placeholder=""
-                                className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                className="w-full min-w-[140px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
                               />
                               <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                             </div>
                           </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
+                          <th className="px-2 py-2 border-r border-slate-100">
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
+                                value={taxTypeColFilter}
+                                onChange={(e) => {
+                                  setTaxTypeColFilter(e.target.value);
+                                  setPage(1);
+                                }}
                                 placeholder=""
-                                className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                className="w-full min-w-[85px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
                               />
                               <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                             </div>
                           </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
+                          <th className="px-2 py-2 border-r border-slate-100">
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
@@ -2606,143 +4074,183 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   setPage(1);
                                 }}
                                 placeholder=""
-                                className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
+                                className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
                               />
                               <Filter className="w-3 h-3 text-slate-400 shrink-0" />
                             </div>
                           </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="text"
-                                value={recipientFilter}
-                                onChange={(e) => {
-                                  setRecipientFilter(e.target.value);
-                                  setPage(1);
-                                }}
-                                placeholder=""
-                                className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                              />
-                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                            </div>
+                          {showRecipientCols && (
+                            <>
+                              <th className="px-2 py-2 border-r border-slate-100">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={recipientFilter}
+                                    onChange={(e) => {
+                                      setRecipientFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    placeholder=""
+                                    className="w-full min-w-[110px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                                  />
+                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                </div>
+                              </th>
+                              <th className="px-2 py-2 border-r border-slate-100">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={nameColFilter}
+                                    onChange={(e) => {
+                                      setNameColFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    placeholder=""
+                                    className="w-full min-w-[115px] border border-[#CBD5E1] rounded-[4px] px-2 py-1 text-[10.5px] font-normal focus:outline-none focus:border-[#0D2357]"
+                                  />
+                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                </div>
+                              </th>
+                            </>
+                          )}
+                          <th className="px-2 py-2 border-r border-slate-100">
+                            <Filter className="w-3 h-3 text-slate-400" />
                           </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="text"
-                                placeholder=""
-                                className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                              />
-                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                            </div>
-                          </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="text"
-                                placeholder=""
-                                className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                              />
-                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                            </div>
-                          </th>
-                          <th className="px-2 py-1.5 border-r border-slate-100">
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="text"
-                                placeholder=""
-                                className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                              />
-                              <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                            </div>
+                          <th className="px-2 py-2 border-r border-slate-100">
+                            <Filter className="w-3 h-3 text-slate-400" />
                           </th>
                           {isBpa && (
-                            <th className="px-2 py-1.5 border-r border-slate-100">
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="text"
-                                  placeholder=""
-                                  className="w-full min-w-[90px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                                />
-                                <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                              </div>
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <Filter className="w-3 h-3 text-slate-400" />
                             </th>
                           )}
-                          {subTab !== 'bpa2' && (
-                            <th className="px-2 py-1.5 border-r border-slate-100">
-                              <div className="flex items-center gap-1">
-                                <select className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih Fasilitas Pajak</option>
-                                  <option>Tanpa Fasilitas</option>
-                                </select>
-                                <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                              </div>
+                          {showFacilityCol && (
+                            <th className="px-2 py-2 border-r border-slate-100">
+                              <select
+                                value={facilityFilter}
+                                onChange={(e) => {
+                                  setFacilityFilter(e.target.value);
+                                  setPage(1);
+                                }}
+                                className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                              >
+                                <option value="ALL">Pilih Fasilitas Pajak</option>
+                                <option value="Tanpa Fasilitas">Tanpa Fasilitas</option>
+                              </select>
                             </th>
                           )}
-                          {statusView === 'ISSUED' && isBpa && (
+                          {showIssuedExtraCols && (
                             <>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih Dilaporkan Dalam SPT</option>
-                                  <option>True</option>
-                                  <option>False</option>
+                              <th className="px-2 py-2 border-r border-slate-100">
+                                <select
+                                  value={reportedInSptFilter}
+                                  onChange={(e) => {
+                                    setReportedInSptFilter(e.target.value);
+                                    setPage(1);
+                                  }}
+                                  className="w-full min-w-[155px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                >
+                                  <option value="ALL">Pilih Dilaporkan Dalam SPT</option>
+                                  <option value="TRUE">True</option>
+                                  <option value="FALSE">False</option>
                                 </select>
                               </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih Dalam Proses Keberatan</option>
-                                  <option>True</option>
-                                  <option>False</option>
-                                </select>
-                              </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <select className="w-full min-w-[120px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih Selesai Proses Keberatan</option>
-                                  <option>True</option>
-                                  <option>False</option>
-                                </select>
-                              </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <select className="w-full min-w-[150px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih Keberatan tidak memenuhi persyaratan (Tolak Formal)</option>
-                                  <option>True</option>
-                                  <option>False</option>
-                                </select>
-                              </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <select className="w-full min-w-[160px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih Dalam Proses Reviu Pencabutan Permohonan Keberatan</option>
-                                  <option>True</option>
-                                  <option>False</option>
-                                </select>
-                              </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <select className="w-full min-w-[140px] border border-[#CBD5E1] bg-white rounded-[4px] px-1 py-0.5 text-[10.5px] font-normal text-slate-500">
-                                  <option>Pilih Pencabutan Keberatan Diterima</option>
-                                  <option>True</option>
-                                  <option>False</option>
-                                </select>
-                              </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="text"
-                                    placeholder=""
-                                    className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                                  />
-                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                                </div>
-                              </th>
-                              <th className="px-2 py-1.5 border-r border-slate-100">
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="text"
-                                    placeholder=""
-                                    className="w-full min-w-[80px] border border-[#CBD5E1] rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-normal"
-                                  />
-                                  <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                                </div>
-                              </th>
+                              {showObjectionCols && (
+                                <>
+                                  <th className="px-2 py-2 border-r border-slate-100">
+                                    <select
+                                      value={inObjectionFilter}
+                                      onChange={(e) => {
+                                        setInObjectionFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[165px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                    >
+                                      <option value="ALL">Pilih Dalam Proses Keberatan</option>
+                                      <option value="TRUE">True</option>
+                                      <option value="FALSE">False</option>
+                                    </select>
+                                  </th>
+                                  <th className="px-2 py-2 border-r border-slate-100">
+                                    <select
+                                      value={objectionCompletedFilter}
+                                      onChange={(e) => {
+                                        setObjectionCompletedFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[170px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                    >
+                                      <option value="ALL">Pilih Selesai Proses Keberatan</option>
+                                      <option value="TRUE">True</option>
+                                      <option value="FALSE">False</option>
+                                    </select>
+                                  </th>
+                                  <th className="px-2 py-2 border-r border-slate-100">
+                                    <select
+                                      value={objectionRejectedFilter}
+                                      onChange={(e) => {
+                                        setObjectionRejectedFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[270px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                    >
+                                      <option value="ALL">Pilih Keberatan tidak memenuhi persyaratan (Tolak Formal)</option>
+                                      <option value="TRUE">True</option>
+                                      <option value="FALSE">False</option>
+                                    </select>
+                                  </th>
+                                  <th className="px-2 py-2 border-r border-slate-100">
+                                    <select
+                                      value={inRevocationReviewFilter}
+                                      onChange={(e) => {
+                                        setInRevocationReviewFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[280px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                    >
+                                      <option value="ALL">Pilih Dalam Proses Reviu Pencabutan Permohonan Keberatan</option>
+                                      <option value="TRUE">True</option>
+                                      <option value="FALSE">False</option>
+                                    </select>
+                                  </th>
+                                  <th className="px-2 py-2 border-r border-slate-100">
+                                    <select
+                                      value={revocationAcceptedFilter}
+                                      onChange={(e) => {
+                                        setRevocationAcceptedFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      className="w-full min-w-[205px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                    >
+                                      <option value="ALL">Pilih Pencabutan Keberatan Diterima</option>
+                                      <option value="TRUE">True</option>
+                                      <option value="FALSE">False</option>
+                                    </select>
+                                  </th>
+                                </>
+                              )}
+                              <th className="px-2 py-2 border-r border-slate-100" />
+                              <th
+                                className={`px-2 py-2 ${
+                                  showRefundCol ? 'border-r border-slate-100' : ''
+                                }`}
+                              />
+                              {showRefundCol && (
+                                <th className="px-2 py-2">
+                                  <select
+                                    value={inRefundProcessFilter}
+                                    onChange={(e) => {
+                                      setInRefundProcessFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[215px] border border-[#CBD5E1] bg-white rounded-[4px] px-2 py-1 text-[10.5px] font-normal text-slate-600 focus:outline-none focus:border-[#0D2357]"
+                                  >
+                                    <option value="ALL">Pilih Sedang Dalam Proses Pengembalian</option>
+                                    <option value="TRUE">True</option>
+                                    <option value="FALSE">False</option>
+                                  </select>
+                                </th>
+                              )}
                             </>
                           )}
                         </tr>
@@ -2751,7 +4259,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                     <tbody className="divide-y divide-[#EEF2F6] bg-white">
                       {paginatedSlips.length === 0 ? (
                         <tr>
-                          <td colSpan={isBpa ? (statusView === 'ISSUED' ? 22 : 14) : subTab === 'bpmp' ? 13 : 14} className="px-4 py-8 text-left text-slate-500">
+                          <td colSpan={totalTableCols} className="px-4 py-8 text-left text-slate-500">
                             Tidak ada data yang ditemukan.
                           </td>
                         </tr>
@@ -2765,18 +4273,14 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                 ? 'Dibatalkan'
                                 : 'Normal';
                           const tteStatus = isIssued ? 'Done' : '';
-                          const nitkuVal =
-                            slip.nitku ||
-                            (subTab === 'bpmp'
-                              ? '0753620525008000000000'
-                              : '0905774188403000000000');
+                          const nitkuVal = slip.nitku || `${slip.issuerNpwp}000000`;
                           const jenisPajakVal =
                             slip.taxType ||
-                            (subTab === 'bppu'
-                              ? 'Pasal 23'
-                              : subTab === 'bp21' || subTab === 'bpmp'
-                                ? 'Pasal 21'
-                                : 'Pasal 23');
+                            (slip.objectCode.startsWith('27-')
+                              ? 'Pasal 26'
+                              : slip.slipType === 'BPPU_23'
+                                ? 'Pasal 23'
+                                : 'Pasal 21');
                           const fasilitasVal = slip.taxFacility || 'Tanpa Fasilitas';
 
                           return (
@@ -2786,17 +4290,21 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               className="hover:bg-[#F8FAFC] cursor-pointer"
                               title="Klik ganda untuk melihat detail Bukti Potong"
                             >
-                              <td className="px-2.5 py-2.5 text-center sticky left-0 bg-white">
-                                {(statusView === 'UNISSUED' || statusView === 'ISSUED') && (
+                              {showCheckboxCol && (
+                                <td className="px-2.5 py-2.5 text-center sticky left-0 bg-white">
                                   <input
                                     type="checkbox"
                                     checked={selectedIds.includes(slip.id)}
                                     onChange={() => toggleSelect(slip.id)}
                                   />
-                                )}
-                              </td>
-                              {!isBpa && (
-                                <td className="px-3 py-2.5 whitespace-nowrap sticky left-9 bg-white">
+                                </td>
+                              )}
+                              {showActionCol && (
+                                <td
+                                  className={`px-3 py-2.5 whitespace-nowrap sticky ${
+                                    showCheckboxCol ? 'left-9' : 'left-0'
+                                  } bg-white`}
+                                >
                                   <div className="flex items-center justify-center gap-1.5">
                                     <button
                                       type="button"
@@ -2806,26 +4314,28 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                     >
                                       <Eye className="w-3.5 h-3.5" />
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        slip.status === 'UNISSUED'
-                                          ? openEditForm(slip)
-                                          : setDetailSlip(slip)
-                                      }
-                                      className="p-1 rounded text-sky-600 hover:text-sky-800 hover:bg-sky-50 cursor-pointer transition"
-                                      title={
-                                        slip.status === 'UNISSUED'
-                                          ? 'Edit Konsep Bukti Potong'
-                                          : 'Edit / Pembetulan'
-                                      }
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
+                                    {statusView !== 'INVALID' && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          slip.status === 'UNISSUED'
+                                            ? openEditForm(slip)
+                                            : setDetailSlip(slip)
+                                        }
+                                        className="p-1 rounded text-sky-600 hover:text-sky-800 hover:bg-sky-50 cursor-pointer transition"
+                                        title={
+                                          slip.status === 'UNISSUED'
+                                            ? 'Edit Konsep Bukti Potong'
+                                            : 'Edit / Pembetulan'
+                                        }
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                     {subTab !== 'bpmp' && (
                                       <button
                                         type="button"
-                                        onClick={() => downloadBuktiPotongPdf(slip, workspace.corporateTaxpayer)}
+                                        onClick={() => downloadBuktiPotongPdf(slip, activeTaxpayer)}
                                         className="w-5 h-5 rounded-[3px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
                                         title="Download Bukti Potong (PDF Resmi DJP)"
                                       >
@@ -2863,7 +4373,7 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   {statusText}
                                 </span>
                               </td>
-                              {subTab !== 'bpmp' && (
+                              {showTteCol && (
                                 <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
                                   {tteStatus}
                                 </td>
@@ -2877,12 +4387,16 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                               <td className="px-3 py-2.5 font-mono-num text-[#1E2C5E] whitespace-nowrap font-semibold">
                                 {slip.objectCode}
                               </td>
-                              <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
-                                {slip.recipientNikNpwp}
-                              </td>
-                              <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
-                                {slip.recipientName}
-                              </td>
+                              {showRecipientCols && (
+                                <>
+                                  <td className="px-3 py-2.5 font-mono-num text-slate-700 whitespace-nowrap">
+                                    {slip.recipientNikNpwp}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap">
+                                    {slip.recipientName}
+                                  </td>
+                                </>
+                              )}
                               <td className="px-3 py-2.5 text-right font-mono-num text-slate-800 whitespace-nowrap">
                                 {formatRp(slip.grossAmount)}
                               </td>
@@ -2894,37 +4408,46 @@ export const EBupotModule: React.FC<EBupotModuleProps> = ({
                                   {formatRp(slip.decemberTaxWithheld ?? Math.round(slip.taxWithheld / 12))}
                                 </td>
                               )}
-                              {subTab !== 'bpa2' && (
+                              {showFacilityCol && (
                                 <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
                                   {fasilitasVal}
                                 </td>
                               )}
-                              {statusView === 'ISSUED' && isBpa && (
+                              {showIssuedExtraCols && (
                                 <>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
                                     {slip.reportedInSpt ? 'True' : 'False'}
                                   </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                    {slip.inObjectionProcess ? 'True' : 'False'}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                    {slip.objectionCompleted ? 'True' : 'False'}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                    {slip.objectionRejectedFormal ? 'True' : 'False'}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                    {slip.inObjectionRevocationReview ? 'True' : 'False'}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
-                                    {slip.objectionRevocationAccepted ? 'True' : 'False'}
-                                  </td>
+                                  {showObjectionCols && (
+                                    <>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.inObjectionProcess ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.objectionCompleted ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.objectionRejectedFormal ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.inObjectionRevocationReview ? 'True' : 'False'}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                        {slip.objectionRevocationAccepted ? 'True' : 'False'}
+                                      </td>
+                                    </>
+                                  )}
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
                                     {slip.sptExamined ? 'True' : 'False'}
                                   </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
                                     {slip.sptLegalHandling ? 'True' : 'False'}
                                   </td>
+                                  {showRefundCol && (
+                                    <td className="px-3 py-2.5 text-center whitespace-nowrap font-mono-num">
+                                      {slip.inRefundProcess ? 'True' : 'False'}
+                                    </td>
+                                  )}
                                 </>
                               )}
                             </tr>

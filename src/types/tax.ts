@@ -115,6 +115,7 @@ export interface WithholdingSlip {
   sptExamined?: boolean;
   sptLegalHandling?: boolean;
   inRefundProcess?: boolean;
+  subMenuKey?: string;
 }
 
 export interface OpAssetLiabilityFamily {
