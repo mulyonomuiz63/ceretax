@@ -623,11 +623,20 @@ export async function updateInvoice(nikKey: string, inv: TaxInvoice): Promise<vo
   const pool = await ensureMysqlSchema();
   await pool.execute(
     `UPDATE tax_invoices
-     SET invoice_number = ?, amendment_seq = ?, dpp_total = ?, dpp_other_value = ?,
+     SET transaction_code = ?, reference_code = ?, counterparty_npwp = ?, counterparty_name = ?,
+         invoice_date = ?, tax_period_month = ?, tax_period_year = ?,
+         invoice_number = ?, amendment_seq = ?, dpp_total = ?, dpp_other_value = ?,
          ppn_total = ?, ppnbm_total = ?, status = ?, is_credited = ?, sp2d_number = ?,
          return_amount = ?, return_note_number = ?, return_date = ?, signed_at = ?, items_json = ?
      WHERE nik_key = ? AND id = ?`,
     [
+      inv.transactionCode,
+      inv.referenceCode || '',
+      inv.counterpartyNpwp,
+      inv.counterpartyName,
+      inv.invoiceDate,
+      inv.taxPeriodMonth,
+      inv.taxPeriodYear,
       inv.invoiceNumber,
       inv.amendmentSeq || 0,
       Math.round(inv.dppTotal || 0),

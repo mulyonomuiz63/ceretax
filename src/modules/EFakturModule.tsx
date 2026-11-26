@@ -569,7 +569,12 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setEditingInvoice(inv);
     setIsDownPayment(false);
     setIsFinalPayment(false);
-    setTxCode(inv.transactionCode || '04');
+    const derivedTxCode =
+      inv.transactionCode ||
+      (inv.invoiceNumber && !inv.invoiceNumber.startsWith('DRAFT') && inv.invoiceNumber.length >= 2
+        ? inv.invoiceNumber.slice(0, 2)
+        : '');
+    setTxCode(derivedTxCode);
     setInvoiceDate(inv.invoiceDate || new Date().toISOString().slice(0, 10));
     setReferenceCode(inv.referenceCode || '');
     setCounterpartyNpwp(inv.counterpartyNpwp || '');
@@ -602,14 +607,21 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     );
     setSelectedDraftItemIds([]);
 
+    const isReplacementInvoice = Boolean(
+      inv.isReplacement ||
+      (inv.invoiceNumber && inv.invoiceNumber.length >= 4 && inv.invoiceNumber[3] === '1') ||
+      inv.status === 'AMENDED' ||
+      (inv.amendmentSeq && inv.amendmentSeq > 0)
+    );
+
     if (inv.status === 'APPROVED') {
       setIsViewingApproved(true);
-      setIsAmendmentMode(false);
-      setReplacementFakturNumber('');
+      setIsAmendmentMode(isReplacementInvoice);
+      setReplacementFakturNumber(inv.invoiceNumber || '');
     } else {
       setIsViewingApproved(false);
-      setIsAmendmentMode(false);
-      setReplacementFakturNumber('');
+      setIsAmendmentMode(isReplacementInvoice);
+      setReplacementFakturNumber(inv.invoiceNumber || '');
     }
     setCreateModalOpen(true);
   };
@@ -743,8 +755,32 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     );
   }, [draftItems]);
 
+  const validateInvoiceCompleteness = (): boolean => {
+    if (!txCode || !txCode.trim()) {
+      setFakturSuccessToast('Faktur belum lengkap: Mohon pilih Kode Transaksi terlebih dahulu.');
+      return false;
+    }
+    if (!counterpartyNpwp || counterpartyNpwp.replace(/\D/g, '').length < 15) {
+      setFakturSuccessToast('Faktur belum lengkap: Mohon lengkapi Nomor Identitas WP (NPWP/NIK) pembeli.');
+      return false;
+    }
+    if (!counterpartyName || !counterpartyName.trim()) {
+      setFakturSuccessToast('Faktur belum lengkap: Mohon lengkapi Nama Pembeli.');
+      return false;
+    }
+    if (draftItems.length === 0) {
+      setFakturSuccessToast('Faktur belum lengkap: Mohon tambahkan minimal satu transaksi Barang/Jasa.');
+      return false;
+    }
+    return true;
+  };
+
   const saveNewInvoice = async (approveImmediately: boolean) => {
-    if (draftItems.length === 0) return;
+    if (approveImmediately && !validateInvoiceCompleteness()) return;
+    if (draftItems.length === 0) {
+      setFakturSuccessToast('Mohon tambahkan transaksi Barang/Jasa sebelum menyimpan.');
+      return;
+    }
     const direction: InvoiceDirection =
       normalizedTab === 'dok_lain_keluaran'
         ? 'EXPORT'
@@ -791,7 +827,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       );
     } else if (editingInvoice && editingInvoice.status === 'DRAFT') {
       const finalNum = approveImmediately
-        ? generateFakturNumber(txCode, workspace.invoices.length + 11, false)
+        ? generateFakturNumber(txCode, workspace.invoices.length + 11, isAmendmentMode)
         : '';
       await onInvoiceAction(editingInvoice.id, 'UPDATE', {
         transactionCode: txCode,
@@ -819,7 +855,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       const invNum = isExport
         ? `PEB-${invoiceDate.slice(0, 4)}-${String(Math.floor(100000 + Math.random() * 899999))}`
         : approveImmediately && direction === 'OUTPUT'
-          ? generateFakturNumber(txCode, workspace.invoices.length + 11, false)
+          ? generateFakturNumber(txCode, workspace.invoices.length + 11, isAmendmentMode)
           : '';
       await onCreateInvoice({
         taxpayerId: activeTaxpayer.id,
@@ -1324,13 +1360,15 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         type="text"
                         disabled
                         placeholder="Nomor Faktur"
-                        value={
-                          isViewingApproved && editingInvoice
-                            ? editingInvoice.invoiceNumber
-                            : isAmendmentMode
-                            ? replacementFakturNumber
-                            : ''
-                        }
+                        value={(() => {
+                          const existingNum = editingInvoice?.invoiceNumber || replacementFakturNumber;
+                          if (!existingNum || existingNum.startsWith('DRAFT')) return '';
+                          if (existingNum.length >= 4) {
+                            const fourthDigit = isAmendmentMode ? '1' : '0';
+                            return `${existingNum.slice(0, 3)}${fourthDigit}${existingNum.slice(4)}`;
+                          }
+                          return existingNum;
+                        })()}
                         className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num placeholder:text-slate-400 cursor-not-allowed"
                       />
                     </div>
@@ -1376,7 +1414,17 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       </label>
                       <select
                         disabled={isViewingApproved}
-                        value={isAmendmentMode ? 'Pengganti' : (editingInvoice?.isReplacement ? 'Pengganti' : 'Normal')}
+                        value={isAmendmentMode ? 'Pengganti' : 'Normal'}
+                        onChange={(e) => {
+                          const isRep = e.target.value === 'Pengganti';
+                          setIsAmendmentMode(isRep);
+                          if (editingInvoice?.invoiceNumber && editingInvoice.invoiceNumber.length >= 4) {
+                            const fourthDigit = isRep ? '1' : '0';
+                            setReplacementFakturNumber(
+                              `${editingInvoice.invoiceNumber.slice(0, 3)}${fourthDigit}${editingInvoice.invoiceNumber.slice(4)}`
+                            );
+                          }
+                        }}
                         className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
                       >
                         <option value="Normal">Normal</option>
@@ -1878,7 +1926,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           if (origNum && origNum.length >= 4) {
                             repNum = `${origNum.slice(0, 3)}1${origNum.slice(4)}`;
                           } else {
-                            repNum = '04012500000000001';
+                            repNum = '0401250000000001';
                           }
                           setReplacementFakturNumber(repNum);
                         }
@@ -1900,7 +1948,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                     {normalizedTab === 'output' && (
                       <button
                         type="button"
-                        onClick={() => setUploadAfterCreateOpen(true)}
+                        onClick={() => {
+                          if (validateInvoiceCompleteness()) {
+                            setUploadAfterCreateOpen(true);
+                          }
+                        }}
                         className="px-6 py-2 rounded-[4px] bg-[#0088FF] hover:bg-[#0070D2] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                       >
                         Upload Faktur
@@ -2046,6 +2098,20 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                 const handleUploadSelectedDrafts = () => {
                   if (selectedDraftInvoices.length === 0) {
                     setFakturSuccessToast('Pilih faktur berstatus DRAFT terlebih dahulu untuk di-upload.');
+                    return;
+                  }
+                  const incomplete = selectedDraftInvoices.filter(
+                    (inv) =>
+                      !inv.transactionCode ||
+                      !inv.counterpartyNpwp ||
+                      inv.counterpartyNpwp.replace(/\D/g, '').length < 15 ||
+                      !inv.counterpartyName ||
+                      (!inv.items || inv.items.length === 0)
+                  );
+                  if (incomplete.length > 0) {
+                    setFakturSuccessToast(
+                      `Faktur belum lengkap: ${incomplete.length} faktur yang dipilih belum memiliki data lengkap (Kode Transaksi, Pembeli, atau Barang/Jasa) sehingga tidak dapat di-upload.`
+                    );
                     return;
                   }
                   setBulkSignTargets(selectedDraftInvoices);
@@ -4413,9 +4479,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   <td className="px-3 py-2.5 whitespace-nowrap text-[#334155]">
                                     {inv.status === 'DRAFT'
                                       ? ''
-                                      : inv.transactionCode
-                                        ? `${inv.transactionCode} - DPP Nilai Lain`
-                                        : '04 - DPP Nilai Lain'}
+                                      : FAKTUR_TRANSACTION_CODES.find((c) => c.code === inv.transactionCode)?.label ||
+                                        (inv.transactionCode ? `${inv.transactionCode} - Transaksi Pajak` : '')}
                                   </td>
                                   <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-[#334155]">
                                     {inv.status === 'DRAFT' ? '' : inv.invoiceNumber}

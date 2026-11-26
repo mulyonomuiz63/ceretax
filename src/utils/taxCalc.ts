@@ -357,7 +357,7 @@ export function generateFakturNumber(txCode: string, seq: number, isAmendment = 
   const cleanCode = (txCode || '01').padStart(2, '0').slice(0, 2);
   const statusDigits = isAmendment ? '01' : '00';
   const yearDigits = String(year).slice(-2);
-  const serialDigits = String(seq).padStart(11, '0');
+  const serialDigits = String(seq).padStart(10, '0');
   return `${cleanCode}${statusDigits}${yearDigits}${serialDigits}`;
 }
 

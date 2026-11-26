@@ -253,7 +253,7 @@ async function startServer() {
       if (action === 'APPROVE') {
         const seq = (await mysqlRepo.countInvoices(nik)) + 10;
         inv.status = 'APPROVED';
-        if (inv.direction !== 'EXPORT' && inv.invoiceNumber.startsWith('DRAFT')) {
+        if (inv.direction !== 'EXPORT' && (!inv.invoiceNumber || inv.invoiceNumber.startsWith('DRAFT'))) {
           inv.invoiceNumber = generateFakturNumber(inv.transactionCode, seq, false);
         }
         inv.signedAt = new Date().toISOString();
@@ -275,8 +275,8 @@ async function startServer() {
       } else if (action === 'APPROVE_AMEND') {
         inv.status = 'AMENDED';
         inv.amendmentSeq = (inv.amendmentSeq || 0) + 1;
-        if (inv.invoiceNumber.length >= 3) {
-          inv.invoiceNumber = `${inv.invoiceNumber.slice(0, 2)}1${inv.invoiceNumber.slice(3)}`;
+        if (inv.invoiceNumber.length >= 4) {
+          inv.invoiceNumber = `${inv.invoiceNumber.slice(0, 3)}1${inv.invoiceNumber.slice(4)}`;
         }
         notifMeta = {
           title: 'Faktur Pengganti Disetujui (AMENDED)',
