@@ -314,6 +314,10 @@ async function startServer() {
           title: 'Nota Retur PPN Dicatat',
           message: `Retur sebesar PPN ${formatRp(inv.returnAmount)} atas Faktur ${inv.invoiceNumber} (${inv.returnNoteNumber}) telah dicatat pada Lampiran C.`,
         };
+      } else if (action === 'UPDATE') {
+        if (payload) {
+          Object.assign(inv, payload);
+        }
       }
 
       await mysqlRepo.updateInvoice(nik, inv);

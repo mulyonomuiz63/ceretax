@@ -55,6 +55,8 @@ export interface TaxInvoice {
   referenceCode: string;
   counterpartyNpwp: string;
   counterpartyName: string;
+  counterpartyAddress?: string;
+  counterpartyEmail?: string;
   invoiceDate: string; // YYYY-MM-DD
   taxPeriodMonth: number;
   taxPeriodYear: number;
@@ -65,6 +67,8 @@ export interface TaxInvoice {
   ppnbmTotal: number;
   status: InvoiceStatus;
   isCredited: boolean;
+  isReplacement?: boolean;
+  originalInvoiceNumber?: string;
   sp2dNumber?: string;
   returnAmount: number;
   returnNoteNumber?: string;

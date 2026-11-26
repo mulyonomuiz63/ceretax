@@ -450,6 +450,72 @@ const MobileDuotoneModuleIcon: React.FC<{
   }
 };
 
+/**
+ * Authentic Coretax Hexagon User Profile Icon (Vertical Hexagon with User Head & Shoulders)
+ * Has gold/yellow dot badge when impersonating a corporate entity (Gambar 2).
+ */
+const HexagonUserIcon: React.FC<{ hasImpersonateDot?: boolean; className?: string; iconColor?: string }> = ({
+  hasImpersonateDot = false,
+  className = 'w-[22px] h-[22px]',
+  iconColor,
+}) => (
+  <div className={`relative shrink-0 flex items-center justify-center ${className}`}>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={iconColor || 'currentColor'}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="w-full h-full text-[#1E293B]"
+    >
+      <polygon points="12 2 21 7.2 21 16.8 12 22 3 16.8 3 7.2" />
+      <circle cx="12" cy="9" r="2.8" />
+      <path d="M 7.2 17.5 C 7.5 13.5 16.5 13.5 16.8 17.5" />
+    </svg>
+    {hasImpersonateDot && (
+      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#EAB308] border-2 border-white shrink-0 shadow-xs" />
+    )}
+  </div>
+);
+
+/**
+ * Authentic Coretax 4-Inward-Arrows Header Collapse / Compress Icon (Beside Profile Card)
+ */
+const CompressHeaderIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M 12 3 L 12 8.5 M 9.5 6.5 L 12 9 L 14.5 6.5" />
+    <path d="M 12 21 L 12 15.5 M 9.5 17.5 L 12 15 L 14.5 17.5" />
+    <path d="M 3 12 L 8.5 12 M 6.5 9.5 L 9 12 L 6.5 14.5" />
+    <path d="M 21 12 L 15.5 12 M 17.5 9.5 L 15 12 L 17.5 14.5" />
+  </svg>
+);
+
+/**
+ * Authentic Coretax 2-Horizontal-Lines Menu Icon for Compact Header (=)
+ */
+const TwoLinesMenuIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    className={className}
+  >
+    <line x1="3" y1="7" x2="17" y2="7" />
+    <line x1="3" y1="13" x2="17" y2="13" />
+  </svg>
+);
+
 export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   activeModule,
   activeSubTab,
@@ -501,6 +567,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const [searchFocused, setSearchFocused] = useState(false);
   const [compactSearchOpen, setCompactSearchOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isHeaderCompact, setIsHeaderCompact] = useState(false);
 
   const branding = useBranding();
   const footerInfo = normalizeFooterSettings(branding.footer);
@@ -695,6 +762,137 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
           ? { id: 'ikhtisar', label: 'Beranda' }
           : allActiveItems.find((i) => i.id === activeSubTab) || null;
 
+  const renderAccountDropdown = () => {
+    const query = accountSearch.trim().toLowerCase();
+    const showIndividual =
+      !query ||
+      individualTaxpayer.name.toLowerCase().includes(query) ||
+      individualTaxpayer.nikNpwp.toLowerCase().includes(query);
+    const showCorporate =
+      !query ||
+      corporateTaxpayer.name.toLowerCase().includes(query) ||
+      corporateTaxpayer.nikNpwp.toLowerCase().includes(query);
+
+    return (
+      <div className="absolute right-0 top-full mt-2 w-[290px] bg-white text-slate-800 border border-[#E2E8F0] rounded-2xl shadow-[0_20px_50px_rgba(30,44,94,0.16)] z-50 overflow-hidden">
+        {/* Active Account Summary Header */}
+        <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-[#FEF9E2] text-[#1B2958] flex items-center justify-center shrink-0">
+            <User className="w-[18px] h-[18px]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-bold uppercase text-[#1B2958] leading-snug truncate">
+              {activeTaxpayer.name}
+            </div>
+            <div className="text-[11px] font-mono-num text-slate-400 leading-tight truncate">
+              {activeTaxpayer.nikNpwp}
+            </div>
+          </div>
+        </div>
+
+        {/* Search NPWP / Name */}
+        <div className="px-3 pb-3">
+          <div className="flex items-center gap-2 bg-[#F4F6FA] border border-transparent focus-within:border-[#CBD5E1] focus-within:bg-white rounded-lg px-2.5 py-2 transition">
+            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              value={accountSearch}
+              onChange={(e) => setAccountSearch(e.target.value)}
+              placeholder="Cari NPWP atau nama..."
+              className="w-full bg-transparent text-[12px] text-slate-700 placeholder:text-slate-400 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Account Groups: AKUN UTAMA & AKUN PERWAKILAN */}
+        <div className="px-3 pb-3 space-y-3 max-h-[240px] overflow-y-auto">
+          {showIndividual && (
+            <div>
+              <div className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                AKUN UTAMA
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onSwitchAccountMode('INDIVIDUAL');
+                  setAccountMenuOpen(false);
+                  setAccountSearch('');
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg transition cursor-pointer ${
+                  accountMode === 'INDIVIDUAL' ? 'bg-[#FEF9E2]' : 'hover:bg-[#F8FAFC]'
+                }`}
+              >
+                <div className="text-[11.5px] font-bold uppercase text-[#1B2958] leading-snug truncate">
+                  {individualTaxpayer.name}
+                </div>
+                <div className="text-[10.5px] font-mono-num text-slate-500 leading-tight mt-0.5">
+                  {individualTaxpayer.nikNpwp}
+                </div>
+              </button>
+            </div>
+          )}
+
+          {showCorporate && (
+            <div>
+              <div className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                AKUN PERWAKILAN
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onSwitchAccountMode('CORPORATE');
+                  setAccountMenuOpen(false);
+                  setAccountSearch('');
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg transition cursor-pointer ${
+                  accountMode === 'CORPORATE' ? 'bg-[#FEF9E2]' : 'hover:bg-[#F8FAFC]'
+                }`}
+              >
+                <div className="text-[11.5px] font-bold uppercase text-[#1B2958] leading-snug truncate">
+                  {corporateTaxpayer.name}
+                </div>
+                <div className="text-[10.5px] font-mono-num text-slate-500 leading-tight mt-0.5">
+                  {corporateTaxpayer.nikNpwp}
+                </div>
+              </button>
+            </div>
+          )}
+
+          {!showIndividual && !showCorporate && (
+            <div className="px-2 py-3 text-center text-[11.5px] text-slate-400">
+              Akun tidak ditemukan
+            </div>
+          )}
+        </div>
+
+        {/* Login Terakhir */}
+        <div className="border-t border-slate-100 px-4 py-2.5 flex items-center gap-2.5">
+          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
+              LOGIN TERAKHIR
+            </div>
+            <div className="text-[11.5px] font-semibold text-[#1B2958] leading-snug">
+              {lastLoginLabel}
+            </div>
+          </div>
+        </div>
+
+        {/* Keluar */}
+        <div className="border-t border-slate-100 p-2">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="w-full px-2.5 py-2 rounded-lg text-left text-[12px] font-semibold text-rose-500 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Keluar</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       ref={shellRef}
@@ -716,17 +914,123 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
         )}
       </div>
 
+      {/* Render helper for Account Switcher Dropdown (used in both Full and Compact navbar) */}
+      {(() => null)()}
+
       {/* ===================================================================== */}
-      {/* PERMANENTLY STICKY 2-ROW WHITE HEADER CARD (EXACT CORETAX DJP)        */}
+      {/* PERMANENTLY STICKY HEADER CARD (FULL 2-ROW OR COMPACT FLOATING BAR)  */}
       {/* ===================================================================== */}
-      <header className="sticky top-0 sm:top-2 z-30 mx-3 sm:mx-4 mt-2.5">
+      <header
+        className={`sticky top-0 sm:top-2 z-30 mx-3 sm:mx-4 mt-2.5 transition-all duration-300 ${
+          isHeaderCompact ? 'flex justify-center' : ''
+        }`}
+      >
         <div
-          className={`rounded-[16px] border shadow-[0_6px_26px_rgba(30,44,94,0.07)] transition-colors ${
-            darkHeader
-              ? 'bg-slate-900/95 border-slate-700/80 backdrop-blur-md'
-              : 'bg-white border-[#E5EAF2]'
+          className={`transition-all duration-300 ${
+            isHeaderCompact
+              ? 'mx-auto rounded-[16px] w-fit max-w-[660px] bg-white border border-[#E5EAF2] shadow-[0_6px_26px_rgba(30,44,94,0.07)] px-3 py-1.5'
+              : `rounded-[16px] w-full border shadow-[0_6px_26px_rgba(30,44,94,0.07)] ${
+                  darkHeader
+                    ? 'bg-slate-900/95 border-slate-700/80 backdrop-blur-md'
+                    : 'bg-white border-[#E5EAF2]'
+                }`
           }`}
         >
+          {isHeaderCompact ? (
+            /* COMPACT NAVBAR (Gambar 3) */
+            <div className="flex items-center gap-2.5 sm:gap-3.5">
+              {/* Left Logo: Kemenkeu seal & DJP ribbon */}
+              <div className="flex items-center shrink-0">
+                <img
+                  src="/assets/aistudio/kemenkeu_djp_transparent.png"
+                  alt="Kementerian Keuangan & DJP"
+                  className="h-7 w-auto object-contain cursor-pointer"
+                  onClick={() => onNavigate('dashboard', 'home')}
+                  title="Beranda Simulasi Coretax"
+                />
+              </div>
+
+              {/* Center: Search Box with Ctrl K */}
+              <div className="relative min-w-[200px] sm:min-w-[260px]">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onFocus={() => setSearchFocused(true)}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={language === 'id-ID' ? 'Cari layanan...' : 'Search services...'}
+                  className="w-full rounded-[10px] pl-9 pr-14 py-1.5 text-[12.5px] bg-[#F4F6FA] border border-[#E8EDF4] text-[#0F172A] placeholder:text-slate-400 focus:bg-white focus:border-[#1E2C5E] outline-none transition"
+                />
+                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                  <kbd className="px-1 py-0.2 text-[9.5px] font-semibold rounded border bg-white border-slate-200 text-slate-500">
+                    Ctrl
+                  </kbd>
+                  <kbd className="px-1 py-0.2 text-[9.5px] font-semibold rounded border bg-white border-slate-200 text-slate-500">
+                    K
+                  </kbd>
+                </div>
+
+                {searchFocused && searchTerm.trim() && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-white text-slate-800 border border-[#E2E8F0] rounded-xl shadow-[0_18px_40px_rgba(30,44,94,0.14)] z-50 py-1.5 overflow-hidden">
+                    {filteredServices.length === 0 ? (
+                      <div className="px-4 py-3 text-xs text-slate-500 text-center">
+                        Layanan tidak ditemukan.
+                      </div>
+                    ) : (
+                      filteredServices.map((svc) => (
+                        <button
+                          key={svc.label}
+                          type="button"
+                          onMouseDown={() => {
+                            handleSubMenuSelect(svc.module, svc.subTab, svc.label);
+                            setSearchTerm('');
+                            setSearchFocused(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-[12.5px] text-slate-700 hover:bg-[#F4F6FA] hover:text-[#1E2C5E] font-medium cursor-pointer flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate">{svc.label}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Profile Hexagon Button */}
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountMenuOpen((prev) => !prev);
+                    setNotifOpen(false);
+                    setLangMenuOpen(false);
+                  }}
+                  title={`${activeTaxpayer.name} (${activeTaxpayer.nikNpwp})`}
+                  className="p-1.5 rounded-xl border border-[#CBD5E1] hover:border-[#94A3B8] bg-white shadow-2xs hover:bg-slate-50 transition cursor-pointer flex items-center justify-center"
+                >
+                  <HexagonUserIcon
+                    hasImpersonateDot={accountMode === 'CORPORATE'}
+                    className="w-[19px] h-[19px]"
+                  />
+                </button>
+                {accountMenuOpen && renderAccountDropdown()}
+              </div>
+
+              {/* Two Lines Menu Button (=) to Expand Header */}
+              <button
+                type="button"
+                onClick={() => setIsHeaderCompact(false)}
+                title="Perluas Navbar"
+                aria-label="Perluas Navbar"
+                className="p-1.5 rounded-lg text-slate-700 hover:text-[#1E2C5E] hover:bg-[#F4F6FA] transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              >
+                <TwoLinesMenuIcon className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            /* FULL 2-ROW HEADER (Gambar 1 & Gambar 2) */
+            <>
           {/* ROW 1: LOGO | SEARCH (Ctrl K on xl+) | UTILITIES | ACCOUNT BOX | HOME */}
           <div
             className={`px-3 sm:px-4 xl:px-5 py-2.5 flex items-center justify-between gap-1.5 sm:gap-2 xl:gap-3 min-w-0 lg:border-b ${
@@ -989,8 +1293,8 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                 )}
               </div>
 
-              {/* Rounded Pill Taxpayer / Account Switcher Box (Official Coretax Design) */}
-              <div className="relative">
+              {/* Profile Card (Matching Gambar 1 & Gambar 2; icon-only on mobile) */}
+              <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -1003,190 +1307,54 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
                     setOpenDropdown(null);
                   }}
                   title={`${activeTaxpayer.name} (${activeTaxpayer.nikNpwp})`}
-                  className={`flex items-center justify-center gap-2.5 p-2 lg:px-3.5 lg:py-1.5 rounded-full border transition cursor-pointer ${
+                  className={`flex items-center gap-2 sm:gap-2.5 p-1.5 md:px-3 md:py-1.5 rounded-[12px] md:rounded-[14px] border transition cursor-pointer ${
                     accountMenuOpen
                       ? darkHeader
                         ? 'bg-slate-800 border-[#F4C430] ring-2 ring-[#F4C430]/25 text-white'
                         : 'bg-white border-[#F4C430] ring-2 ring-[#FEF08A]/70 text-[#1B2958]'
                       : darkHeader
                         ? 'bg-slate-800 border-slate-700 hover:border-slate-500 text-white'
-                        : 'bg-white border-[#DCE2EC] hover:border-[#F4C430] text-[#1B2958]'
+                        : 'bg-white border-[#CBD5E1] hover:border-[#94A3B8] text-[#1B2958]'
                   }`}
                 >
-                  <UserCircle2
-                    className={`w-[18px] h-[18px] shrink-0 ${
-                      darkHeader ? 'text-slate-200' : 'text-[#475569]'
-                    }`}
+                  <HexagonUserIcon
+                    hasImpersonateDot={accountMode === 'CORPORATE'}
+                    className="w-[19px] h-[19px] sm:w-[21px] sm:h-[21px] shrink-0"
                   />
-                  <div className="hidden lg:block text-left leading-[1.2] max-w-[155px] xl:max-w-[190px]">
-                    <div
-                      className={`text-[10px] font-mono-num truncate ${
-                        darkHeader ? 'text-slate-400' : 'text-slate-400'
-                      }`}
-                    >
+                  <div className="hidden md:block text-left leading-tight min-w-0">
+                    <div className="text-[10px] font-mono-num text-slate-500 truncate tracking-tight">
                       {activeTaxpayer.nikNpwp}
                     </div>
-                    <div className="text-[11.5px] font-bold uppercase tracking-tight truncate">
-                      {activeTaxpayer.name}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[11.5px] font-bold uppercase text-[#0F172A] tracking-tight truncate max-w-[115px] sm:max-w-[140px] xl:max-w-[180px]">
+                        {activeTaxpayer.name}
+                      </span>
+                      {accountMode === 'CORPORATE' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-[#FEF9C3] text-[#713F12] border border-[#FACC15] shrink-0 leading-none tracking-wider">
+                          IMPERSONATE
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronDown
-                    className={`hidden lg:block w-3.5 h-3.5 opacity-60 shrink-0 transition-transform ${
+                    className={`hidden md:block w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ml-0.5 ${
                       accountMenuOpen ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
 
-                {accountMenuOpen && (() => {
-                  const query = accountSearch.trim().toLowerCase();
-                  const showIndividual =
-                    !query ||
-                    individualTaxpayer.name.toLowerCase().includes(query) ||
-                    individualTaxpayer.nikNpwp.toLowerCase().includes(query);
-                  const showCorporate =
-                    !query ||
-                    corporateTaxpayer.name.toLowerCase().includes(query) ||
-                    corporateTaxpayer.nikNpwp.toLowerCase().includes(query);
-
-                  return (
-                    <div className="absolute right-0 top-full mt-2 w-[290px] bg-white text-slate-800 border border-[#E2E8F0] rounded-2xl shadow-[0_20px_50px_rgba(30,44,94,0.16)] z-50 overflow-hidden">
-                      {/* Active Account Summary Header */}
-                      <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#FEF9E2] text-[#1B2958] flex items-center justify-center shrink-0">
-                          <User className="w-[18px] h-[18px]" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[12px] font-bold uppercase text-[#1B2958] leading-snug truncate">
-                            {activeTaxpayer.name}
-                          </div>
-                          <div className="text-[11px] font-mono-num text-slate-400 leading-tight truncate">
-                            {activeTaxpayer.nikNpwp}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Search NPWP / Name */}
-                      <div className="px-3 pb-3">
-                        <div className="flex items-center gap-2 bg-[#F4F6FA] border border-transparent focus-within:border-[#CBD5E1] focus-within:bg-white rounded-lg px-2.5 py-2 transition">
-                          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <input
-                            type="text"
-                            value={accountSearch}
-                            onChange={(e) => setAccountSearch(e.target.value)}
-                            placeholder="Cari NPWP atau nama..."
-                            className="w-full bg-transparent text-[12px] text-slate-700 placeholder:text-slate-400 outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Account Groups: AKUN UTAMA & AKUN PERWAKILAN */}
-                      <div className="px-3 pb-3 space-y-3 max-h-[240px] overflow-y-auto">
-                        {showIndividual && (
-                          <div>
-                            <div className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                              AKUN UTAMA
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onSwitchAccountMode('INDIVIDUAL');
-                                setAccountMenuOpen(false);
-                                setAccountSearch('');
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition cursor-pointer ${
-                                accountMode === 'INDIVIDUAL'
-                                  ? 'bg-[#FEF9E2]'
-                                  : 'hover:bg-[#F8FAFC]'
-                              }`}
-                            >
-                              <div className="text-[11.5px] font-bold uppercase text-[#1B2958] leading-snug truncate">
-                                {individualTaxpayer.name}
-                              </div>
-                              <div className="text-[10.5px] font-mono-num text-slate-500 leading-tight mt-0.5">
-                                {individualTaxpayer.nikNpwp}
-                              </div>
-                            </button>
-                          </div>
-                        )}
-
-                        {showCorporate && (
-                          <div>
-                            <div className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                              AKUN PERWAKILAN
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onSwitchAccountMode('CORPORATE');
-                                setAccountMenuOpen(false);
-                                setAccountSearch('');
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg transition cursor-pointer ${
-                                accountMode === 'CORPORATE'
-                                  ? 'bg-[#FEF9E2]'
-                                  : 'hover:bg-[#F8FAFC]'
-                              }`}
-                            >
-                              <div className="text-[11.5px] font-bold uppercase text-[#1B2958] leading-snug truncate">
-                                {corporateTaxpayer.name}
-                              </div>
-                              <div className="text-[10.5px] font-mono-num text-slate-500 leading-tight mt-0.5">
-                                {corporateTaxpayer.nikNpwp}
-                              </div>
-                            </button>
-                          </div>
-                        )}
-
-                        {!showIndividual && !showCorporate && (
-                          <div className="px-2 py-3 text-center text-[11.5px] text-slate-400">
-                            Akun tidak ditemukan
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Login Terakhir */}
-                      <div className="border-t border-slate-100 px-4 py-2.5 flex items-center gap-2.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
-                            LOGIN TERAKHIR
-                          </div>
-                          <div className="text-[11.5px] font-semibold text-[#1B2958] leading-snug">
-                            {lastLoginLabel}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Keluar */}
-                      <div className="border-t border-slate-100 p-2">
-                        <button
-                          type="button"
-                          onClick={onLogout}
-                          className="w-full px-2.5 py-2 rounded-lg text-left text-[12px] font-semibold text-rose-500 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer"
-                        >
-                          <LogOut className="w-3.5 h-3.5" />
-                          <span>Keluar</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
+                {accountMenuOpen && renderAccountDropdown()}
               </div>
 
-              {/* Far-Right Home Icon Button */}
+              {/* Compress Header Icon Button (Animates and collapses navbar into Gambar 3) */}
               <button
                 type="button"
-                onClick={() => onNavigate('dashboard', 'home')}
-                title="Beranda Utama"
-                className={`hidden sm:inline-flex p-1.5 sm:p-2 rounded-lg transition cursor-pointer ${
-                  isDashboardView
-                    ? 'bg-[#FEF08A]/75 text-[#1B2958]'
-                    : darkHeader
-                      ? 'text-slate-300 hover:bg-slate-800'
-                      : 'text-[#1E2C5E] hover:bg-[#F4F6FA]'
-                }`}
+                onClick={() => setIsHeaderCompact(true)}
+                title="Kompakkan Navbar"
+                aria-label="Kompakkan Navbar"
+                className="hidden sm:inline-flex p-1.5 rounded-lg text-slate-500 hover:text-[#1E2C5E] hover:bg-[#F4F6FA] transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
               >
-                <Home className="w-[18px] h-[18px]" />
+                <CompressHeaderIcon className="w-4 h-4 text-[#1E293B]" />
               </button>
             </div>
           </div>
@@ -1437,8 +1605,10 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </div>
             </div>
           )}
-        </div>
-      </header>
+        </>
+      )}
+    </div>
+  </header>
 
       {/* ===================================================================== */}
       {/* MAIN BODY: FULL-WIDTH DASHBOARD (NO MENU SELECTED) OR 2-COL WORKSPACE */}

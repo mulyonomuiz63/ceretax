@@ -321,14 +321,16 @@ export const MONTHS_ID = [
 ];
 
 export const FAKTUR_TRANSACTION_CODES = [
-  { code: '01', label: '01 - Kepada selain Pemungut PPN' },
-  { code: '02', label: '02 - Kepada Pemungut PPN Instansi Pemerintah' },
-  { code: '03', label: '03 - Kepada Pemungut PPN Selain Instansi Pemerintah' },
+  { code: '01', label: '01 - kepada pihak yang bukan pemungut PPN' },
+  { code: '02', label: '02 - kepada pemungut PPN instansi pemerintah' },
+  { code: '03', label: '03 - kepada pemungut PPN selain instansi pemerintah' },
   { code: '04', label: '04 - DPP Nilai Lain' },
-  { code: '05', label: '05 - Besaran Tertentu' },
-  { code: '07', label: '07 - PPN Tidak Dipungut / Ditanggung Pemerintah' },
-  { code: '08', label: '08 - PPN Dibebaskan' },
-  { code: '09', label: '09 - Penyerahan Aktiva Pasal 16D' },
+  { code: '05', label: '05 - besaran tertentu' },
+  { code: '06', label: '06 - kepada orang pribadi pemegang paspor luar negeri (16E UU PPN)' },
+  { code: '07', label: '07 - penyerahan dengan fasilitas PPN atau PPN dan PPnBM tidak dipungut/ditanggung pemerintah' },
+  { code: '08', label: '08 - penyerahan dengan fasilitas dibebaskan PPN atau PPN dan PPnBM' },
+  { code: '09', label: '09 - penyerahan aktiva yang menurut tujuan semula tidak diperjualbelikan (16D UU PPN)' },
+  { code: '10', label: '10 - penyerahan lainnya' },
 ];
 
 import { ALL_ITEM_CODES, GOODS_CODES, SERVICES_CODES } from '../data/efakturCodes.ts';
@@ -351,10 +353,12 @@ export const PPH21_OBJECT_CODES = [
   { code: '21-100-01-A1', name: 'Pegawai Tetap Tahunan (BPA1)', slipType: 'BPA1' as const },
 ];
 
-export function generateFakturNumber(txCode: string, seq: number, isAmendment = false): string {
-  const statusDigit = isAmendment ? '1' : '0';
-  const serial = String(seq).padStart(13, '0');
-  return `${txCode}${statusDigit}${serial}`;
+export function generateFakturNumber(txCode: string, seq: number, isAmendment = false, year = 2026): string {
+  const cleanCode = (txCode || '01').padStart(2, '0').slice(0, 2);
+  const statusDigits = isAmendment ? '01' : '00';
+  const yearDigits = String(year).slice(-2);
+  const serialDigits = String(seq).padStart(11, '0');
+  return `${cleanCode}${statusDigits}${yearDigits}${serialDigits}`;
 }
 
 export function generateBillingCode(): string {

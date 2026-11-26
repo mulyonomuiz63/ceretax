@@ -46,6 +46,64 @@ import {
   downloadCsvFile,
 } from '../components/CoretaxTableChrome.tsx';
 
+export const STANDARD_TAX_UNITS = [
+  'Kilogram',
+  'Unit',
+  'Boks',
+  'Drum',
+  'Gram',
+  'Joule',
+  'Kilowatt Jam',
+  'Liter',
+  'Meter',
+  'Meter Persegi',
+  'Meter Kubik',
+  'Miligram',
+  'Mililiter',
+  'Milimeter',
+  'Paket',
+  'Pcs',
+  'Set',
+  'Ton',
+  'Kegiatan',
+  'Bulan',
+  'Hari',
+  'Jam',
+];
+
+const KNOWN_BUYERS: Record<string, { name: string; address: string; country: string }> = {
+  '0013084496091000': {
+    name: 'BANK CENTRAL ASIA',
+    address: 'JL MH THAMRIN NO 1 JAKARTA PUSAT',
+    country: 'Indonesia',
+  },
+  '0010005411091000': {
+    name: 'VALE INDONESIA',
+    address: 'GEDUNG THE ENERGY LT 20 SCBD LOT 11A JAKARTA',
+    country: 'Indonesia',
+  },
+  '0011397973091000': {
+    name: 'BANK SMBC INDONESIA TBK',
+    address: 'MENARA BTPN LT 25 JL DR IDE ANAK AGUNG GDE AGUNG JAKARTA',
+    country: 'Indonesia',
+  },
+  '0010016087093000': {
+    name: 'BANK MANDIRI (PERSERO) TBK',
+    address: 'PLAZA MANDIRI JL JEND GATOT SUBROTO KAV 36-38 JAKARTA',
+    country: 'Indonesia',
+  },
+  '0279414544086000': {
+    name: 'GOCHIDA META SOLUSITAMA',
+    address: 'JL KEMANG RAYA NO 45 JAKARTA SELATAN',
+    country: 'Indonesia',
+  },
+  '0753620525008000': {
+    name: 'PT VERTICA LABORA SINERGI',
+    address: 'JL RADEN INTEN II B NO.210 DUREN SAWIT JAKARTA TIMUR',
+    country: 'Indonesia',
+  },
+};
+
 interface EFakturModuleProps {
   subTab: string;
   resetKey?: number;
@@ -166,6 +224,16 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [amendTarget, setAmendTarget] = useState<TaxInvoice | null>(null);
   const [amendDpp, setAmendDpp] = useState(0);
 
+  // Auto-dismiss success toast after 5 seconds
+  useEffect(() => {
+    if (fakturSuccessToast) {
+      const timer = setTimeout(() => {
+        setFakturSuccessToast(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [fakturSuccessToast]);
+
   // Reset detail modals / views when navigating or clicking menu
   useEffect(() => {
     setCreateModalOpen(false);
@@ -181,18 +249,22 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   }, [resetKey, subTab, activeTaxpayer.id]);
 
   // Inline Coretax Output Invoice Edit state
+  const [editingInvoice, setEditingInvoice] = useState<TaxInvoice | null>(null);
+  const [isViewingApproved, setIsViewingApproved] = useState(false);
+  const [isAmendmentMode, setIsAmendmentMode] = useState(false);
+  const [replacementFakturNumber, setReplacementFakturNumber] = useState('');
   const [editCollapsed, setEditCollapsed] = useState<Record<string, boolean>>({});
   const [isDownPayment, setIsDownPayment] = useState(false);
   const [isFinalPayment, setIsFinalPayment] = useState(false);
   const [txCode, setTxCode] = useState('04');
-  const [invoiceDate, setInvoiceDate] = useState('2025-01-22');
+  const [invoiceDate, setInvoiceDate] = useState('2026-11-25');
   const [referenceCode, setReferenceCode] = useState('');
   const [buyerIdType, setBuyerIdType] = useState<'NPWP' | 'PASPOR' | 'NIK' | 'LAINNYA'>('NPWP');
   const [counterpartyNpwp, setCounterpartyNpwp] = useState('');
   const [counterpartyName, setCounterpartyName] = useState('');
   const [buyerAddress, setBuyerAddress] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
-  const [buyerCountry, setBuyerCountry] = useState('Indonesia (IDN)');
+  const [buyerCountry, setBuyerCountry] = useState('Indonesia');
   const [draftItems, setDraftItems] = useState<TaxInvoiceItem[]>([]);
   const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
 
@@ -200,15 +272,19 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [txItemType, setTxItemType] = useState<'GOODS' | 'SERVICES'>('GOODS');
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
-  const [txUnit, setTxUnit] = useState('Unit');
+  const [txUnit, setTxUnit] = useState('Kilogram');
   const [unitPrice, setUnitPrice] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [discount, setDiscount] = useState(0);
   const [isLuxury, setIsLuxury] = useState(false);
   const [txPpnbmRate, setTxPpnbmRate] = useState(0);
+  const [customPpnbm, setCustomPpnbm] = useState<number | null>(null);
+  const [ppnbmNominalFocused, setPpnbmNominalFocused] = useState(false);
   const [txCodeDropdownOpen, setTxCodeDropdownOpen] = useState(false);
   const [txCodeSearchQuery, setTxCodeSearchQuery] = useState('');
   const [isOtherValue, setIsOtherValue] = useState(false);
+  const [customDppOther, setCustomDppOther] = useState<number | null>(null);
+  const [dppOtherFocused, setDppOtherFocused] = useState(false);
   const [ppnRatePercent, setPpnRatePercent] = useState(12);
   const [unitPriceFocused, setUnitPriceFocused] = useState(false);
   const [discountFocused, setDiscountFocused] = useState(false);
@@ -468,16 +544,85 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     }));
   }, [statusCounts, hiddenPieStatuses]);
 
+  const handleBuyerNpwpChange = (val: string) => {
+    setCounterpartyNpwp(val);
+    const clean = val.replace(/\D/g, '');
+    if (KNOWN_BUYERS[clean]) {
+      setCounterpartyName(KNOWN_BUYERS[clean].name);
+      setBuyerAddress(KNOWN_BUYERS[clean].address);
+      setBuyerCountry(KNOWN_BUYERS[clean].country);
+    } else if (clean.length >= 15) {
+      setBuyerCountry('Indonesia');
+    }
+  };
+
+  const handleEditRowInvoice = (inv: TaxInvoice) => {
+    setEditingInvoice(inv);
+    setIsDownPayment(false);
+    setIsFinalPayment(false);
+    setTxCode(inv.transactionCode || '04');
+    setInvoiceDate(inv.invoiceDate || new Date().toISOString().slice(0, 10));
+    setReferenceCode(inv.referenceCode || '');
+    setCounterpartyNpwp(inv.counterpartyNpwp || '');
+    setCounterpartyName(inv.counterpartyName || '');
+    setBuyerAddress(inv.counterpartyAddress || '');
+    setBuyerEmail(inv.counterpartyEmail || '');
+    setBuyerCountry('Indonesia');
+    setDraftItems(
+      inv.items && inv.items.length > 0
+        ? inv.items
+        : [
+            {
+              id: `item-existing-${inv.id}`,
+              itemType: 'GOODS',
+              itemCode: '000000',
+              itemName: 'Barang',
+              unit: 'Kilogram',
+              unitPrice: inv.dppTotal,
+              quantity: 1,
+              discount: 0,
+              isLuxury: inv.ppnbmTotal > 0,
+              dpp: inv.dppTotal,
+              dppOtherValue: inv.dppOtherValue,
+              ppn: inv.ppnTotal,
+              ppnbm: inv.ppnbmTotal,
+            },
+          ]
+    );
+    setSelectedDraftItemIds([]);
+
+    if (inv.status === 'APPROVED') {
+      setIsViewingApproved(true);
+      setIsAmendmentMode(false);
+      setReplacementFakturNumber('');
+    } else {
+      setIsViewingApproved(false);
+      setIsAmendmentMode(false);
+      setReplacementFakturNumber('');
+    }
+    setCreateModalOpen(true);
+  };
+
   const handleOpenInvoiceEditor = () => {
     if (!isImpersonateAccount) {
       setFakturSuccessToast('Pembuatan Faktur Pajak hanya dapat dilakukan pada akun perusahaan (Impersonate).');
       return;
     }
+    setEditingInvoice(null);
+    setIsViewingApproved(false);
+    setIsAmendmentMode(false);
+    setReplacementFakturNumber('');
+    setIsDownPayment(false);
+    setIsFinalPayment(false);
+    setTxCode('04');
+    setInvoiceDate(new Date().toISOString().slice(0, 10));
     setReferenceCode('');
+    setBuyerIdType('NPWP');
     setCounterpartyNpwp('');
     setCounterpartyName('');
     setBuyerAddress('');
     setBuyerEmail('');
+    setBuyerCountry('Indonesia');
     setDraftItems([]);
     setSelectedDraftItemIds([]);
     setCreateModalOpen(true);
@@ -501,29 +646,37 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
   const modalTotalPrice = Math.max(0, unitPrice * quantity);
   const modalDpp = Math.max(0, modalTotalPrice - discount);
-  const modalDppOther = isOtherValue ? Math.round((11 / 12) * modalDpp) : modalDpp;
+  const modalDppOtherCalculated = Math.round((11 / 12) * modalDpp);
+  const effectiveDppOther = isOtherValue
+    ? (customDppOther !== null ? customDppOther : modalDppOtherCalculated)
+    : 0;
   const isExportDoc = normalizedTab === 'dok_lain_keluaran';
+  const effectiveDppForPpn = isOtherValue ? effectiveDppOther : modalDpp;
   const modalPpn = isExportDoc
     ? 0
-    : Math.round((isOtherValue ? modalDppOther : modalDpp) * (ppnRatePercent / 100));
-  const modalPpnbm = Math.round((modalDpp * txPpnbmRate) / 100);
+    : Math.round(effectiveDppForPpn * (ppnRatePercent / 100));
+  const modalPpnbm = customPpnbm !== null ? customPpnbm : Math.round((modalDpp * txPpnbmRate) / 100);
 
   const handleOpenAddTxModal = () => {
     setItemCode('');
     setItemName('');
-    setTxUnit('Unit');
+    setTxUnit('Kilogram');
     setQuantity(1);
     setUnitPrice(0);
     setDiscount(0);
     setIsOtherValue(false);
+    setCustomDppOther(null);
     setPpnRatePercent(12);
     setTxPpnbmRate(0);
+    setCustomPpnbm(null);
     setTxCodeDropdownOpen(false);
     setTxCodeSearchQuery('');
     setUnitPriceFocused(false);
     setDiscountFocused(false);
     setPpnbmFocused(false);
     setQuantityFocused(false);
+    setDppOtherFocused(false);
+    setPpnbmNominalFocused(false);
     setAddTxModalOpen(true);
   };
 
@@ -534,13 +687,13 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       itemType: txItemType,
       itemCode: itemCode || (txItemType === 'GOODS' ? '000000' : '000000'),
       itemName: itemName || (txItemType === 'GOODS' ? 'Barang' : 'Jasa'),
-      unit: txUnit || 'Unit',
+      unit: txUnit || 'Kilogram',
       unitPrice,
       quantity,
       discount,
-      isLuxury: txPpnbmRate > 0,
+      isLuxury: txPpnbmRate > 0 || modalPpnbm > 0,
       dpp: modalDpp,
-      dppOtherValue: modalDppOther,
+      dppOtherValue: effectiveDppOther,
       ppn: modalPpn,
       ppnbm: modalPpnbm,
     };
@@ -578,35 +731,105 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     const parsedDate = new Date(invoiceDate);
     const finalStatus: TaxInvoice['status'] =
       approveImmediately || isExport || direction === 'INPUT' ? 'APPROVED' : 'DRAFT';
-    const invNum = isExport
-      ? `PEB-${invoiceDate.slice(0, 4)}-${String(Math.floor(100000 + Math.random() * 899999))}`
-      : approveImmediately && direction === 'OUTPUT'
-        ? generateFakturNumber(txCode, workspace.invoices.length + 11, false)
-        : `DRAFT-${direction === 'OUTPUT' ? 'OUT' : 'IN'}-${String(workspace.invoices.length + 1).padStart(3, '0')}`;
 
-    await onCreateInvoice({
-      taxpayerId: activeTaxpayer.id,
-      direction,
-      transactionCode: isExport ? '01' : txCode,
-      invoiceNumber: invNum,
-      referenceCode,
-      counterpartyNpwp,
-      counterpartyName,
-      invoiceDate,
-      taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
-      taxPeriodYear: parsedDate.getFullYear() || 2025,
-      items: draftItems,
-      dppTotal: draftTotals.dpp,
-      dppOtherValue: draftTotals.dppOtherValue,
-      ppnTotal: draftTotals.ppn,
-      ppnbmTotal: draftTotals.ppnbm,
-      status: finalStatus,
-      signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
-      isCredited: direction === 'INPUT',
-      returnAmount: 0,
-    });
+    if (isAmendmentMode && editingInvoice) {
+      const finalNum = approveImmediately
+        ? (replacementFakturNumber || generateFakturNumber(txCode, workspace.invoices.length + 11, true))
+        : '';
+      await onCreateInvoice({
+        taxpayerId: activeTaxpayer.id,
+        direction,
+        transactionCode: txCode,
+        invoiceNumber: finalNum,
+        referenceCode,
+        counterpartyNpwp,
+        counterpartyName,
+        invoiceDate,
+        taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
+        taxPeriodYear: parsedDate.getFullYear() || 2026,
+        items: draftItems,
+        dppTotal: draftTotals.dpp,
+        dppOtherValue: draftTotals.dppOtherValue,
+        ppnTotal: draftTotals.ppn,
+        ppnbmTotal: draftTotals.ppnbm,
+        status: finalStatus,
+        signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
+        isCredited: direction === 'INPUT',
+        returnAmount: 0,
+        isReplacement: true,
+        originalInvoiceNumber: editingInvoice.invoiceNumber,
+      });
+      await onInvoiceAction(editingInvoice.id, 'APPROVE_AMEND');
+      setFakturSuccessToast(
+        finalStatus === 'APPROVED'
+          ? `Faktur Pajak Pengganti No. ${finalNum} berhasil di-upload dan disetujui!`
+          : 'Konsep Faktur Pajak Pengganti berhasil disimpan!'
+      );
+    } else if (editingInvoice && editingInvoice.status === 'DRAFT') {
+      const finalNum = approveImmediately
+        ? generateFakturNumber(txCode, workspace.invoices.length + 11, false)
+        : '';
+      await onInvoiceAction(editingInvoice.id, 'UPDATE', {
+        transactionCode: txCode,
+        invoiceNumber: finalNum,
+        referenceCode,
+        counterpartyNpwp,
+        counterpartyName,
+        invoiceDate,
+        taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
+        taxPeriodYear: parsedDate.getFullYear() || 2026,
+        items: draftItems,
+        dppTotal: draftTotals.dpp,
+        dppOtherValue: draftTotals.dppOtherValue,
+        ppnTotal: draftTotals.ppn,
+        ppnbmTotal: draftTotals.ppnbm,
+        status: finalStatus,
+        signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
+      });
+      setFakturSuccessToast(
+        finalStatus === 'APPROVED'
+          ? 'Berhasil membuat Faktur Pajak Keluaran baru!'
+          : 'Konsep Faktur Pajak berhasil disimpan!'
+      );
+    } else {
+      const invNum = isExport
+        ? `PEB-${invoiceDate.slice(0, 4)}-${String(Math.floor(100000 + Math.random() * 899999))}`
+        : approveImmediately && direction === 'OUTPUT'
+          ? generateFakturNumber(txCode, workspace.invoices.length + 11, false)
+          : '';
+      await onCreateInvoice({
+        taxpayerId: activeTaxpayer.id,
+        direction,
+        transactionCode: isExport ? '01' : txCode,
+        invoiceNumber: invNum,
+        referenceCode,
+        counterpartyNpwp,
+        counterpartyName,
+        invoiceDate,
+        taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
+        taxPeriodYear: parsedDate.getFullYear() || 2026,
+        items: draftItems,
+        dppTotal: draftTotals.dpp,
+        dppOtherValue: draftTotals.dppOtherValue,
+        ppnTotal: draftTotals.ppn,
+        ppnbmTotal: draftTotals.ppnbm,
+        status: finalStatus,
+        signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
+        isCredited: direction === 'INPUT',
+        returnAmount: 0,
+      });
+      setFakturSuccessToast(
+        finalStatus === 'APPROVED'
+          ? 'Berhasil membuat Faktur Pajak Keluaran baru!'
+          : 'Konsep Faktur Pajak berhasil disimpan!'
+      );
+    }
+
     setCreateModalOpen(false);
     setUploadAfterCreateOpen(false);
+    setEditingInvoice(null);
+    setIsViewingApproved(false);
+    setIsAmendmentMode(false);
   };
 
   const selectedDraftInvoices = filteredInvoices.filter(
@@ -625,19 +848,23 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   return (
     <div className="space-y-4">
       {fakturSuccessToast && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#DCFCE7] border border-[#22C55E] text-[#15803D] rounded-[5px] px-4 py-2.5 shadow-lg flex items-center gap-3 min-w-[340px]">
-          <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" />
-          <div className="flex-1 text-[12px]">
-            <div className="font-bold">Success</div>
-            <div>{fakturSuccessToast}</div>
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-white border border-slate-200/90 shadow-[0_10px_35px_rgba(0,0,0,0.14)] rounded-[4px] border-l-[5px] border-l-[#22C55E] min-w-[340px] max-w-[440px] overflow-hidden transition-all duration-200 animate-in fade-in slide-in-from-top-2">
+          <div className="px-5 py-3.5">
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-bold text-[13.5px] text-[#1E293B] leading-none">Success</span>
+              <button
+                type="button"
+                onClick={() => setFakturSuccessToast(null)}
+                className="text-slate-400 hover:text-slate-700 transition cursor-pointer p-0.5"
+                title="Tutup"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p className="text-[12px] text-[#475569] mt-1.5 leading-snug">
+              {fakturSuccessToast}
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setFakturSuccessToast(null)}
-            className="text-[#15803D] hover:text-[#14532D] font-bold cursor-pointer"
-          >
-            ×
-          </button>
         </div>
       )}
 
@@ -1024,7 +1251,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           <input
                             type="checkbox"
                             checked={isDownPayment}
-                            onChange={(e) => setIsDownPayment(e.target.checked)}
+                            disabled={isFinalPayment || isViewingApproved}
+                            onChange={(e) => {
+                              setIsDownPayment(e.target.checked);
+                              if (e.target.checked) setIsFinalPayment(false);
+                            }}
                             className="accent-[#1E2C5E]"
                           />
                           <span>Uang Muka</span>
@@ -1033,7 +1264,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           <input
                             type="checkbox"
                             checked={isFinalPayment}
-                            onChange={(e) => setIsFinalPayment(e.target.checked)}
+                            disabled={isDownPayment || isViewingApproved}
+                            onChange={(e) => {
+                              setIsFinalPayment(e.target.checked);
+                              if (e.target.checked) setIsDownPayment(false);
+                            }}
                             className="accent-[#1E2C5E]"
                           />
                           <span>Pelunasan</span>
@@ -1046,8 +1281,15 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           <input
                             type="text"
                             readOnly
-                            value="Otomatis saat Upload Faktur"
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 text-slate-500 italic"
+                            placeholder="Nomor Faktur"
+                            value={
+                              isViewingApproved && editingInvoice
+                                ? editingInvoice.invoiceNumber
+                                : isAmendmentMode
+                                ? replacementFakturNumber
+                                : ''
+                            }
+                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 text-slate-700 font-mono-num placeholder:text-slate-400"
                           />
                         </div>
                         {!isDokLainTab && (
@@ -1057,9 +1299,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                             </label>
                             <select
                               value={txCode}
+                              disabled={isViewingApproved}
                               onChange={(e) => setTxCode(e.target.value)}
-                              className="col-span-8 border border-slate-300 rounded px-2.5 py-1.5 bg-white"
+                              className="col-span-8 border border-slate-300 rounded px-2.5 py-1.5 bg-white text-slate-800 disabled:bg-slate-100"
                             >
+                              <option value="" disabled>Pilih Kode Transaksi</option>
                               {FAKTUR_TRANSACTION_CODES.map((c) => (
                                 <option key={c.code} value={c.code}>
                                   {c.label}
@@ -1075,8 +1319,9 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           <input
                             type="date"
                             value={invoiceDate}
+                            disabled={isViewingApproved}
                             onChange={(e) => setInvoiceDate(e.target.value)}
-                            className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num"
+                            className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num disabled:bg-slate-100"
                           />
                         </div>
                         <div className="grid grid-cols-12 items-center gap-2">
@@ -1086,8 +1331,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           <input
                             type="text"
                             readOnly
-                            value="Normal"
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5"
+                            value={isAmendmentMode ? 'Pengganti' : (editingInvoice?.isReplacement ? 'Pengganti' : 'Normal')}
+                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 text-slate-700 font-medium"
                           />
                         </div>
                         <div className="grid grid-cols-12 items-center gap-2">
@@ -1097,36 +1342,46 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           <input
                             type="text"
                             readOnly
-                            value={`${MONTHS_ID[Math.max(0, (new Date(invoiceDate).getMonth() || 0))]} ${new Date(invoiceDate).getFullYear() || 2025}`}
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
+                            value={`${MONTHS_ID[Math.max(0, (new Date(invoiceDate).getMonth() || 0))]} ${new Date(invoiceDate).getFullYear() || 2026}`}
+                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num text-slate-700"
                           />
                         </div>
                         <div className="grid grid-cols-12 items-center gap-2">
                           <label className="col-span-4 font-semibold text-slate-700">Referensi</label>
                           <input
                             type="text"
+                            placeholder="Keterangan"
                             value={referenceCode}
+                            disabled={isViewingApproved}
                             onChange={(e) => setReferenceCode(e.target.value)}
-                            className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num"
+                            className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num disabled:bg-slate-100"
                           />
                         </div>
                         <div className="grid grid-cols-12 items-center gap-2">
                           <label className="col-span-4 font-semibold text-slate-700">Alamat Penjual</label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={workspace.corporateTaxpayer.address}
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 truncate"
-                          />
+                          <div className="col-span-8 relative">
+                            <select
+                              disabled
+                              value="main"
+                              className="w-full border border-slate-300 bg-white rounded px-3 py-1.5 text-slate-800 text-[12px] truncate appearance-none pr-8 cursor-not-allowed"
+                            >
+                              <option value="main">{workspace.corporateTaxpayer.address || 'JL RADEN INTEN II B NO.210 DUREN SAWIT JAKARTA TIMUR'}</option>
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
                         </div>
                         <div className="grid grid-cols-12 items-center gap-2">
                           <label className="col-span-4 font-semibold text-slate-700">IDTKU Penjual</label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={`${workspace.corporateTaxpayer.nikNpwp}000000`}
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
-                          />
+                          <div className="col-span-8 relative">
+                            <select
+                              disabled
+                              value="000000"
+                              className="w-full border border-slate-300 bg-white rounded px-3 py-1.5 text-slate-800 font-mono-num text-[12px] appearance-none pr-8 cursor-not-allowed"
+                            >
+                              <option value="000000">000000</option>
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1152,8 +1407,10 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         <input
                           type="text"
                           value={counterpartyNpwp}
-                          onChange={(e) => setCounterpartyNpwp(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num"
+                          disabled={isViewingApproved}
+                          placeholder=""
+                          onChange={(e) => handleBuyerNpwpChange(e.target.value)}
+                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num disabled:bg-slate-100"
                         />
                       </div>
                       <div className="grid grid-cols-12 items-center gap-2">
@@ -1171,6 +1428,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                               <input
                                 type="radio"
                                 name="buyerIdType"
+                                disabled={isViewingApproved}
                                 checked={buyerIdType === opt.id}
                                 onChange={() => setBuyerIdType(opt.id)}
                                 className="accent-[#1E2C5E]"
@@ -1187,48 +1445,72 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         <input
                           type="text"
                           value={counterpartyName}
+                          disabled={isViewingApproved}
                           onChange={(e) => setCounterpartyName(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-semibold"
+                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-semibold text-slate-800 disabled:bg-slate-100"
                         />
                       </div>
                       <div className="grid grid-cols-12 items-center gap-2">
                         <label className="col-span-4 font-semibold text-slate-700">Negara</label>
-                        <input
-                          type="text"
-                          value={buyerCountry}
-                          onChange={(e) => setBuyerCountry(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5"
-                        />
+                        <div className="col-span-8 relative">
+                          <select
+                            disabled={isViewingApproved}
+                            value={buyerCountry || 'Indonesia'}
+                            onChange={(e) => setBuyerCountry(e.target.value)}
+                            className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white text-slate-800 text-[12px] appearance-none pr-8 disabled:bg-slate-100"
+                          >
+                            <option value="Indonesia">Indonesia</option>
+                            <option value="Luar Negeri">Luar Negeri</option>
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
                       <div className="grid grid-cols-12 items-center gap-2">
                         <label className="col-span-4 font-semibold text-slate-700">
                           Alamat <span className="text-rose-600">*</span>
                         </label>
-                        <input
-                          type="text"
-                          value={buyerAddress}
-                          onChange={(e) => setBuyerAddress(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5"
-                        />
+                        <div className="col-span-8 relative">
+                          <select
+                            disabled={isViewingApproved}
+                            value={buyerAddress ? 'addr-selected' : ''}
+                            onChange={(e) => {
+                              if (e.target.value === '') setBuyerAddress('');
+                            }}
+                            className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white text-slate-800 text-[12px] appearance-none pr-8 truncate disabled:bg-slate-100"
+                          >
+                            {buyerAddress ? (
+                              <option value="addr-selected">{buyerAddress}</option>
+                            ) : (
+                              <option value="">Pilih Alamat</option>
+                            )}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
                       <div className="grid grid-cols-12 items-center gap-2">
                         <label className="col-span-4 font-semibold text-slate-700">
-                          IDTKU <span className="text-rose-600">*</span>
+                          IDTKU
                         </label>
-                        <input
-                          type="text"
-                          readOnly
-                          value={`${counterpartyNpwp.replace(/\D/g, '').slice(0, 16) || '0000000000000000'}000000`}
-                          className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num"
-                        />
+                        <div className="col-span-8 relative">
+                          <select
+                            disabled={isViewingApproved}
+                            value="000000"
+                            className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white text-slate-800 text-[12px] appearance-none pr-8 disabled:bg-slate-100"
+                          >
+                            <option value="000000">Pilih kode usaha</option>
+                            <option value="000000">000000</option>
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
                       <div className="grid grid-cols-12 items-center gap-2">
                         <label className="col-span-4 font-semibold text-slate-700">Email</label>
                         <input
                           type="email"
                           value={buyerEmail}
+                          disabled={isViewingApproved}
                           onChange={(e) => setBuyerEmail(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5"
+                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 disabled:bg-slate-100"
                         />
                       </div>
                     </div>
@@ -1247,38 +1529,41 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                   </button>
                   {!editCollapsed.detail && (
                     <div className="p-4 space-y-3 bg-white">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handleOpenAddTxModal}
-                            className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs px-3.5 py-2 rounded-[6px] cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5 text-[#F7CA36]" />
-                            <span>Tambah Transaksi</span>
-                          </button>
-                          <button
-                            type="button"
-                            disabled={selectedDraftItemIds.length === 0}
-                            onClick={handleRemoveSelectedLines}
-                            className="inline-flex items-center gap-1.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-45 text-white font-bold text-xs px-3.5 py-2 rounded-[6px] cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Hapus Transaksi</span>
-                          </button>
+                      {!isViewingApproved && (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleOpenAddTxModal}
+                              className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs px-3.5 py-2 rounded-[6px] cursor-pointer shadow-xs"
+                            >
+                              <Plus className="w-3.5 h-3.5 text-[#F7CA36]" />
+                              <span>Tambah Transaksi</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={selectedDraftItemIds.length === 0}
+                              onClick={handleRemoveSelectedLines}
+                              className="inline-flex items-center gap-1.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-45 text-white font-bold text-xs px-3.5 py-2 rounded-[6px] cursor-pointer shadow-xs"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus Transaksi</span>
+                            </button>
+                          </div>
+                          <span className="text-[11px] text-slate-500">
+                            Total {draftItems.length} baris transaksi
+                          </span>
                         </div>
-                        <span className="text-[11px] text-slate-500">
-                          Total {draftItems.length} baris transaksi
-                        </span>
-                      </div>
+                      )}
 
                       <div className="overflow-x-auto border border-slate-200 rounded">
-                        <table className="w-full text-[11.5px] border-collapse">
+                        <table className="w-full text-[11.5px] border-collapse whitespace-nowrap">
                           <thead>
                             <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
                               <th className="px-2.5 py-2 w-8 text-center border-r border-[#E5B822]">
                                 <input
                                   type="checkbox"
+                                  disabled={isViewingApproved}
                                   checked={
                                     draftItems.length > 0 &&
                                     draftItems.every((it) => selectedDraftItemIds.includes(it.id))
@@ -1293,22 +1578,25 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 />
                               </th>
                               <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Tipe</th>
+                              <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Nama</th>
                               <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Kode</th>
-                              <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Nama Barang / Jasa</th>
+                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">KUANTITAS</th>
                               <th className="px-2.5 py-2 text-center border-r border-[#E5B822]">Satuan</th>
                               <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Harga Satuan</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Qty</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Potongan</th>
+                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Total Harga</th>
+                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Potongan harga</th>
+                              <th className="px-2.5 py-2 text-center border-r border-[#E5B822]">Tarif PPN</th>
                               <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">DPP</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">DPP Nilai Lain</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">PPN (12%)</th>
-                              <th className="px-2.5 py-2 text-right">PPnBM</th>
+                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">PPN</th>
+                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">DPP Nilai Lain/DPP</th>
+                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">PPnBM</th>
+                              <th className="px-2.5 py-2 text-right">Tarif PPnBM (%)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-200">
                             {draftItems.length === 0 ? (
                               <tr>
-                                <td colSpan={12} className="px-4 py-6 text-center text-slate-400">
+                                <td colSpan={15} className="px-4 py-6 text-center text-slate-400">
                                   Belum ada detail transaksi. Klik tombol <strong>Tambah Transaksi</strong>.
                                 </td>
                               </tr>
@@ -1318,6 +1606,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   <td className="px-2.5 py-2 text-center">
                                     <input
                                       type="checkbox"
+                                      disabled={isViewingApproved}
                                       checked={selectedDraftItemIds.includes(it.id)}
                                       onChange={() =>
                                         setSelectedDraftItemIds((prev) =>
@@ -1328,32 +1617,40 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                       }
                                     />
                                   </td>
-                                  <td className="px-2.5 py-2">{it.itemType === 'GOODS' ? 'Barang' : 'Jasa'}</td>
-                                  <td className="px-2.5 py-2 font-mono-num">{it.itemCode}</td>
+                                  <td className="px-2.5 py-2">{it.itemType === 'GOODS' ? 'GOODS' : 'SERVICES'}</td>
                                   <td className="px-2.5 py-2 font-semibold text-slate-800">{it.itemName}</td>
+                                  <td className="px-2.5 py-2 font-mono-num">{it.itemCode}</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.quantity)}</td>
                                   <td className="px-2.5 py-2 text-center">{it.unit}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(it.unitPrice)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{it.quantity}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(it.discount)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(it.dpp)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(it.dppOtherValue)}</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.unitPrice)}</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.unitPrice * it.quantity)}</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.discount)}</td>
+                                  <td className="px-2.5 py-2 text-center">12%</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.dpp)}</td>
                                   <td className="px-2.5 py-2 text-right font-mono-num font-bold text-[#1E2C5E]">
-                                    {formatRp(it.ppn)}
+                                    {formatCoretaxDec(it.ppn)}
                                   </td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(it.ppnbm)}</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.dppOtherValue)}</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.ppnbm)}</td>
+                                  <td className="px-2.5 py-2 text-right font-mono-num">
+                                    {it.isLuxury && it.dpp > 0 && it.ppnbm > 0
+                                      ? formatCoretaxDec((it.ppnbm / it.dpp) * 100)
+                                      : '0,00'}
+                                  </td>
                                 </tr>
                               ))
                             )}
                             <tr className="bg-[#EEF3FA] font-extrabold text-[#1E2C5E]">
-                              <td colSpan={8} className="px-3 py-2 text-right">
+                              <td colSpan={10} className="px-3 py-2 text-right">
                                 JUMLAH
                               </td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(draftTotals.dpp)}</td>
+                              <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.dpp)}</td>
+                              <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.ppn)}</td>
                               <td className="px-2.5 py-2 text-right font-mono-num">
-                                {formatRp(draftTotals.dppOtherValue)}
+                                {formatCoretaxDec(draftTotals.dppOtherValue)}
                               </td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(draftTotals.ppn)}</td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">{formatRp(draftTotals.ppnbm)}</td>
+                              <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.ppnbm)}</td>
+                              <td className="px-2.5 py-2 text-right font-mono-num">0,00</td>
                             </tr>
                           </tbody>
                         </table>
@@ -1367,32 +1664,77 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
               <div className="px-5 py-3.5 bg-[#F8FAFC] border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs cursor-pointer"
+                  onClick={() => {
+                    setCreateModalOpen(false);
+                    setEditingInvoice(null);
+                    setIsViewingApproved(false);
+                    setIsAmendmentMode(false);
+                  }}
+                  className="px-4 py-2 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs cursor-pointer shadow-xs transition"
                 >
                   Kembali
                 </button>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    disabled={draftItems.length === 0}
-                    onClick={() => saveNewInvoice(false)}
-                    className="px-4 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#152048] disabled:opacity-50 text-white font-bold text-xs cursor-pointer"
-                  >
-                    Simpan Konsep
-                  </button>
-                  {normalizedTab === 'output' && (
+                {isViewingApproved ? (
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editingInvoice) {
+                          onInvoiceAction(editingInvoice.id, 'REQUEST_CANCEL');
+                          setFakturSuccessToast(`Faktur Pajak No. ${editingInvoice.invoiceNumber} berhasil dibatalkan.`);
+                          setCreateModalOpen(false);
+                          setEditingInvoice(null);
+                          setIsViewingApproved(false);
+                        }
+                      }}
+                      className="px-5 py-2 rounded-[6px] bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs cursor-pointer shadow-xs transition"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editingInvoice) {
+                          setIsViewingApproved(false);
+                          setIsAmendmentMode(true);
+                          const origNum = editingInvoice.invoiceNumber;
+                          let repNum = origNum;
+                          if (origNum && origNum.length >= 4) {
+                            repNum = `${origNum.slice(0, 2)}01${origNum.slice(4)}`;
+                          } else {
+                            repNum = generateFakturNumber(txCode, workspace.invoices.length + 11, true);
+                          }
+                          setReplacementFakturNumber(repNum);
+                        }
+                      }}
+                      className="px-5 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs cursor-pointer shadow-xs transition"
+                    >
+                      Ganti
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5">
                     <button
                       type="button"
                       disabled={draftItems.length === 0}
-                      onClick={() => setUploadAfterCreateOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-[6px] bg-[#F7CA36] hover:bg-[#E5B822] disabled:opacity-50 text-[#1E2C5E] font-extrabold text-xs cursor-pointer"
+                      onClick={() => saveNewInvoice(false)}
+                      className="px-4 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#152048] disabled:opacity-50 text-white font-bold text-xs cursor-pointer shadow-xs transition"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Faktur</span>
+                      Simpan Konsep
                     </button>
-                  )}
-                </div>
+                    {normalizedTab === 'output' && (
+                      <button
+                        type="button"
+                        disabled={draftItems.length === 0}
+                        onClick={() => setUploadAfterCreateOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-5 py-2 rounded-[6px] bg-[#0088FF] hover:bg-[#0077EE] disabled:opacity-50 text-white font-extrabold text-xs cursor-pointer shadow-xs transition"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Faktur</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -4118,16 +4460,9 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                       {/* 1. Tombol Edit (Icon Pensil - Coretax Asli) */}
                                       <button
                                         type="button"
-                                        onClick={() => {
-                                          if (inv.status === 'DRAFT') {
-                                            setSignTarget(inv);
-                                          } else {
-                                            setAmendTarget(inv);
-                                            setAmendDpp(inv.dppTotal);
-                                          }
-                                        }}
+                                        onClick={() => handleEditRowInvoice(inv)}
                                         className="w-6 h-6 rounded-full border border-sky-400 bg-sky-50 hover:bg-sky-100 text-sky-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                                        title={inv.status === 'DRAFT' ? 'Edit & Upload Faktur' : 'Ubah / Buat Faktur Pengganti'}
+                                        title={inv.status === 'DRAFT' ? 'Edit Konsep Faktur' : 'Lihat / Ubah / Ganti Faktur'}
                                       >
                                         <Edit3 className="w-3.5 h-3.5" />
                                       </button>
@@ -4493,13 +4828,18 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-slate-700 font-normal mb-1">Satuan</label>
-                        <input
-                          type="text"
+                        <select
                           value={txUnit}
                           onChange={(e) => setTxUnit(e.target.value)}
                           className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white"
                           required
-                        />
+                        >
+                          {STANDARD_TAX_UNITS.map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-slate-700 font-normal mb-1">Kuantitas</label>
@@ -4574,29 +4914,41 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         <input
                           type="checkbox"
                           checked={isOtherValue}
-                          onChange={(e) => setIsOtherValue(e.target.checked)}
+                          onChange={(e) => {
+                            setIsOtherValue(e.target.checked);
+                            if (!e.target.checked) setCustomDppOther(null);
+                          }}
                           className="accent-[#0088FF] w-4 h-4 rounded cursor-pointer"
                         />
                         <span>DPP Nilai Lain/DPP</span>
                       </label>
                       <input
-                        type="text"
-                        readOnly
-                        value={formatCoretaxDec(isOtherValue ? modalDppOther : 0)}
-                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
+                        type={dppOtherFocused ? 'number' : 'text'}
+                        disabled={!isOtherValue}
+                        value={
+                          !isOtherValue
+                            ? '0,00'
+                            : dppOtherFocused
+                            ? (customDppOther !== null ? (customDppOther === 0 ? '' : customDppOther) : (modalDppOtherCalculated === 0 ? '' : modalDppOtherCalculated))
+                            : formatCoretaxDec(effectiveDppOther)
+                        }
+                        onFocus={() => setDppOtherFocused(true)}
+                        onBlur={() => setDppOtherFocused(false)}
+                        onChange={(e) => setCustomDppOther(Math.max(0, Number(e.target.value) || 0))}
+                        className={`w-full text-right border ${
+                          isOtherValue ? 'border-slate-300 bg-white text-slate-800' : 'border-slate-200 bg-[#F8FAFC] text-slate-400'
+                        } rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num`}
                       />
                     </div>
 
                     <div>
                       <label className="block text-slate-700 font-normal mb-1">Tarif PPN</label>
                       <select
-                        value={ppnRatePercent}
-                        onChange={(e) => setPpnRatePercent(Number(e.target.value))}
-                        className="w-full border border-slate-300 rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] text-slate-800 cursor-pointer"
+                        value={12}
+                        disabled
+                        className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 cursor-not-allowed"
                       >
                         <option value={12}>12%</option>
-                        <option value={11}>11%</option>
-                        <option value={0}>0%</option>
                       </select>
                     </div>
 
@@ -4619,7 +4971,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         value={ppnbmFocused ? (txPpnbmRate === 0 ? '' : txPpnbmRate) : formatCoretaxDec(txPpnbmRate)}
                         onFocus={() => setPpnbmFocused(true)}
                         onBlur={() => setPpnbmFocused(false)}
-                        onChange={(e) => setTxPpnbmRate(Math.max(0, Number(e.target.value) || 0))}
+                        onChange={(e) => {
+                          const rate = Math.max(0, Number(e.target.value) || 0);
+                          setTxPpnbmRate(rate);
+                          setCustomPpnbm(Math.round((modalDpp * rate) / 100));
+                        }}
                         className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
                       />
                     </div>
@@ -4627,10 +4983,17 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                     <div>
                       <label className="block text-slate-700 font-normal mb-1">PPnBM</label>
                       <input
-                        type="text"
-                        readOnly
-                        value={formatCoretaxDec(modalPpnbm)}
-                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
+                        type={ppnbmNominalFocused ? 'number' : 'text'}
+                        min={0}
+                        value={
+                          ppnbmNominalFocused
+                            ? (customPpnbm !== null ? (customPpnbm === 0 ? '' : customPpnbm) : (modalPpnbm === 0 ? '' : modalPpnbm))
+                            : formatCoretaxDec(modalPpnbm)
+                        }
+                        onFocus={() => setPpnbmNominalFocused(true)}
+                        onBlur={() => setPpnbmNominalFocused(false)}
+                        onChange={(e) => setCustomPpnbm(Math.max(0, Number(e.target.value) || 0))}
+                        className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
                       />
                     </div>
                   </div>
