@@ -46,6 +46,7 @@ import {
   CoretaxPagination,
   downloadCsvFile,
 } from '../components/CoretaxTableChrome.tsx';
+import { getAllKnownBuyers, KnownBuyerInfo } from '../lib/buyersStore.ts';
 
 export const STANDARD_TAX_UNITS = [
   'Kilogram',
@@ -72,38 +73,8 @@ export const STANDARD_TAX_UNITS = [
   'Jam',
 ];
 
-const KNOWN_BUYERS: Record<string, { name: string; address: string; country: string }> = {
-  '0013084496091000': {
-    name: 'BANK CENTRAL ASIA',
-    address: 'JL MH THAMRIN NO 1 JAKARTA PUSAT',
-    country: 'Indonesia',
-  },
-  '0010005411091000': {
-    name: 'VALE INDONESIA',
-    address: 'GEDUNG THE ENERGY LT 20 SCBD LOT 11A JAKARTA',
-    country: 'Indonesia',
-  },
-  '0011397973091000': {
-    name: 'BANK SMBC INDONESIA TBK',
-    address: 'MENARA BTPN LT 25 JL DR IDE ANAK AGUNG GDE AGUNG JAKARTA',
-    country: 'Indonesia',
-  },
-  '0010016087093000': {
-    name: 'BANK MANDIRI (PERSERO) TBK',
-    address: 'PLAZA MANDIRI JL JEND GATOT SUBROTO KAV 36-38 JAKARTA',
-    country: 'Indonesia',
-  },
-  '0279414544086000': {
-    name: 'GOCHIDA META SOLUSITAMA',
-    address: 'JL KEMANG RAYA NO 45 JAKARTA SELATAN',
-    country: 'Indonesia',
-  },
-  '0753620525008000': {
-    name: 'PT VERTICA LABORA SINERGI',
-    address: 'JL RADEN INTEN II B NO.210 DUREN SAWIT JAKARTA TIMUR',
-    country: 'Indonesia',
-  },
-};
+// Sample buyers master data loaded from shared store (including Admin additions)
+const KNOWN_BUYERS: Record<string, KnownBuyerInfo> = getAllKnownBuyers();
 
 interface EFakturModuleProps {
   subTab: string;
@@ -267,6 +238,27 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [buyerAddress, setBuyerAddress] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
   const [buyerCountry, setBuyerCountry] = useState('Indonesia');
+  const [buyerIdtku, setBuyerIdtku] = useState('');
+  const [buyerSuggestionsOpen, setBuyerSuggestionsOpen] = useState(false);
+  const [knownBuyersMap, setKnownBuyersMap] = useState<Record<string, KnownBuyerInfo>>(() => getAllKnownBuyers());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setKnownBuyersMap(getAllKnownBuyers());
+    };
+    window.addEventListener('buyers-updated', handleUpdate);
+    return () => window.removeEventListener('buyers-updated', handleUpdate);
+  }, []);
+
+  const matchingBuyers = useMemo(() => {
+    const q = counterpartyNpwp.trim().toLowerCase();
+    if (!q) return []; // Belum dimasukkan nomor ID -> dropdown TIDAK muncul
+    const qClean = q.replace(/\D/g, '');
+    return Object.values(knownBuyersMap).filter((b) => {
+      const npwpClean = b.npwp.replace(/\D/g, '');
+      return (qClean && npwpClean.includes(qClean)) || b.name.toLowerCase().includes(q);
+    });
+  }, [counterpartyNpwp, knownBuyersMap]);
   const [draftItems, setDraftItems] = useState<TaxInvoiceItem[]>([]);
   const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
 
@@ -546,15 +538,30 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     }));
   }, [statusCounts, hiddenPieStatuses]);
 
+  const selectKnownBuyer = (buyer: KnownBuyerInfo) => {
+    setCounterpartyNpwp(buyer.npwp);
+    setCounterpartyName(buyer.name);
+    setBuyerAddress(buyer.address);
+    setBuyerCountry(buyer.country || 'Indonesia');
+    setBuyerEmail(buyer.email || '');
+    setBuyerIdtku(buyer.idtku || '000000');
+    setBuyerIdType('NPWP');
+    setBuyerSuggestionsOpen(false);
+  };
+
   const handleBuyerNpwpChange = (val: string) => {
     setCounterpartyNpwp(val);
     const clean = val.replace(/\D/g, '');
-    if (KNOWN_BUYERS[clean]) {
-      setCounterpartyName(KNOWN_BUYERS[clean].name);
-      setBuyerAddress(KNOWN_BUYERS[clean].address);
-      setBuyerCountry(KNOWN_BUYERS[clean].country);
+    const current = knownBuyersMap[clean] || knownBuyersMap[val];
+    if (current) {
+      setCounterpartyName(current.name);
+      setBuyerAddress(current.address);
+      setBuyerCountry(current.country || 'Indonesia');
+      setBuyerEmail(current.email || '');
+      setBuyerIdtku(current.idtku || '000000');
     } else if (clean.length >= 15) {
       setBuyerCountry('Indonesia');
+      setBuyerIdtku('000000');
     }
   };
 
@@ -570,6 +577,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setBuyerAddress(inv.counterpartyAddress || '');
     setBuyerEmail(inv.counterpartyEmail || '');
     setBuyerCountry('Indonesia');
+    setBuyerIdtku('000000');
+    setBuyerSuggestionsOpen(false);
     setDraftItems(
       inv.items && inv.items.length > 0
         ? inv.items
@@ -625,6 +634,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setBuyerAddress('');
     setBuyerEmail('');
     setBuyerCountry('Indonesia');
+    setBuyerIdtku('');
+    setBuyerSuggestionsOpen(false);
     setDraftItems([]);
     setSelectedDraftItemIds([]);
     setCreateModalOpen(true);
@@ -910,6 +921,15 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         key={item.id}
                         type="button"
                         onClick={() => {
+                          setCreateModalOpen(false);
+                          setEditingInvoice(null);
+                          setIsViewingApproved(false);
+                          setIsAmendmentMode(false);
+                          setAddTxModalOpen(false);
+                          setSignTarget(null);
+                          setCancelModalTarget(null);
+                          setBulkSignTargets([]);
+                          setBuyerSuggestionsOpen(false);
                           onChangeSubTab(item.id);
                           setStatusFilter('ALL');
                         }}
@@ -1221,9 +1241,29 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
             /* ============================================================= */
             <div className="space-y-4">
               <div className="text-[12px] text-slate-500 flex items-center gap-1.5 pt-1">
-                <span>Beranda</span>
+                <Home className="w-3.5 h-3.5 text-slate-400" />
+                <span
+                  className="hover:underline cursor-pointer"
+                  onClick={() => {
+                    setCreateModalOpen(false);
+                    setEditingInvoice(null);
+                    setIsViewingApproved(false);
+                    onChangeSubTab('dashboard');
+                  }}
+                >
+                  Beranda
+                </span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                <span>e-Faktur</span>
+                <span
+                  className="hover:underline cursor-pointer"
+                  onClick={() => {
+                    setCreateModalOpen(false);
+                    setEditingInvoice(null);
+                    setIsViewingApproved(false);
+                  }}
+                >
+                  e-Faktur
+                </span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                 <span className="text-slate-800 font-medium">Edit Output Invoice</span>
               </div>
@@ -1425,7 +1465,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                 {!editCollapsed.buyer && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 pt-1">
                     {/* Col 1: Nomor Identitas WP * */}
-                    <div>
+                    <div className="relative">
                       <label className="block text-slate-700 font-normal text-[12px] mb-1">
                         Nomor Identitas WP <span className="text-rose-600">*</span>
                       </label>
@@ -1434,9 +1474,65 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         value={counterpartyNpwp}
                         disabled={isViewingApproved}
                         placeholder=""
-                        onChange={(e) => handleBuyerNpwpChange(e.target.value)}
-                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                        onFocus={() => {
+                          if (counterpartyNpwp.trim()) setBuyerSuggestionsOpen(true);
+                        }}
+                        onClick={() => {
+                          if (counterpartyNpwp.trim()) setBuyerSuggestionsOpen(true);
+                        }}
+                        onChange={(e) => {
+                          handleBuyerNpwpChange(e.target.value);
+                          setBuyerSuggestionsOpen(e.target.value.trim().length > 0);
+                        }}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num bg-white text-slate-800 disabled:bg-[#F8FAFC] focus:outline-none focus:border-[#0088FF]"
                       />
+
+                      {/* Dropdown Suggestions: HANYA MUNCUL JIKA SUDAH DIMASUKKAN NOMOR ID & ADA DATA */}
+                      {buyerSuggestionsOpen && !isViewingApproved && matchingBuyers.length > 0 && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setBuyerSuggestionsOpen(false)}
+                          />
+                          <div className="absolute left-0 top-[100%] mt-1 w-[380px] max-w-[90vw] bg-white border border-slate-300 rounded-[4px] shadow-xl z-50 max-h-[250px] overflow-y-auto">
+                            <div className="px-3 py-1.5 bg-[#F8FAFC] border-b border-slate-200 text-[11px] font-bold text-slate-600 flex justify-between items-center sticky top-0">
+                              <span>HASIL PENCARIAN PEMBELI ({matchingBuyers.length})</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBuyerSuggestionsOpen(false);
+                                }}
+                                className="text-slate-400 hover:text-slate-700 text-sm font-bold"
+                              >
+                                ×
+                              </button>
+                            </div>
+                            {matchingBuyers.map((b) => (
+                              <div
+                                key={b.npwp}
+                                onClick={() => selectKnownBuyer(b)}
+                                className="px-3 py-2 border-b border-slate-100 hover:bg-[#F0F7FF] cursor-pointer text-left transition"
+                              >
+                                <div className="text-[12px] font-semibold text-[#1E2C5E] flex items-center justify-between">
+                                  <span>{b.name}</span>
+                                  {b.isCustom && (
+                                    <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded font-medium">
+                                      Admin
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] font-mono-num text-slate-600">
+                                  NPWP: {b.npwp}
+                                </div>
+                                <div className="text-[10px] text-slate-400 truncate">
+                                  {b.address}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Col 2: ID */}
@@ -1542,10 +1638,9 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         }}
                         className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 truncate disabled:bg-[#F8FAFC]"
                       >
-                        {buyerAddress ? (
+                        <option value="">Pilih Alamat</option>
+                        {buyerAddress && (
                           <option value="selected">{buyerAddress}</option>
-                        ) : (
-                          <option value="">Pilih Alamat</option>
                         )}
                       </select>
                     </div>
@@ -1557,10 +1652,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       </label>
                       <select
                         disabled={isViewingApproved}
-                        value="000000"
+                        value={buyerIdtku}
+                        onChange={(e) => setBuyerIdtku(e.target.value)}
                         className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
                       >
-                        <option value="000000">Pilih kode usaha</option>
+                        <option value="">Pilih kode usaha</option>
                         <option value="000000">000000</option>
                       </select>
                     </div>

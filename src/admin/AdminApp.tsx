@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   BookOpen,
+  Building2,
   Check,
   CheckCircle2,
   Code2,
@@ -44,8 +45,15 @@ import {
   normalizeFooterSettings,
   setBrandingCache,
 } from '../lib/brandingStore.ts';
+import {
+  addCustomBuyer,
+  DEFAULT_KNOWN_BUYERS,
+  deleteCustomBuyer,
+  getCustomBuyers,
+  KnownBuyerInfo,
+} from '../lib/buyersStore.ts';
 
-type AdminTab = 'analytics' | 'participants' | 'questions' | 'admins' | 'branding' | 'integration';
+type AdminTab = 'analytics' | 'participants' | 'questions' | 'buyers' | 'admins' | 'branding' | 'integration';
 
 const ADMIN_TOKEN_STORAGE = 'kelasbrevet_admin_console_token_v1';
 
@@ -169,6 +177,85 @@ export const AdminApp: React.FC = () => {
   const [simPackage, setSimPackage] = useState('Brevet A & B Terpadu');
   const [simResult, setSimResult] = useState<ProvisionResult | null>(null);
   const [simRunning, setSimRunning] = useState(false);
+
+  // Buyers / Lawan Transaksi State
+  const [buyersList, setBuyersList] = useState<KnownBuyerInfo[]>(() => {
+    const custom = getCustomBuyers();
+    const defaults = DEFAULT_KNOWN_BUYERS.map((b) => ({ ...b, isCustom: false }));
+    const customMerged = custom.map((b) => ({ ...b, isCustom: true }));
+    const map = new Map<string, KnownBuyerInfo>();
+    defaults.forEach((b) => map.set(b.npwp, b));
+    customMerged.forEach((b) => map.set(b.npwp, b));
+    return Array.from(map.values());
+  });
+  const [buyerSearchQuery, setBuyerSearchQuery] = useState('');
+  const [buyerModalOpen, setBuyerModalOpen] = useState(false);
+  const [buyerForm, setBuyerForm] = useState<KnownBuyerInfo>({
+    npwp: '',
+    name: '',
+    address: '',
+    country: 'Indonesia',
+    email: '',
+    idtku: '000000',
+  });
+  const [buyerFormError, setBuyerFormError] = useState('');
+
+  const reloadBuyers = () => {
+    const custom = getCustomBuyers();
+    const defaults = DEFAULT_KNOWN_BUYERS.map((b) => ({ ...b, isCustom: false }));
+    const customMerged = custom.map((b) => ({ ...b, isCustom: true }));
+    const map = new Map<string, KnownBuyerInfo>();
+    defaults.forEach((b) => map.set(b.npwp, b));
+    customMerged.forEach((b) => map.set(b.npwp, b));
+    setBuyersList(Array.from(map.values()));
+  };
+
+  const handleSaveBuyer = (e: React.FormEvent) => {
+    e.preventDefault();
+    setBuyerFormError('');
+    const cleanNpwp = buyerForm.npwp.replace(/\D/g, '');
+    if (!cleanNpwp || cleanNpwp.length < 15) {
+      setBuyerFormError('Nomor NPWP harus 15 atau 16 digit angka.');
+      return;
+    }
+    if (!buyerForm.name.trim()) {
+      setBuyerFormError('Nama pembeli wajib diisi.');
+      return;
+    }
+    if (!buyerForm.address.trim()) {
+      setBuyerFormError('Alamat pembeli wajib diisi.');
+      return;
+    }
+
+    addCustomBuyer({
+      ...buyerForm,
+      npwp: cleanNpwp,
+      name: buyerForm.name.trim().toUpperCase(),
+      address: buyerForm.address.trim().toUpperCase(),
+      country: buyerForm.country || 'Indonesia',
+      email: buyerForm.email.trim(),
+      idtku: buyerForm.idtku || '000000',
+    });
+    reloadBuyers();
+    setBuyerModalOpen(false);
+    setSuccessToast(`Berhasil menyimpan data lawan transaksi ${buyerForm.name.toUpperCase()}!`);
+    setBuyerForm({
+      npwp: '',
+      name: '',
+      address: '',
+      country: 'Indonesia',
+      email: '',
+      idtku: '000000',
+    });
+  };
+
+  const handleDeleteBuyer = (npwp: string, name: string) => {
+    if (confirm(`Hapus data lawan transaksi "${name}" (NPWP: ${npwp})?`)) {
+      deleteCustomBuyer(npwp);
+      reloadBuyers();
+      setSuccessToast(`Data pembeli "${name}" berhasil dihapus.`);
+    }
+  };
 
   const showToast = useCallback((msg: string) => {
     setSuccessToast(msg);
@@ -910,6 +997,7 @@ export const AdminApp: React.FC = () => {
     { id: 'analytics', label: 'Analitik Peserta', icon: BarChart3 },
     { id: 'participants', label: 'Peserta & Nilai', icon: Users },
     { id: 'questions', label: 'Manajemen Soal', icon: BookOpen },
+    { id: 'buyers', label: 'Lawan Transaksi', icon: Building2 },
     { id: 'admins', label: 'Akun Admin', icon: ShieldCheck },
     { id: 'branding', label: 'Logo, Meta & Footer', icon: ImageIcon },
     { id: 'integration', label: 'Integrasi API', icon: Code2 },
@@ -919,6 +1007,7 @@ export const AdminApp: React.FC = () => {
     analytics: 'Analitik & Progres Simulasi',
     participants: 'Daftar Peserta, Nilai & Kelulusan',
     questions: 'Manajemen Bank Soal Latihan',
+    buyers: 'Manajemen Data Lawan Transaksi (Pembeli e-Faktur)',
     admins: 'Manajemen Akun Admin (Database)',
     branding: 'Pengaturan Logo, Icon Meta & Informasi Footer',
     integration: 'Integrasi API kelasbrevet.com',
@@ -1020,6 +1109,28 @@ export const AdminApp: React.FC = () => {
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Tambah Soal</span>
+              </button>
+            )}
+
+            {activeTab === 'buyers' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBuyerFormError('');
+                  setBuyerForm({
+                    npwp: '',
+                    name: '',
+                    address: '',
+                    country: 'Indonesia',
+                    email: '',
+                    idtku: '000000',
+                  });
+                  setBuyerModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Lawan Transaksi</span>
               </button>
             )}
 
@@ -1524,6 +1635,117 @@ export const AdminApp: React.FC = () => {
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =============================================================== */}
+          {/* TAB: DATA LAWAN TRANSAKSI / PEMBELI e-FAKTUR                    */}
+          {/* =============================================================== */}
+          {activeTab === 'buyers' && (
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-2 flex-1 max-w-md">
+                  <div className="relative w-full">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Cari lawan transaksi (Nama atau NPWP)..."
+                      value={buyerSearchQuery}
+                      onChange={(e) => setBuyerSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500">
+                  Total: <strong className="text-slate-800">{buyersList.length}</strong> data pembeli
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                      <tr>
+                        <th className="px-4 py-3">NPWP (16 Digit)</th>
+                        <th className="px-4 py-3">Nama Pembeli</th>
+                        <th className="px-4 py-3">Alamat</th>
+                        <th className="px-4 py-3">IDTKU</th>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3 text-center">Tipe</th>
+                        <th className="px-4 py-3 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {buyersList
+                        .filter((b) => {
+                          const q = buyerSearchQuery.toLowerCase().trim();
+                          if (!q) return true;
+                          return (
+                            b.name.toLowerCase().includes(q) ||
+                            b.npwp.toLowerCase().includes(q) ||
+                            b.address.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((b) => (
+                          <tr key={b.npwp} className="hover:bg-slate-50/75 transition">
+                            <td className="px-4 py-3 font-mono font-medium text-indigo-700 whitespace-nowrap">
+                              {b.npwp}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-slate-900">
+                              {b.name}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 max-w-xs truncate" title={b.address}>
+                              {b.address}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-slate-600">
+                              {b.idtku || '000000'}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 font-mono">
+                              {b.email || '-'}
+                            </td>
+                            <td className="px-4 py-3 text-center whitespace-nowrap">
+                              {b.isCustom ? (
+                                <span className="inline-block px-2 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded">
+                                  Kustom Admin
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2 py-0.5 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 rounded">
+                                  Default Sistem
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBuyerFormError('');
+                                    setBuyerForm({ ...b });
+                                    setBuyerModalOpen(true);
+                                  }}
+                                  className="p-1.5 text-indigo-700 hover:bg-indigo-50 border border-slate-200 rounded-md cursor-pointer"
+                                  title="Edit Data"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                {b.isCustom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteBuyer(b.npwp, b.name)}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 border border-slate-200 rounded-md cursor-pointer"
+                                    title="Hapus Data"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
@@ -3115,6 +3337,132 @@ export const AdminApp: React.FC = () => {
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold cursor-pointer"
                 >
                   {savingAdminUser ? 'Menyimpan...' : 'Simpan Akun Admin'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Buyer / Lawan Transaksi Modal */}
+      {buyerModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h3 className="font-display font-bold text-slate-900 text-sm">
+                Tambah / Edit Lawan Transaksi (Pembeli e-Faktur)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setBuyerModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBuyer} className="p-6 space-y-4 text-xs">
+              {buyerFormError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg font-medium">
+                  {buyerFormError}
+                </div>
+              )}
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Nomor Identitas WP / NPWP (16 Digit) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: 0013084496091000"
+                  value={buyerForm.npwp}
+                  onChange={(e) => setBuyerForm({ ...buyerForm, npwp: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Nama Perusahaan / Pembeli *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: PT MAKMUR SEJAHTERA ABADI"
+                  value={buyerForm.name}
+                  onChange={(e) => setBuyerForm({ ...buyerForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-semibold text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Alamat Lengkap *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  placeholder="Contoh: JL JENDERAL SUDIRMAN KAV 21 JAKARTA SELATAN"
+                  value={buyerForm.address}
+                  onChange={(e) => setBuyerForm({ ...buyerForm, address: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    IDTKU (Default 000000) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="000000"
+                    value={buyerForm.idtku || '000000'}
+                    onChange={(e) => setBuyerForm({ ...buyerForm, idtku: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Negara
+                  </label>
+                  <input
+                    type="text"
+                    value={buyerForm.country || 'Indonesia'}
+                    onChange={(e) => setBuyerForm({ ...buyerForm, country: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Email Perpajakan / Korespondensi
+                </label>
+                <input
+                  type="email"
+                  placeholder="tax@perusahaan.co.id"
+                  value={buyerForm.email}
+                  onChange={(e) => setBuyerForm({ ...buyerForm, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setBuyerModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold cursor-pointer shadow-xs transition"
+                >
+                  Simpan Lawan Transaksi
                 </button>
               </div>
             </form>
