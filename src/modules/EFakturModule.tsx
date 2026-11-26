@@ -580,8 +580,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
   const handleEditRowInvoice = (inv: TaxInvoice) => {
     setEditingInvoice(inv);
-    setIsDownPayment(false);
-    setIsFinalPayment(false);
+    setIsDownPayment(Boolean(inv.isDownPayment));
+    setIsFinalPayment(Boolean(inv.isFinalPayment));
 
     let rawTx = (inv.transactionCode || '').trim();
     if (rawTx.length > 2) {
@@ -865,6 +865,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
       await onInvoiceAction(editingInvoice.id, 'UPDATE', {
         transactionCode: txCode,
+        isDownPayment,
+        isFinalPayment,
         invoiceNumber: finalNum,
         referenceCode,
         counterpartyNpwp,
@@ -900,6 +902,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         taxpayerId: activeTaxpayer.id,
         direction,
         transactionCode: txCode,
+        isDownPayment,
+        isFinalPayment,
         invoiceNumber: penggantiNum,
         referenceCode,
         counterpartyNpwp,
@@ -937,6 +941,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         taxpayerId: activeTaxpayer.id,
         direction,
         transactionCode: isExport ? '01' : txCode,
+        isDownPayment,
+        isFinalPayment,
         invoiceNumber: invNum,
         referenceCode,
         counterpartyNpwp,
@@ -3170,11 +3176,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                               <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-[#E5B822]">
                                 Dilaporkan oleh Penjual
                               </th>
-                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-[#E5B822]">
-                                Dilaporkan oleh Pemungut PPN
-                              </th>
                               <th className="px-3 py-2.5 text-center whitespace-nowrap">
-                                IsShowClearName
+                                Dilaporkan oleh Pemungut PPN
                               </th>
                             </>
                           ) : (
@@ -4404,7 +4407,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                             <td
                               colSpan={
                                 normalizedTab === 'output'
-                                  ? 21
+                                  ? 20
                                   : normalizedTab === 'input'
                                     ? 21
                                     : normalizedTab === 'dok_lain_masukan'
@@ -4561,9 +4564,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-600">
                                     False
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
-                                    -
                                   </td>
                                   <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
                                     -

@@ -67,6 +67,8 @@ export interface TaxInvoice {
   ppnbmTotal: number;
   status: InvoiceStatus;
   isCredited: boolean;
+  isDownPayment?: boolean;
+  isFinalPayment?: boolean;
   isReplacement?: boolean;
   originalInvoiceNumber?: string;
   sp2dNumber?: string;

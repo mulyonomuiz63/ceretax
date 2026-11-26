@@ -69,6 +69,11 @@ function mapTaxpayerRow(row: RowDataPacket): Taxpayer {
 }
 
 function mapInvoiceRow(row: RowDataPacket): TaxInvoice {
+  const rawItems = parseJsonSafe<any>(row.items_json, []);
+  const items = Array.isArray(rawItems) ? rawItems : (rawItems.items || []);
+  const isDownPayment = !Array.isArray(rawItems) && Boolean(rawItems.isDownPayment);
+  const isFinalPayment = !Array.isArray(rawItems) && Boolean(rawItems.isFinalPayment);
+
   return {
     id: String(row.id),
     taxpayerId: String(row.taxpayer_id),
@@ -82,7 +87,9 @@ function mapInvoiceRow(row: RowDataPacket): TaxInvoice {
     invoiceDate: String(row.invoice_date),
     taxPeriodMonth: Number(row.tax_period_month),
     taxPeriodYear: Number(row.tax_period_year),
-    items: parseJsonSafe<TaxInvoiceItem[]>(row.items_json, []),
+    items: items as TaxInvoiceItem[],
+    isDownPayment: isDownPayment || undefined,
+    isFinalPayment: isFinalPayment || undefined,
     dppTotal: Number(row.dpp_total || 0),
     dppOtherValue: Number(row.dpp_other_value || 0),
     ppnTotal: Number(row.ppn_total || 0),
@@ -271,7 +278,11 @@ async function insertInvoiceWithConn(
       inv.invoiceDate,
       inv.taxPeriodMonth,
       inv.taxPeriodYear,
-      JSON.stringify(inv.items || []),
+      JSON.stringify(
+        (inv.isDownPayment || inv.isFinalPayment)
+          ? { items: inv.items || [], isDownPayment: inv.isDownPayment, isFinalPayment: inv.isFinalPayment }
+          : (inv.items || [])
+      ),
       Math.round(inv.dppTotal || 0),
       Math.round(inv.dppOtherValue || 0),
       Math.round(inv.ppnTotal || 0),
@@ -650,7 +661,11 @@ export async function updateInvoice(nikKey: string, inv: TaxInvoice): Promise<vo
       inv.returnNoteNumber ?? null,
       inv.returnDate ?? null,
       inv.signedAt ?? null,
-      JSON.stringify(inv.items || []),
+      JSON.stringify(
+        (inv.isDownPayment || inv.isFinalPayment)
+          ? { items: inv.items || [], isDownPayment: inv.isDownPayment, isFinalPayment: inv.isFinalPayment }
+          : (inv.items || [])
+      ),
       nikKey,
       inv.id,
     ]
