@@ -49,17 +49,16 @@ import {
 import { getAllKnownBuyers, KnownBuyerInfo } from '../lib/buyersStore.ts';
 
 export const STANDARD_TAX_UNITS = [
-  'Kilogram',
-  'Unit',
   'Boks',
   'Drum',
   'Gram',
   'Joule',
+  'Kilogram',
   'Kilowatt Jam',
   'Liter',
   'Meter',
-  'Meter Persegi',
   'Meter Kubik',
+  'Meter Persegi',
   'Miligram',
   'Mililiter',
   'Milimeter',
@@ -67,10 +66,21 @@ export const STANDARD_TAX_UNITS = [
   'Pcs',
   'Set',
   'Ton',
-  'Kegiatan',
+  'Unit',
+];
+
+export const STANDARD_SERVICE_UNITS = [
+  'Bahan',
   'Bulan',
   'Hari',
   'Jam',
+  'Kegiatan',
+  'Lainnya',
+  'Laporan',
+  'Menit',
+  'Minggu',
+  'Persen',
+  'Tahun',
 ];
 
 // Sample buyers master data loaded from shared store (including Admin additions)
@@ -276,6 +286,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [ppnbmNominalFocused, setPpnbmNominalFocused] = useState(false);
   const [txCodeDropdownOpen, setTxCodeDropdownOpen] = useState(false);
   const [txCodeSearchQuery, setTxCodeSearchQuery] = useState('');
+  const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
+  const [unitSearchQuery, setUnitSearchQuery] = useState('');
   const [isOtherValue, setIsOtherValue] = useState(false);
   const [customDppOther, setCustomDppOther] = useState<number | null>(null);
   const [dppOtherFocused, setDppOtherFocused] = useState(false);
@@ -569,12 +581,19 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setEditingInvoice(inv);
     setIsDownPayment(false);
     setIsFinalPayment(false);
-    const derivedTxCode =
-      inv.transactionCode ||
-      (inv.invoiceNumber && !inv.invoiceNumber.startsWith('DRAFT') && inv.invoiceNumber.length >= 2
-        ? inv.invoiceNumber.slice(0, 2)
-        : '');
-    setTxCode(derivedTxCode);
+
+    let rawTx = (inv.transactionCode || '').trim();
+    if (rawTx.length > 2) {
+      rawTx = rawTx.slice(0, 2);
+    } else if (rawTx.length === 1) {
+      rawTx = `0${rawTx}`;
+    }
+    if (!rawTx && inv.invoiceNumber && !inv.invoiceNumber.startsWith('DRAFT') && inv.invoiceNumber.length >= 2) {
+      rawTx = inv.invoiceNumber.slice(0, 2);
+    }
+    const matched = FAKTUR_TRANSACTION_CODES.find((c) => c.code === rawTx)?.code || rawTx || '01';
+    setTxCode(matched);
+
     setInvoiceDate(inv.invoiceDate || new Date().toISOString().slice(0, 10));
     setReferenceCode(inv.referenceCode || '');
     setCounterpartyNpwp(inv.counterpartyNpwp || '');
@@ -607,22 +626,17 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     );
     setSelectedDraftItemIds([]);
 
-    const isReplacementInvoice = Boolean(
-      inv.isReplacement ||
-      (inv.invoiceNumber && inv.invoiceNumber.length >= 4 && inv.invoiceNumber[3] === '1') ||
-      inv.status === 'AMENDED' ||
-      (inv.amendmentSeq && inv.amendmentSeq > 0)
-    );
+    // Editing any invoice automatically sets amendment/pengganti mode
+    setIsAmendmentMode(true);
+    setIsViewingApproved(false);
 
-    if (inv.status === 'APPROVED') {
-      setIsViewingApproved(true);
-      setIsAmendmentMode(isReplacementInvoice);
-      setReplacementFakturNumber(inv.invoiceNumber || '');
-    } else {
-      setIsViewingApproved(false);
-      setIsAmendmentMode(isReplacementInvoice);
-      setReplacementFakturNumber(inv.invoiceNumber || '');
+    const cleanTx = matched.padStart(2, '0').slice(0, 2);
+    const yearDigits = (inv.invoiceDate || '2026').slice(2, 4);
+    let seqPart = '0000000001';
+    if (inv.invoiceNumber && inv.invoiceNumber.length >= 16 && !inv.invoiceNumber.startsWith('DRAFT')) {
+      seqPart = inv.invoiceNumber.slice(-10);
     }
+    setReplacementFakturNumber(`${cleanTx}01${yearDigits}${seqPart}`);
     setCreateModalOpen(true);
   };
 
@@ -637,7 +651,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setReplacementFakturNumber('');
     setIsDownPayment(false);
     setIsFinalPayment(false);
-    setTxCode('');
+    setTxCode('01');
     setInvoiceDate('2026-11-25');
     setReferenceCode('');
     setBuyerIdType('NPWP');
@@ -653,6 +667,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setCreateModalOpen(true);
     setFakturSuccessToast('Berhasil membuat Faktur Pajak Keluaran baru!');
   };
+
 
   const formatCoretaxDate = (d?: string): string => {
     if (!d) return '25-11-2026';
@@ -672,6 +687,13 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       (c) => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
     );
   }, [activeCatalogCodes, txCodeSearchQuery]);
+
+  const filteredUnits = useMemo(() => {
+    const list = txItemType === 'SERVICES' ? STANDARD_SERVICE_UNITS : STANDARD_TAX_UNITS;
+    const q = unitSearchQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((u) => u.toLowerCase().includes(q));
+  }, [txItemType, unitSearchQuery]);
 
   const formatCoretaxDec = (val: number): string => {
     return Number(val || 0).toLocaleString('id-ID', {
@@ -696,7 +718,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const handleOpenAddTxModal = () => {
     setItemCode('');
     setItemName('');
-    setTxUnit('Kilogram');
+    setTxUnit(txItemType === 'SERVICES' ? 'Kegiatan' : 'Kilogram');
     setQuantity(1);
     setUnitPrice(0);
     setDiscount(0);
@@ -707,6 +729,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setCustomPpnbm(null);
     setTxCodeDropdownOpen(false);
     setTxCodeSearchQuery('');
+    setUnitDropdownOpen(false);
+    setUnitSearchQuery('');
     setUnitPriceFocused(false);
     setDiscountFocused(false);
     setPpnbmFocused(false);
@@ -792,18 +816,59 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     const finalStatus: TaxInvoice['status'] =
       approveImmediately || isExport || direction === 'INPUT' ? 'APPROVED' : 'DRAFT';
 
-    if (isAmendmentMode && editingInvoice) {
-      const finalNum = approveImmediately
-        ? (replacementFakturNumber || generateFakturNumber(txCode, workspace.invoices.length + 11, true))
-        : '';
-      await onCreateInvoice({
-        taxpayerId: activeTaxpayer.id,
-        direction,
+    if (editingInvoice && editingInvoice.status === 'DRAFT') {
+      const cleanTx = (txCode || '01').padStart(2, '0').slice(0, 2);
+      const yearDigits = (invoiceDate || '2026').slice(2, 4);
+      let seqPart = '0000000001';
+      if (editingInvoice.invoiceNumber && editingInvoice.invoiceNumber.length >= 16 && !editingInvoice.invoiceNumber.startsWith('DRAFT')) {
+        seqPart = editingInvoice.invoiceNumber.slice(-10);
+      }
+      const penggantiNum = `${cleanTx}01${yearDigits}${seqPart}`;
+      const finalNum = approveImmediately ? penggantiNum : '';
+
+      await onInvoiceAction(editingInvoice.id, 'UPDATE', {
         transactionCode: txCode,
         invoiceNumber: finalNum,
         referenceCode,
         counterpartyNpwp,
         counterpartyName,
+        counterpartyAddress: buyerAddress,
+        counterpartyEmail: buyerEmail,
+        invoiceDate,
+        taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
+        taxPeriodYear: parsedDate.getFullYear() || 2026,
+        items: draftItems,
+        dppTotal: draftTotals.dpp,
+        dppOtherValue: draftTotals.dppOtherValue,
+        ppnTotal: draftTotals.ppn,
+        ppnbmTotal: draftTotals.ppnbm,
+        status: finalStatus,
+        isReplacement: true,
+        signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
+      });
+      setFakturSuccessToast(
+        finalStatus === 'APPROVED'
+          ? `Faktur Pajak Pengganti No. ${penggantiNum} berhasil di-upload dan disetujui!`
+          : 'Konsep Faktur Pajak Pengganti berhasil disimpan!'
+      );
+    } else if (editingInvoice && editingInvoice.status === 'APPROVED') {
+      const cleanTx = (txCode || '01').padStart(2, '0').slice(0, 2);
+      const yearDigits = (invoiceDate || '2026').slice(2, 4);
+      let seqPart = '0000000001';
+      if (editingInvoice.invoiceNumber && editingInvoice.invoiceNumber.length >= 16 && !editingInvoice.invoiceNumber.startsWith('DRAFT')) {
+        seqPart = editingInvoice.invoiceNumber.slice(-10);
+      }
+      const penggantiNum = `${cleanTx}01${yearDigits}${seqPart}`;
+      await onCreateInvoice({
+        taxpayerId: activeTaxpayer.id,
+        direction,
+        transactionCode: txCode,
+        invoiceNumber: penggantiNum,
+        referenceCode,
+        counterpartyNpwp,
+        counterpartyName,
+        counterpartyAddress: buyerAddress,
+        counterpartyEmail: buyerEmail,
         invoiceDate,
         taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
         taxPeriodYear: parsedDate.getFullYear() || 2026,
@@ -822,34 +887,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       await onInvoiceAction(editingInvoice.id, 'APPROVE_AMEND');
       setFakturSuccessToast(
         finalStatus === 'APPROVED'
-          ? `Faktur Pajak Pengganti No. ${finalNum} berhasil di-upload dan disetujui!`
+          ? `Faktur Pajak Pengganti No. ${penggantiNum} berhasil di-upload dan disetujui!`
           : 'Konsep Faktur Pajak Pengganti berhasil disimpan!'
-      );
-    } else if (editingInvoice && editingInvoice.status === 'DRAFT') {
-      const finalNum = approveImmediately
-        ? generateFakturNumber(txCode, workspace.invoices.length + 11, isAmendmentMode)
-        : '';
-      await onInvoiceAction(editingInvoice.id, 'UPDATE', {
-        transactionCode: txCode,
-        invoiceNumber: finalNum,
-        referenceCode,
-        counterpartyNpwp,
-        counterpartyName,
-        invoiceDate,
-        taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
-        taxPeriodYear: parsedDate.getFullYear() || 2026,
-        items: draftItems,
-        dppTotal: draftTotals.dpp,
-        dppOtherValue: draftTotals.dppOtherValue,
-        ppnTotal: draftTotals.ppn,
-        ppnbmTotal: draftTotals.ppnbm,
-        status: finalStatus,
-        signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
-      });
-      setFakturSuccessToast(
-        finalStatus === 'APPROVED'
-          ? 'Berhasil membuat Faktur Pajak Keluaran baru!'
-          : 'Berhasil memperbarui transaksi!'
       );
     } else {
       const invNum = isExport
@@ -1361,13 +1400,16 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         disabled
                         placeholder="Nomor Faktur"
                         value={(() => {
-                          const existingNum = editingInvoice?.invoiceNumber || replacementFakturNumber;
-                          if (!existingNum || existingNum.startsWith('DRAFT')) return '';
-                          if (existingNum.length >= 4) {
-                            const fourthDigit = isAmendmentMode ? '1' : '0';
-                            return `${existingNum.slice(0, 3)}${fourthDigit}${existingNum.slice(4)}`;
+                          if (!editingInvoice) return '';
+                          const cleanTx = (txCode || '01').padStart(2, '0').slice(0, 2);
+                          const statusDigits = isAmendmentMode ? '01' : '00';
+                          const yearDigits = (invoiceDate || '2026').slice(2, 4);
+                          const origNum = editingInvoice.invoiceNumber || replacementFakturNumber || '';
+                          let seqPart = '0000000001';
+                          if (origNum && origNum.length >= 16 && !origNum.startsWith('DRAFT')) {
+                            seqPart = origNum.slice(-10);
                           }
-                          return existingNum;
+                          return `${cleanTx}${statusDigits}${yearDigits}${seqPart}`;
                         })()}
                         className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num placeholder:text-slate-400 cursor-not-allowed"
                       />
@@ -1413,19 +1455,9 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         Jenis Faktur <span className="text-rose-600">*</span>
                       </label>
                       <select
-                        disabled={isViewingApproved}
+                        disabled
                         value={isAmendmentMode ? 'Pengganti' : 'Normal'}
-                        onChange={(e) => {
-                          const isRep = e.target.value === 'Pengganti';
-                          setIsAmendmentMode(isRep);
-                          if (editingInvoice?.invoiceNumber && editingInvoice.invoiceNumber.length >= 4) {
-                            const fourthDigit = isRep ? '1' : '0';
-                            setReplacementFakturNumber(
-                              `${editingInvoice.invoiceNumber.slice(0, 3)}${fourthDigit}${editingInvoice.invoiceNumber.slice(4)}`
-                            );
-                          }
-                        }}
-                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-[#F8FAFC] text-slate-700 cursor-not-allowed"
                       >
                         <option value="Normal">Normal</option>
                         <option value="Pengganti">Pengganti</option>
@@ -5097,6 +5129,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 setItemCode('');
                                 setItemName('');
                                 setTxCodeSearchQuery('');
+                                setTxUnit('Kilogram');
+                                setUnitSearchQuery('');
                               }}
                               className="accent-[#0088FF] w-4 h-4 cursor-pointer"
                             />
@@ -5112,6 +5146,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 setItemCode('');
                                 setItemName('');
                                 setTxCodeSearchQuery('');
+                                setTxUnit('Kegiatan');
+                                setUnitSearchQuery('');
                               }}
                               className="accent-[#0088FF] w-4 h-4 cursor-pointer"
                             />
@@ -5207,23 +5243,64 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       />
                     </div>
 
-                    <div>
+                    {/* Satuan Combobox matching Coretax Images 4 & 5 */}
+                    <div className="relative">
                       <label className="block text-slate-700 font-normal mb-1">
                         Satuan <span className="text-rose-600">*</span>
                       </label>
-                      <select
-                        value={txUnit}
-                        onChange={(e) => setTxUnit(e.target.value)}
-                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white cursor-pointer"
-                        required
+                      <div
+                        onClick={() => {
+                          setUnitDropdownOpen(!unitDropdownOpen);
+                          setTxCodeDropdownOpen(false);
+                        }}
+                        className={`w-full border ${
+                          unitDropdownOpen ? 'border-sky-500 ring-1 ring-sky-400' : 'border-slate-300'
+                        } rounded-[3px] bg-white px-3 py-1.5 h-[34px] text-[12px] flex items-center justify-between cursor-pointer`}
                       >
-                        <option value="" disabled>Pilih satuan ukur</option>
-                        {STANDARD_TAX_UNITS.map((u) => (
-                          <option key={u} value={u}>
-                            {u}
-                          </option>
-                        ))}
-                      </select>
+                        <span className={txUnit ? 'text-slate-800' : 'text-slate-400'}>
+                          {txUnit || 'Pilih satuan ukur'}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
+                      </div>
+
+                      {unitDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-[3px] shadow-2xl z-50 overflow-hidden">
+                          <div className="p-2 border-b border-slate-200 relative">
+                            <input
+                              type="text"
+                              autoFocus
+                              placeholder=""
+                              value={unitSearchQuery}
+                              onChange={(e) => setUnitSearchQuery(e.target.value)}
+                              className="w-full border border-sky-400 rounded-[3px] px-3 py-1.5 pr-8 text-[12px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                            />
+                            <Search className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                          <div className="max-h-52 overflow-y-auto">
+                            {filteredUnits.length > 0 ? (
+                              filteredUnits.map((u) => (
+                                <div
+                                  key={u}
+                                  onClick={() => {
+                                    setTxUnit(u);
+                                    setUnitDropdownOpen(false);
+                                    setUnitSearchQuery('');
+                                  }}
+                                  className={`px-3 py-2 text-[11.5px] cursor-pointer hover:bg-sky-50 hover:text-sky-900 border-b border-slate-100 last:border-0 ${
+                                    txUnit === u ? 'bg-sky-100 text-sky-900 font-semibold' : 'text-slate-700'
+                                  }`}
+                                >
+                                  {u}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-3 py-4 text-center text-xs text-slate-400">
+                                Tidak ada satuan yang sesuai
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
