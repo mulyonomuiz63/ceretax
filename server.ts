@@ -240,7 +240,7 @@ async function startServer() {
 
       const { action, payload } = req.body as { action: string; payload?: Record<string, any> };
 
-      if (action === 'DELETE') {
+      if (action === 'DELETE' || action === 'REQUEST_CANCEL' || action === 'CANCEL' || action === 'APPROVE_CANCEL') {
         await mysqlRepo.deleteInvoice(nik, inv.id);
         const ws = await broadcastWorkspace(nik);
         return res.json({ workspace: ws });

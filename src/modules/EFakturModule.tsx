@@ -274,6 +274,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
   // Add Transaction modal state
   const [txItemType, setTxItemType] = useState<'GOODS' | 'SERVICES'>('GOODS');
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [itemCode, setItemCode] = useState('');
   const [itemName, setItemName] = useState('');
   const [txUnit, setTxUnit] = useState('Kilogram');
@@ -716,6 +717,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const modalPpnbm = customPpnbm !== null ? customPpnbm : Math.round((modalDpp * txPpnbmRate) / 100);
 
   const handleOpenAddTxModal = () => {
+    setEditingItemId(null);
     setItemCode('');
     setItemName('');
     setTxUnit(txItemType === 'SERVICES' ? 'Kegiatan' : 'Kilogram');
@@ -740,14 +742,42 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setAddTxModalOpen(true);
   };
 
+  const handleEditItemLine = (it: TaxInvoiceItem) => {
+    if (isViewingApproved) return;
+    setEditingItemId(it.id);
+    setTxItemType(it.itemType || 'GOODS');
+    setItemCode(it.itemCode || '');
+    setItemName(it.itemName || '');
+    setTxUnit(it.unit || (it.itemType === 'SERVICES' ? 'Kegiatan' : 'Kilogram'));
+    setUnitPrice(it.unitPrice || 0);
+    setQuantity(it.quantity || 1);
+    setDiscount(it.discount || 0);
+    setIsOtherValue(Boolean(it.dppOtherValue && it.dppOtherValue > 0));
+    setCustomDppOther(it.dppOtherValue || null);
+    setPpnRatePercent(12);
+    setTxPpnbmRate(it.isLuxury ? 20 : 0);
+    setCustomPpnbm(it.ppnbm || null);
+    setTxCodeDropdownOpen(false);
+    setTxCodeSearchQuery('');
+    setUnitDropdownOpen(false);
+    setUnitSearchQuery('');
+    setUnitPriceFocused(false);
+    setDiscountFocused(false);
+    setPpnbmFocused(false);
+    setQuantityFocused(false);
+    setDppOtherFocused(false);
+    setPpnbmNominalFocused(false);
+    setAddTxModalOpen(true);
+  };
+
   const handleAddTransactionLine = (e: React.FormEvent) => {
     e.preventDefault();
     const nextItem: TaxInvoiceItem = {
-      id: `item-${Date.now()}-${Math.floor(Math.random() * 999)}`,
+      id: editingItemId || `item-${Date.now()}-${Math.floor(Math.random() * 999)}`,
       itemType: txItemType,
       itemCode: itemCode || (txItemType === 'GOODS' ? '000000' : '000000'),
       itemName: itemName || (txItemType === 'GOODS' ? 'Barang' : 'Jasa'),
-      unit: txUnit || 'Kilogram',
+      unit: txUnit || (txItemType === 'SERVICES' ? 'Kegiatan' : 'Kilogram'),
       unitPrice,
       quantity,
       discount,
@@ -757,7 +787,14 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       ppn: modalPpn,
       ppnbm: modalPpnbm,
     };
-    setDraftItems((prev) => [...prev, nextItem]);
+    if (editingItemId) {
+      setDraftItems((prev) =>
+        prev.map((item) => (item.id === editingItemId ? nextItem : item))
+      );
+      setEditingItemId(null);
+    } else {
+      setDraftItems((prev) => [...prev, nextItem]);
+    }
     setAddTxModalOpen(false);
   };
 
@@ -1851,7 +1888,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                             draftItems.map((it) => (
                               <tr key={it.id} className="hover:bg-slate-50">
                                 <td className="px-2.5 py-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
+                                  <div className="flex items-center justify-center gap-1.5">
                                     <input
                                       type="checkbox"
                                       disabled={isViewingApproved}
@@ -1863,16 +1900,30 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                             : [...prev, it.id]
                                         )
                                       }
+                                      className="rounded border-slate-300 text-blue-600 accent-[#0088FF] cursor-pointer"
                                     />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setDraftItems((prev) => prev.filter((x) => x.id !== it.id));
-                                      }}
-                                      className="w-4 h-4 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center p-0.5 cursor-pointer"
-                                    >
-                                      <Trash2 className="w-2.5 h-2.5" />
-                                    </button>
+                                    {!isViewingApproved && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleEditItemLine(it)}
+                                          className="w-5 h-5 rounded-[3px] bg-[#EBF5FB] hover:bg-[#D4EBF8] text-[#0088FF] flex items-center justify-center p-0.5 cursor-pointer shadow-xs transition"
+                                          title="Ubah Transaksi Barang/Jasa"
+                                        >
+                                          <Edit3 className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setDraftItems((prev) => prev.filter((x) => x.id !== it.id));
+                                          }}
+                                          className="w-5 h-5 rounded-[3px] bg-[#FDE8E8] hover:bg-[#FBD5D5] text-[#E02424] flex items-center justify-center p-0.5 cursor-pointer shadow-xs transition"
+                                          title="Hapus Transaksi"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="px-2.5 py-2">{it.itemType === 'GOODS' ? 'GOODS' : 'SERVICES'}</td>
@@ -3077,11 +3128,53 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   <ArrowUpDown className="w-3 h-3 opacity-60" />
                                 </span>
                               </th>
-                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
                                 <span className="inline-flex items-center gap-1">
                                   Masa Pajak
                                   <ArrowUpDown className="w-3 h-3 opacity-60" />
                                 </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                Tahun
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                <span className="inline-flex items-center gap-1">
+                                  Status Faktur
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                ESignStatus
+                              </th>
+                              <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-[#E5B822]">
+                                Harga Jual/Penggantian/DPP
+                              </th>
+                              <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-[#E5B822]">
+                                DPP Nilai Lain/DPP
+                              </th>
+                              <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-[#E5B822]">
+                                PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-[#E5B822]">
+                                PPnBM
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                Penandatangan
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                Referensi
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-[#E5B822]">
+                                Metode Input
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-[#E5B822]">
+                                Dilaporkan oleh Penjual
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-[#E5B822]">
+                                Dilaporkan oleh Pemungut PPN
+                              </th>
+                              <th className="px-3 py-2.5 text-center whitespace-nowrap">
+                                IsShowClearName
                               </th>
                             </>
                           ) : (
@@ -4203,99 +4296,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   </select>
                                 </th>
                               </>
-                            ) : normalizedTab === 'output' ? (
-                              <>
-                                <th className="px-2 py-2 border-r border-slate-100" />
-                                <th className="px-2 py-2 border-r border-slate-100">
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="text"
-                                      value={npwpFilter}
-                                      onChange={(e) => {
-                                        setNpwpFilter(e.target.value);
-                                        setPage(1);
-                                      }}
-                                      placeholder=""
-                                      className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
-                                    />
-                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
-                                  </div>
-                                </th>
-                                <th className="px-2 py-2 border-r border-slate-100" />
-                                <th className="px-2 py-2 border-r border-slate-100">
-                                  <select
-                                    value={txCodeFilter}
-                                    onChange={(e) => {
-                                      setTxCodeFilter(e.target.value);
-                                      setPage(1);
-                                    }}
-                                    className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
-                                  >
-                                    <option value="ALL">Pilih Kode Transaksi</option>
-                                    {FAKTUR_TRANSACTION_CODES.map((c) => (
-                                      <option key={c.code} value={c.code}>
-                                        {c.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </th>
-                                <th className="px-2 py-2 border-r border-slate-100">
-                                  <input
-                                    type="text"
-                                    value={invoiceNumFilter}
-                                    onChange={(e) => {
-                                      setInvoiceNumFilter(e.target.value);
-                                      setPage(1);
-                                    }}
-                                    placeholder=""
-                                    className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
-                                  />
-                                </th>
-                                <th className="px-2 py-2 border-r border-slate-100">
-                                  <div className="flex items-center gap-1 min-w-[140px]">
-                                    <input
-                                      type="text"
-                                      value={dateFilter}
-                                      onChange={(e) => {
-                                        setDateFilter(e.target.value);
-                                        setPage(1);
-                                      }}
-                                      placeholder=""
-                                      className="w-full border border-[#CBD5E1] rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
-                                    />
-                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
-                                      <Calendar className="w-3 h-3" />
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setDateFilter('');
-                                        setPage(1);
-                                      }}
-                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                </th>
-                                <th className="px-2 py-2">
-                                  <select
-                                    value={monthFilter}
-                                    onChange={(e) => {
-                                      setMonthFilter(e.target.value);
-                                      setPage(1);
-                                    }}
-                                    className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
-                                  >
-                                    <option value="ALL">Pilih Masa Pajak</option>
-                                    {MONTHS_ID.map((m, idx) => (
-                                      <option key={m} value={String(idx + 1)}>
-                                        {m}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </th>
-                              </>
                             ) : (
                               <>
                                 <th className="px-2 py-2 border-r border-slate-100" />
@@ -4404,7 +4404,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                             <td
                               colSpan={
                                 normalizedTab === 'output'
-                                  ? 8
+                                  ? 21
                                   : normalizedTab === 'input'
                                     ? 21
                                     : normalizedTab === 'dok_lain_masukan'
@@ -4522,6 +4522,51 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   </td>
                                   <td className="px-3 py-2.5 whitespace-nowrap text-[#334155]">
                                     {MONTHS_ID[Math.max(0, (inv.taxPeriodMonth || 11) - 1)] || 'November'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center font-mono-num whitespace-nowrap text-[#334155]">
+                                    {inv.taxPeriodYear || 2026}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                                    <span
+                                      className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                        STATUS_BADGE[inv.status] || 'bg-slate-100 text-slate-700 border-slate-300'
+                                      }`}
+                                    >
+                                      {inv.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap font-medium text-emerald-700">
+                                    {inv.status === 'APPROVED' ? 'Done' : 'Pending'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    {formatRp(inv.dppOtherValue || Math.round(inv.dppTotal * (11 / 12)))}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num font-bold text-[#1E2C5E] whitespace-nowrap">
+                                    {formatRp(inv.ppnTotal)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                                    0
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-700 uppercase font-medium">
+                                    {(workspace.corporateTaxpayer as any)?.representativeName || workspace.individualTaxpayer?.name || 'ARIEF BASYARI'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-slate-600">
+                                    {inv.referenceCode || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-700">
+                                    MANUAL
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-600">
+                                    False
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
+                                    -
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-400">
+                                    -
                                   </td>
                                 </>
                               ) : normalizedTab === 'input' ? (
