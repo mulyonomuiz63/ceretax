@@ -15,6 +15,7 @@ import {
   Eye,
   FileText,
   Filter,
+  Home,
   Info,
   Layers,
   Plus,
@@ -216,6 +217,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [fakturSuccessToast, setFakturSuccessToast] = useState<string | null>(null);
   const [addTxModalOpen, setAddTxModalOpen] = useState(false);
   const [uploadAfterCreateOpen, setUploadAfterCreateOpen] = useState(false);
+  const [cancelModalTarget, setCancelModalTarget] = useState<TaxInvoice | null>(null);
   const [bulkSignTargets, setBulkSignTargets] = useState<TaxInvoice[]>([]);
   const [signTarget, setSignTarget] = useState<TaxInvoice | null>(null);
   const [returnTarget, setReturnTarget] = useState<TaxInvoice | null>(null);
@@ -614,8 +616,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setReplacementFakturNumber('');
     setIsDownPayment(false);
     setIsFinalPayment(false);
-    setTxCode('04');
-    setInvoiceDate(new Date().toISOString().slice(0, 10));
+    setTxCode('');
+    setInvoiceDate('2026-11-25');
     setReferenceCode('');
     setBuyerIdType('NPWP');
     setCounterpartyNpwp('');
@@ -626,6 +628,17 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setDraftItems([]);
     setSelectedDraftItemIds([]);
     setCreateModalOpen(true);
+    setFakturSuccessToast('Berhasil membuat Faktur Pajak Keluaran baru!');
+  };
+
+  const formatCoretaxDate = (d?: string): string => {
+    if (!d) return '25-11-2026';
+    const clean = d.split('T')[0];
+    const parts = clean.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return d;
   };
 
   const activeCatalogCodes = txItemType === 'GOODS' ? GOODS_CODES : SERVICES_CODES;
@@ -789,7 +802,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       setFakturSuccessToast(
         finalStatus === 'APPROVED'
           ? 'Berhasil membuat Faktur Pajak Keluaran baru!'
-          : 'Konsep Faktur Pajak berhasil disimpan!'
+          : 'Berhasil memperbarui transaksi!'
       );
     } else {
       const invNum = isExport
@@ -805,6 +818,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         referenceCode,
         counterpartyNpwp,
         counterpartyName,
+        counterpartyAddress: buyerAddress,
+        counterpartyEmail: buyerEmail,
         invoiceDate,
         taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
         taxPeriodYear: parsedDate.getFullYear() || 2026,
@@ -821,7 +836,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
       setFakturSuccessToast(
         finalStatus === 'APPROVED'
           ? 'Berhasil membuat Faktur Pajak Keluaran baru!'
-          : 'Konsep Faktur Pajak berhasil disimpan!'
+          : 'Berhasil memperbarui transaksi!'
       );
     }
 
@@ -1202,408 +1217,465 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
             </div>
           ) : createModalOpen ? (
             /* ============================================================= */
-            /* INLINE CORETAX "OUTPUT INVOICE EDIT" SCREEN (PPN.pdf 100%)    */
+            /* INLINE CORETAX "OUTPUT INVOICE EDIT" SCREEN                   */
             /* ============================================================= */
-            <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden shadow-xs">
-              <div className="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCreateModalOpen(false)}
-                    className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-[#1E2C5E] cursor-pointer"
-                    title="Kembali ke daftar faktur"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
-                  <div>
-                    <h1 className="font-display font-bold text-[17px] text-[#1E2C5E]">
-                      {normalizedTab === 'dok_lain_keluaran'
-                        ? 'Dokumen Lain Keluaran Edit (PEB)'
-                        : isInputTab
-                          ? 'Input Invoice Edit'
-                          : 'Output Invoice Edit'}
-                    </h1>
-                    <p className="text-[11px] text-slate-500">
-                      e-Faktur Coretax DJP — PMK 131/2024 (DPP Nilai Lain 11/12 &amp; PPN 12%)
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[11px] font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                  Status: DRAFT
-                </span>
+            <div className="space-y-4">
+              <div className="text-[12px] text-slate-500 flex items-center gap-1.5 pt-1">
+                <span>Beranda</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <span>e-Faktur</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-slate-800 font-medium">Edit Output Invoice</span>
               </div>
 
-              <div className="p-5 space-y-4 text-[12px]">
-                {/* Section 1: Dokumen Transaksi */}
-                <div className="border border-slate-200 rounded overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setEditCollapsed((p) => ({ ...p, doc: !p.doc }))}
-                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
-                  >
-                    {editCollapsed.doc ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>Dokumen Transaksi</span>
-                  </button>
-                  {!editCollapsed.doc && (
-                    <div className="p-4 space-y-3 bg-white">
-                      <div className="flex flex-wrap items-center gap-6 pb-2 border-b border-slate-100">
-                        <label className="inline-flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+              <h1 className="font-display font-bold text-[18px] text-[#1D2B53]">
+                Output Invoice Edit
+              </h1>
+
+              {/* Section 1: Dokumen Transaksi */}
+              <div className="border border-[#E2E8F0] rounded-[4px] bg-white p-5 shadow-xs">
+                <div
+                  onClick={() => setEditCollapsed((p) => ({ ...p, doc: !p.doc }))}
+                  className="flex items-center gap-2 cursor-pointer font-bold text-[13px] text-slate-800 pb-3"
+                >
+                  {editCollapsed.doc ? <ChevronRight className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />}
+                  <span>Dokumen Transaksi</span>
+                </div>
+                {!editCollapsed.doc && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 pt-1">
+                    {/* 1. Uang Muka */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-2">Uang Muka</label>
+                      <div className="h-[34px] flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isDownPayment}
+                          disabled={isFinalPayment || isViewingApproved}
+                          onChange={(e) => {
+                            setIsDownPayment(e.target.checked);
+                            if (e.target.checked) setIsFinalPayment(false);
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-[#0088FF] cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 2. Pelunasan */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-2">Pelunasan</label>
+                      <div className="h-[34px] flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isFinalPayment}
+                          disabled={isDownPayment || isViewingApproved}
+                          onChange={(e) => {
+                            setIsFinalPayment(e.target.checked);
+                            if (e.target.checked) setIsDownPayment(false);
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-[#0088FF] cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 3. Nomor Faktur */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">Nomor Faktur</label>
+                      <input
+                        type="text"
+                        disabled
+                        placeholder="Nomor Faktur"
+                        value={
+                          isViewingApproved && editingInvoice
+                            ? editingInvoice.invoiceNumber
+                            : isAmendmentMode
+                            ? replacementFakturNumber
+                            : ''
+                        }
+                        className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num placeholder:text-slate-400 cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* 4. Kode Transaksi * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Kode Transaksi <span className="text-rose-600">*</span>
+                      </label>
+                      <select
+                        value={txCode}
+                        disabled={isViewingApproved}
+                        onChange={(e) => setTxCode(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      >
+                        <option value="" disabled>Pilih Kode Transaksi</option>
+                        {FAKTUR_TRANSACTION_CODES.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 5. Tanggal Faktur */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Tanggal Faktur
+                      </label>
+                      <input
+                        type="date"
+                        value={invoiceDate}
+                        disabled={isViewingApproved}
+                        onChange={(e) => setInvoiceDate(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      />
+                    </div>
+
+                    {/* 6. Jenis Faktur * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Jenis Faktur <span className="text-rose-600">*</span>
+                      </label>
+                      <select
+                        disabled={isViewingApproved}
+                        value={isAmendmentMode ? 'Pengganti' : (editingInvoice?.isReplacement ? 'Pengganti' : 'Normal')}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      >
+                        <option value="Normal">Normal</option>
+                        <option value="Pengganti">Pengganti</option>
+                      </select>
+                    </div>
+
+                    {/* 7. Masa Pajak * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Masa Pajak <span className="text-rose-600">*</span>
+                      </label>
+                      <select
+                        disabled
+                        value={MONTHS_ID[Math.max(0, (new Date(invoiceDate).getMonth() || 0))]}
+                        className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 cursor-not-allowed"
+                      >
+                        {MONTHS_ID.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 8. Tahun * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Tahun <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={new Date(invoiceDate).getFullYear() || 2026}
+                        className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* 9. Referensi */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">Referensi</label>
+                      <input
+                        type="text"
+                        placeholder="Keterangan"
+                        value={referenceCode}
+                        disabled={isViewingApproved}
+                        onChange={(e) => setReferenceCode(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      />
+                    </div>
+
+                    {/* 10. Alamat */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">Alamat</label>
+                      <select
+                        disabled
+                        value="main"
+                        className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 truncate cursor-not-allowed"
+                      >
+                        <option value="main">{workspace.corporateTaxpayer.address || 'JL RADEN INTEN II B NO.210...'}</option>
+                      </select>
+                    </div>
+
+                    {/* 11. IDTKU */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">IDTKU</label>
+                      <select
+                        disabled
+                        value="000000"
+                        className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num cursor-not-allowed"
+                      >
+                        <option value="000000">000000</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 2: Informasi Pembeli */}
+              <div className="border border-[#E2E8F0] rounded-[4px] bg-white p-5 shadow-xs">
+                <div
+                  onClick={() => setEditCollapsed((p) => ({ ...p, buyer: !p.buyer }))}
+                  className="flex items-center gap-2 cursor-pointer font-bold text-[13px] text-slate-800 pb-3"
+                >
+                  {editCollapsed.buyer ? <ChevronRight className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />}
+                  <span>Informasi Pembeli</span>
+                </div>
+                {!editCollapsed.buyer && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 pt-1">
+                    {/* Col 1: Nomor Identitas WP * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Nomor Identitas WP <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={counterpartyNpwp}
+                        disabled={isViewingApproved}
+                        placeholder=""
+                        onChange={(e) => handleBuyerNpwpChange(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      />
+                    </div>
+
+                    {/* Col 2: ID */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">ID</label>
+                      <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[11px] pt-1">
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
                           <input
-                            type="checkbox"
-                            checked={isDownPayment}
-                            disabled={isFinalPayment || isViewingApproved}
-                            onChange={(e) => {
-                              setIsDownPayment(e.target.checked);
-                              if (e.target.checked) setIsFinalPayment(false);
-                            }}
-                            className="accent-[#1E2C5E]"
+                            type="radio"
+                            name="buyerIdType"
+                            disabled={isViewingApproved}
+                            checked={buyerIdType === 'NPWP'}
+                            onChange={() => setBuyerIdType('NPWP')}
+                            className="accent-[#0088FF]"
                           />
-                          <span>Uang Muka</span>
+                          <span>Nomor Identitas WP</span>
                         </label>
-                        <label className="inline-flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
                           <input
-                            type="checkbox"
-                            checked={isFinalPayment}
-                            disabled={isDownPayment || isViewingApproved}
-                            onChange={(e) => {
-                              setIsFinalPayment(e.target.checked);
-                              if (e.target.checked) setIsDownPayment(false);
-                            }}
-                            className="accent-[#1E2C5E]"
+                            type="radio"
+                            name="buyerIdType"
+                            disabled={isViewingApproved}
+                            checked={buyerIdType === 'PASPOR'}
+                            onChange={() => setBuyerIdType('PASPOR')}
+                            className="accent-[#0088FF]"
                           />
-                          <span>Pelunasan</span>
+                          <span>Paspor</span>
+                        </label>
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="buyerIdType"
+                            disabled={isViewingApproved}
+                            checked={buyerIdType === 'NIK'}
+                            onChange={() => setBuyerIdType('NIK')}
+                            className="accent-[#0088FF]"
+                          />
+                          <span>NIK</span>
+                        </label>
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="buyerIdType"
+                            disabled={isViewingApproved}
+                            checked={buyerIdType === 'LAINNYA'}
+                            onChange={() => setBuyerIdType('LAINNYA')}
+                            className="accent-[#0088FF]"
+                          />
+                          <span>Identitas Lain</span>
                         </label>
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-4 font-semibold text-slate-700">Nomor Faktur</label>
-                          <input
-                            type="text"
-                            readOnly
-                            placeholder="Nomor Faktur"
-                            value={
-                              isViewingApproved && editingInvoice
-                                ? editingInvoice.invoiceNumber
-                                : isAmendmentMode
-                                ? replacementFakturNumber
-                                : ''
-                            }
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 text-slate-700 font-mono-num placeholder:text-slate-400"
-                          />
-                        </div>
-                        {!isDokLainTab && (
-                          <div className="grid grid-cols-12 items-center gap-2">
-                            <label className="col-span-4 font-semibold text-slate-700">
-                              Kode Transaksi <span className="text-rose-600">*</span>
-                            </label>
-                            <select
-                              value={txCode}
-                              disabled={isViewingApproved}
-                              onChange={(e) => setTxCode(e.target.value)}
-                              className="col-span-8 border border-slate-300 rounded px-2.5 py-1.5 bg-white text-slate-800 disabled:bg-slate-100"
-                            >
-                              <option value="" disabled>Pilih Kode Transaksi</option>
-                              {FAKTUR_TRANSACTION_CODES.map((c) => (
-                                <option key={c.code} value={c.code}>
-                                  {c.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                    {/* Col 3: Negara */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">Negara</label>
+                      <select
+                        disabled={isViewingApproved}
+                        value={buyerCountry || 'Indonesia'}
+                        onChange={(e) => setBuyerCountry(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      >
+                        <option value="Indonesia">Indonesia</option>
+                        <option value="Luar Negeri">Luar Negeri</option>
+                      </select>
+                    </div>
+
+                    {/* Col 4: Nomor Dokumen */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">Nomor Dokumen</label>
+                      <input
+                        type="text"
+                        disabled
+                        value=""
+                        className="w-full border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Col 5: Nama * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Nama <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={counterpartyName}
+                        disabled={isViewingApproved}
+                        onChange={(e) => setCounterpartyName(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-semibold text-slate-800 bg-white disabled:bg-[#F8FAFC]"
+                      />
+                    </div>
+
+                    {/* Row 2: Col 1: Alamat * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        Alamat <span className="text-rose-600">*</span>
+                      </label>
+                      <select
+                        disabled={isViewingApproved}
+                        value={buyerAddress ? 'selected' : ''}
+                        onChange={(e) => {
+                          if (e.target.value === '') setBuyerAddress('');
+                        }}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 truncate disabled:bg-[#F8FAFC]"
+                      >
+                        {buyerAddress ? (
+                          <option value="selected">{buyerAddress}</option>
+                        ) : (
+                          <option value="">Pilih Alamat</option>
                         )}
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-4 font-semibold text-slate-700">
-                            Tanggal Faktur <span className="text-rose-600">*</span>
-                          </label>
-                          <input
-                            type="date"
-                            value={invoiceDate}
-                            disabled={isViewingApproved}
-                            onChange={(e) => setInvoiceDate(e.target.value)}
-                            className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num disabled:bg-slate-100"
-                          />
-                        </div>
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-4 font-semibold text-slate-700">
-                            Jenis Faktur <span className="text-rose-600">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={isAmendmentMode ? 'Pengganti' : (editingInvoice?.isReplacement ? 'Pengganti' : 'Normal')}
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 text-slate-700 font-medium"
-                          />
-                        </div>
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-4 font-semibold text-slate-700">
-                            Masa / Tahun <span className="text-rose-600">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={`${MONTHS_ID[Math.max(0, (new Date(invoiceDate).getMonth() || 0))]} ${new Date(invoiceDate).getFullYear() || 2026}`}
-                            className="col-span-8 border border-slate-200 bg-slate-100 rounded px-3 py-1.5 font-mono-num text-slate-700"
-                          />
-                        </div>
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-4 font-semibold text-slate-700">Referensi</label>
-                          <input
-                            type="text"
-                            placeholder="Keterangan"
-                            value={referenceCode}
-                            disabled={isViewingApproved}
-                            onChange={(e) => setReferenceCode(e.target.value)}
-                            className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num disabled:bg-slate-100"
-                          />
-                        </div>
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-4 font-semibold text-slate-700">Alamat Penjual</label>
-                          <div className="col-span-8 relative">
-                            <select
-                              disabled
-                              value="main"
-                              className="w-full border border-slate-300 bg-white rounded px-3 py-1.5 text-slate-800 text-[12px] truncate appearance-none pr-8 cursor-not-allowed"
-                            >
-                              <option value="main">{workspace.corporateTaxpayer.address || 'JL RADEN INTEN II B NO.210 DUREN SAWIT JAKARTA TIMUR'}</option>
-                            </select>
-                            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-12 items-center gap-2">
-                          <label className="col-span-4 font-semibold text-slate-700">IDTKU Penjual</label>
-                          <div className="col-span-8 relative">
-                            <select
-                              disabled
-                              value="000000"
-                              className="w-full border border-slate-300 bg-white rounded px-3 py-1.5 text-slate-800 font-mono-num text-[12px] appearance-none pr-8 cursor-not-allowed"
-                            >
-                              <option value="000000">000000</option>
-                            </select>
-                            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          </div>
-                        </div>
-                      </div>
+                      </select>
                     </div>
-                  )}
-                </div>
 
-                {/* Section 2: Informasi Pembeli */}
-                <div className="border border-slate-200 rounded overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setEditCollapsed((p) => ({ ...p, buyer: !p.buyer }))}
-                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
-                  >
-                    {editCollapsed.buyer ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>{isInputTab ? 'Informasi Penjual' : 'Informasi Pembeli'}</span>
-                  </button>
-                  {!editCollapsed.buyer && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 bg-white">
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-4 font-semibold text-slate-700">
-                          Nomor Identitas WP <span className="text-rose-600">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={counterpartyNpwp}
-                          disabled={isViewingApproved}
-                          placeholder=""
-                          onChange={(e) => handleBuyerNpwpChange(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-mono-num disabled:bg-slate-100"
-                        />
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-4 font-semibold text-slate-700">ID</label>
-                        <div className="col-span-8 flex flex-wrap items-center gap-3 text-[11px]">
-                          {(
-                            [
-                              { id: 'NPWP', label: 'Nomor Identitas WP' },
-                              { id: 'NIK', label: 'NIK' },
-                              { id: 'PASPOR', label: 'Paspor' },
-                              { id: 'LAINNYA', label: 'Identitas Lain' },
-                            ] as const
-                          ).map((opt) => (
-                            <label key={opt.id} className="inline-flex items-center gap-1 cursor-pointer">
+                    {/* Row 2: Col 2: IDTKU * */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">
+                        IDTKU <span className="text-rose-600">*</span>
+                      </label>
+                      <select
+                        disabled={isViewingApproved}
+                        value="000000"
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      >
+                        <option value="000000">Pilih kode usaha</option>
+                        <option value="000000">000000</option>
+                      </select>
+                    </div>
+
+                    {/* Row 2: Col 3: Email */}
+                    <div>
+                      <label className="block text-slate-700 font-normal text-[12px] mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={buyerEmail}
+                        disabled={isViewingApproved}
+                        onChange={(e) => setBuyerEmail(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-slate-800 disabled:bg-[#F8FAFC]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 3: Detail Transaksi */}
+              <div className="border border-[#E2E8F0] rounded-[4px] bg-white p-5 shadow-xs">
+                <div
+                  onClick={() => setEditCollapsed((p) => ({ ...p, detail: !p.detail }))}
+                  className="flex items-center gap-2 cursor-pointer font-bold text-[13px] text-slate-800 pb-3"
+                >
+                  {editCollapsed.detail ? <ChevronRight className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />}
+                  <span>Detail Transaksi</span>
+                </div>
+                {!editCollapsed.detail && (
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isViewingApproved}
+                        onClick={handleOpenAddTxModal}
+                        className="bg-[#002D72] hover:bg-[#001D4A] disabled:opacity-50 text-white font-medium text-[11.5px] px-3.5 py-1.5 rounded-[3px] cursor-pointer shadow-xs transition"
+                      >
+                        Tambah Transaksi
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isViewingApproved || selectedDraftItemIds.length === 0}
+                        onClick={handleRemoveSelectedLines}
+                        className="bg-[#BA1B1B] hover:bg-[#961515] disabled:opacity-45 text-white font-medium text-[11.5px] px-3.5 py-1.5 rounded-[3px] cursor-pointer shadow-xs transition"
+                      >
+                        Hapus Transaksi
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-200 rounded-[3px]">
+                      <table className="w-full text-[11px] border-collapse whitespace-nowrap">
+                        <thead>
+                          <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
+                            <th className="px-2.5 py-2 w-8 text-center border-r border-[#E5B822]">
                               <input
-                                type="radio"
-                                name="buyerIdType"
+                                type="checkbox"
                                 disabled={isViewingApproved}
-                                checked={buyerIdType === opt.id}
-                                onChange={() => setBuyerIdType(opt.id)}
-                                className="accent-[#1E2C5E]"
-                              />
-                              <span>{opt.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-4 font-semibold text-slate-700">
-                          Nama <span className="text-rose-600">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={counterpartyName}
-                          disabled={isViewingApproved}
-                          onChange={(e) => setCounterpartyName(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 font-semibold text-slate-800 disabled:bg-slate-100"
-                        />
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-4 font-semibold text-slate-700">Negara</label>
-                        <div className="col-span-8 relative">
-                          <select
-                            disabled={isViewingApproved}
-                            value={buyerCountry || 'Indonesia'}
-                            onChange={(e) => setBuyerCountry(e.target.value)}
-                            className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white text-slate-800 text-[12px] appearance-none pr-8 disabled:bg-slate-100"
-                          >
-                            <option value="Indonesia">Indonesia</option>
-                            <option value="Luar Negeri">Luar Negeri</option>
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-4 font-semibold text-slate-700">
-                          Alamat <span className="text-rose-600">*</span>
-                        </label>
-                        <div className="col-span-8 relative">
-                          <select
-                            disabled={isViewingApproved}
-                            value={buyerAddress ? 'addr-selected' : ''}
-                            onChange={(e) => {
-                              if (e.target.value === '') setBuyerAddress('');
-                            }}
-                            className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white text-slate-800 text-[12px] appearance-none pr-8 truncate disabled:bg-slate-100"
-                          >
-                            {buyerAddress ? (
-                              <option value="addr-selected">{buyerAddress}</option>
-                            ) : (
-                              <option value="">Pilih Alamat</option>
-                            )}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-4 font-semibold text-slate-700">
-                          IDTKU
-                        </label>
-                        <div className="col-span-8 relative">
-                          <select
-                            disabled={isViewingApproved}
-                            value="000000"
-                            className="w-full border border-slate-300 rounded px-3 py-1.5 bg-white text-slate-800 text-[12px] appearance-none pr-8 disabled:bg-slate-100"
-                          >
-                            <option value="000000">Pilih kode usaha</option>
-                            <option value="000000">000000</option>
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <label className="col-span-4 font-semibold text-slate-700">Email</label>
-                        <input
-                          type="email"
-                          value={buyerEmail}
-                          disabled={isViewingApproved}
-                          onChange={(e) => setBuyerEmail(e.target.value)}
-                          className="col-span-8 border border-slate-300 rounded px-3 py-1.5 disabled:bg-slate-100"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Section 3: Detail Transaksi */}
-                <div className="border border-slate-200 rounded overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setEditCollapsed((p) => ({ ...p, detail: !p.detail }))}
-                    className="w-full flex items-center gap-2 bg-[#1E2C5E] text-white px-4 py-2.5 font-bold text-[12px] cursor-pointer"
-                  >
-                    {editCollapsed.detail ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>Detail Transaksi</span>
-                  </button>
-                  {!editCollapsed.detail && (
-                    <div className="p-4 space-y-3 bg-white">
-                      {!isViewingApproved && (
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={handleOpenAddTxModal}
-                              className="inline-flex items-center gap-1.5 bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs px-3.5 py-2 rounded-[6px] cursor-pointer shadow-xs"
-                            >
-                              <Plus className="w-3.5 h-3.5 text-[#F7CA36]" />
-                              <span>Tambah Transaksi</span>
-                            </button>
-                            <button
-                              type="button"
-                              disabled={selectedDraftItemIds.length === 0}
-                              onClick={handleRemoveSelectedLines}
-                              className="inline-flex items-center gap-1.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-45 text-white font-bold text-xs px-3.5 py-2 rounded-[6px] cursor-pointer shadow-xs"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Hapus Transaksi</span>
-                            </button>
-                          </div>
-                          <span className="text-[11px] text-slate-500">
-                            Total {draftItems.length} baris transaksi
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="overflow-x-auto border border-slate-200 rounded">
-                        <table className="w-full text-[11.5px] border-collapse whitespace-nowrap">
-                          <thead>
-                            <tr className="bg-[#F7CA36] text-[#1E2C5E] font-bold">
-                              <th className="px-2.5 py-2 w-8 text-center border-r border-[#E5B822]">
-                                <input
-                                  type="checkbox"
-                                  disabled={isViewingApproved}
-                                  checked={
-                                    draftItems.length > 0 &&
-                                    draftItems.every((it) => selectedDraftItemIds.includes(it.id))
+                                checked={
+                                  draftItems.length > 0 &&
+                                  draftItems.every((it) => selectedDraftItemIds.includes(it.id))
+                                }
+                                onChange={() => {
+                                  if (draftItems.every((it) => selectedDraftItemIds.includes(it.id))) {
+                                    setSelectedDraftItemIds([]);
+                                  } else {
+                                    setSelectedDraftItemIds(draftItems.map((it) => it.id));
                                   }
-                                  onChange={() => {
-                                    if (draftItems.every((it) => selectedDraftItemIds.includes(it.id))) {
-                                      setSelectedDraftItemIds([]);
-                                    } else {
-                                      setSelectedDraftItemIds(draftItems.map((it) => it.id));
-                                    }
-                                  }}
-                                />
-                              </th>
-                              <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Tipe</th>
-                              <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Nama</th>
-                              <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Kode</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">KUANTITAS</th>
-                              <th className="px-2.5 py-2 text-center border-r border-[#E5B822]">Satuan</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Harga Satuan</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Total Harga</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Potongan harga</th>
-                              <th className="px-2.5 py-2 text-center border-r border-[#E5B822]">Tarif PPN</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">DPP</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">PPN</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">DPP Nilai Lain/DPP</th>
-                              <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">PPnBM</th>
-                              <th className="px-2.5 py-2 text-right">Tarif PPnBM (%)</th>
+                                }}
+                              />
+                            </th>
+                            <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Tipe ↑↓</th>
+                            <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Nama ↑↓</th>
+                            <th className="px-2.5 py-2 text-left border-r border-[#E5B822]">Kode ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">KUANTITAS ↑↓</th>
+                            <th className="px-2.5 py-2 text-center border-r border-[#E5B822]">Satuan ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Harga Satuan ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Total Harga ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">Potongan harga ↑↓</th>
+                            <th className="px-2.5 py-2 text-center border-r border-[#E5B822]">Tarif PPN ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">DPP ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">PPN ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">DPP Nilai Lain/DPP ↑↓</th>
+                            <th className="px-2.5 py-2 text-right border-r border-[#E5B822]">PPnBM ↑↓</th>
+                            <th className="px-2.5 py-2 text-right">Tarif PPnBM ↑↓</th>
+                          </tr>
+                          <tr className="bg-white border-b border-slate-200">
+                            <th className="p-1 border-r border-slate-200"></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1 border-r border-slate-200"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                            <th className="p-1"><input type="text" className="w-full border border-slate-200 rounded px-1.5 py-0.5 text-[10px]" /></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {draftItems.length === 0 ? (
+                            <tr>
+                              <td colSpan={15} className="px-4 py-6 text-center text-slate-400">
+                                Tidak ada data yang ditemukan.
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200">
-                            {draftItems.length === 0 ? (
-                              <tr>
-                                <td colSpan={15} className="px-4 py-6 text-center text-slate-400">
-                                  Belum ada detail transaksi. Klik tombol <strong>Tambah Transaksi</strong>.
-                                </td>
-                              </tr>
-                            ) : (
-                              draftItems.map((it) => (
-                                <tr key={it.id} className="hover:bg-slate-50">
-                                  <td className="px-2.5 py-2 text-center">
+                          ) : (
+                            draftItems.map((it) => (
+                              <tr key={it.id} className="hover:bg-slate-50">
+                                <td className="px-2.5 py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
                                     <input
                                       type="checkbox"
                                       disabled={isViewingApproved}
@@ -1616,78 +1688,86 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                         )
                                       }
                                     />
-                                  </td>
-                                  <td className="px-2.5 py-2">{it.itemType === 'GOODS' ? 'GOODS' : 'SERVICES'}</td>
-                                  <td className="px-2.5 py-2 font-semibold text-slate-800">{it.itemName}</td>
-                                  <td className="px-2.5 py-2 font-mono-num">{it.itemCode}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.quantity)}</td>
-                                  <td className="px-2.5 py-2 text-center">{it.unit}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.unitPrice)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.unitPrice * it.quantity)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.discount)}</td>
-                                  <td className="px-2.5 py-2 text-center">12%</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.dpp)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num font-bold text-[#1E2C5E]">
-                                    {formatCoretaxDec(it.ppn)}
-                                  </td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.dppOtherValue)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.ppnbm)}</td>
-                                  <td className="px-2.5 py-2 text-right font-mono-num">
-                                    {it.isLuxury && it.dpp > 0 && it.ppnbm > 0
-                                      ? formatCoretaxDec((it.ppnbm / it.dpp) * 100)
-                                      : '0,00'}
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                            <tr className="bg-[#EEF3FA] font-extrabold text-[#1E2C5E]">
-                              <td colSpan={10} className="px-3 py-2 text-right">
-                                JUMLAH
-                              </td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.dpp)}</td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.ppn)}</td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">
-                                {formatCoretaxDec(draftTotals.dppOtherValue)}
-                              </td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.ppnbm)}</td>
-                              <td className="px-2.5 py-2 text-right font-mono-num">0,00</td>
-                            </tr>
-                          </tbody>
-                        </table>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDraftItems((prev) => prev.filter((x) => x.id !== it.id));
+                                      }}
+                                      className="w-4 h-4 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center p-0.5 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="px-2.5 py-2">{it.itemType === 'GOODS' ? 'GOODS' : 'SERVICES'}</td>
+                                <td className="px-2.5 py-2 font-semibold text-slate-800">{it.itemName}</td>
+                                <td className="px-2.5 py-2 font-mono-num">{it.itemCode}</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.quantity)}</td>
+                                <td className="px-2.5 py-2 text-center">{it.unit}</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.unitPrice)}</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.unitPrice * it.quantity)}</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.discount)}</td>
+                                <td className="px-2.5 py-2 text-center">12%</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.dpp)}</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num font-bold text-[#1E2C5E]">
+                                  {formatCoretaxDec(it.ppn)}
+                                </td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.dppOtherValue)}</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(it.ppnbm)}</td>
+                                <td className="px-2.5 py-2 text-right font-mono-num">
+                                  {it.isLuxury && it.dpp > 0 && it.ppnbm > 0
+                                    ? formatCoretaxDec((it.ppnbm / it.dpp) * 100)
+                                    : '0,00'}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                          <tr className="bg-[#EEF3FA] font-extrabold text-[#1E2C5E]">
+                            <td colSpan={10} className="px-3 py-2 text-right">
+                              JUMLAH
+                            </td>
+                            <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.dpp)}</td>
+                            <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.ppn)}</td>
+                            <td className="px-2.5 py-2 text-right font-mono-num">
+                              {formatCoretaxDec(draftTotals.dppOtherValue)}
+                            </td>
+                            <td className="px-2.5 py-2 text-right font-mono-num">{formatCoretaxDec(draftTotals.ppnbm)}</td>
+                            <td className="px-2.5 py-2 text-right font-mono-num">0,00</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination under table */}
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                      <span>Menampilkan {draftItems.length > 0 ? 1 : 0} sampai {draftItems.length} dari {draftItems.length} entri</span>
+                      <div className="flex items-center gap-1.5">
+                        <button type="button" disabled className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-400">&lt;&lt;</button>
+                        <button type="button" disabled className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-400">&lt;</button>
+                        <span className="px-2 py-0.5 rounded bg-[#0088FF] text-white font-bold">1</span>
+                        <button type="button" disabled className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-400">&gt;</button>
+                        <button type="button" disabled className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-400">&gt;&gt;</button>
+                        <select className="border border-slate-200 rounded px-1.5 py-0.5 bg-white ml-2 text-slate-700">
+                          <option value="10">10</option>
+                        </select>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
-              {/* Bottom Coretax Output Invoice Edit Footer */}
-              <div className="px-5 py-3.5 bg-[#F8FAFC] border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCreateModalOpen(false);
-                    setEditingInvoice(null);
-                    setIsViewingApproved(false);
-                    setIsAmendmentMode(false);
-                  }}
-                  className="px-4 py-2 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs cursor-pointer shadow-xs transition"
-                >
-                  Kembali
-                </button>
+              {/* Bottom Buttons matching Image 7 & Image 8 */}
+              <div className="flex items-center gap-3 pt-2 pb-8">
                 {isViewingApproved ? (
-                  <div className="flex items-center gap-2.5">
+                  <>
                     <button
                       type="button"
                       onClick={() => {
                         if (editingInvoice) {
-                          onInvoiceAction(editingInvoice.id, 'REQUEST_CANCEL');
-                          setFakturSuccessToast(`Faktur Pajak No. ${editingInvoice.invoiceNumber} berhasil dibatalkan.`);
-                          setCreateModalOpen(false);
-                          setEditingInvoice(null);
-                          setIsViewingApproved(false);
+                          setCancelModalTarget(editingInvoice);
                         }
                       }}
-                      className="px-5 py-2 rounded-[6px] bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs cursor-pointer shadow-xs transition"
+                      className="px-6 py-2 rounded-[4px] bg-[#0088FF] hover:bg-[#0070D2] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                     >
                       Batal
                     </button>
@@ -1700,40 +1780,37 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           const origNum = editingInvoice.invoiceNumber;
                           let repNum = origNum;
                           if (origNum && origNum.length >= 4) {
-                            repNum = `${origNum.slice(0, 2)}01${origNum.slice(4)}`;
+                            repNum = `${origNum.slice(0, 3)}1${origNum.slice(4)}`;
                           } else {
-                            repNum = generateFakturNumber(txCode, workspace.invoices.length + 11, true);
+                            repNum = '04012500000000001';
                           }
                           setReplacementFakturNumber(repNum);
                         }
                       }}
-                      className="px-5 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#152048] text-white font-bold text-xs cursor-pointer shadow-xs transition"
+                      className="px-6 py-2 rounded-[4px] bg-[#0088FF] hover:bg-[#0070D2] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                     >
                       Ganti
                     </button>
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-2.5">
+                  <>
                     <button
                       type="button"
-                      disabled={draftItems.length === 0}
                       onClick={() => saveNewInvoice(false)}
-                      className="px-4 py-2 rounded-[6px] bg-[#1E2C5E] hover:bg-[#152048] disabled:opacity-50 text-white font-bold text-xs cursor-pointer shadow-xs transition"
+                      className="px-6 py-2 rounded-[4px] bg-[#0088FF] hover:bg-[#0070D2] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                     >
                       Simpan Konsep
                     </button>
                     {normalizedTab === 'output' && (
                       <button
                         type="button"
-                        disabled={draftItems.length === 0}
                         onClick={() => setUploadAfterCreateOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-5 py-2 rounded-[6px] bg-[#0088FF] hover:bg-[#0077EE] disabled:opacity-50 text-white font-extrabold text-xs cursor-pointer shadow-xs transition"
+                        className="px-6 py-2 rounded-[4px] bg-[#0088FF] hover:bg-[#0070D2] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                       >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Upload Faktur</span>
+                        Upload Faktur
                       </button>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1742,15 +1819,22 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
             /* DATA TABLE FOR ALL e-FAKTUR & DOKUMEN LAIN SUBMENUS           */
             /* (Authentic Coretax DJP Pajak Keluaran Yellow-Header Table)    */
             /* ============================================================= */
-            <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
-              {/* Module Header */}
-              <div className="px-5 py-3.5 border-b border-[#E5EAF2] flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h1 className="font-display font-bold text-[17px] text-[#1E2C5E]">
-                    {activeTabTitle.replace(/^e-Faktur — |^Dokumen Lain — /, '')}
-                  </h1>
-                </div>
+            <div className="space-y-3">
+              {/* Breadcrumb matching Image 1 & Image 9 */}
+              <div className="text-[12px] text-slate-500 flex items-center gap-1.5 pt-1">
+                <Home className="w-3.5 h-3.5 text-slate-400" />
+                <span>Beranda</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <span>e-Faktur</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-slate-800 font-medium">
+                  {normalizedTab === 'output' ? 'Output Tax' : activeTabTitle.replace(/^e-Faktur — |^Dokumen Lain — /, '')}
+                </span>
               </div>
+
+              <h1 className="font-display font-bold text-[18px] text-[#1D2B53]">
+                {activeTabTitle.replace(/^e-Faktur — |^Dokumen Lain — /, '')}
+              </h1>
 
               {/* Official Coretax Action Bar — Exact Per-Submenu & Per-Account (Impersonate vs Akun Pribadi) */}
               {(() => {
@@ -2268,18 +2352,15 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         <button
                           type="button"
                           onClick={handleUploadSelectedDrafts}
-                          className={navyBtnCls}
+                          className="inline-flex items-center gap-1.5 bg-[#0B254E] hover:bg-[#071A38] text-white font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer shadow-xs whitespace-nowrap"
                         >
                           <Send className="w-3.5 h-3.5" />
-                          <span>
-                            Upload Faktur
-                            {selectedDraftInvoices.length > 0 ? ` (${selectedDraftInvoices.length})` : ''}
-                          </span>
+                          <span>Upload Faktur</span>
                         </button>
                         <button
                           type="button"
                           onClick={handleDeleteSelectedDrafts}
-                          className={redBtnCls}
+                          className="inline-flex items-center gap-1.5 bg-[#C65D5D] hover:bg-[#B34C4C] text-white font-semibold text-[11.5px] px-3.5 py-2 rounded-[3px] transition cursor-pointer shadow-xs whitespace-nowrap"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>Hapus Dokumen</span>
@@ -2775,10 +2856,44 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 Dilaporkan
                               </th>
                             </>
+                          ) : normalizedTab === 'output' ? (
+                            <>
+                              <th className="px-2.5 py-2.5 text-center whitespace-nowrap border-r border-[#E5B822] w-16" />
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                <span className="inline-flex items-center gap-1">
+                                  NPWP Pembeli / Identitas lainnya
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                Nama Pembeli
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                <span className="inline-flex items-center gap-1">
+                                  Kode Transaksi
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                Nomor Faktur Pajak
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-[#E5B822]">
+                                <span className="inline-flex items-center gap-1">
+                                  Tanggal Faktur Pajak
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                              <th className="px-3 py-2.5 text-left whitespace-nowrap">
+                                <span className="inline-flex items-center gap-1">
+                                  Masa Pajak
+                                  <ArrowUpDown className="w-3 h-3 opacity-60" />
+                                </span>
+                              </th>
+                            </>
                           ) : (
                             <>
                               <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50 w-10">
-                                {normalizedTab === 'output' ? '' : 'Aksi'}
+                                Aksi
                               </th>
                               <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 <span className="inline-flex items-center gap-1">
@@ -2810,53 +2925,20 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   <ArrowUpDown className="w-3 h-3 opacity-60" />
                                 </span>
                               </th>
-                              {normalizedTab === 'output' && (
-                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                                  Tahun
-                                </th>
-                              )}
                               <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
                                 <span className="inline-flex items-center gap-1">
                                   Status Faktur
-                                  {normalizedTab === 'output' && <ArrowUpDown className="w-3 h-3 opacity-60" />}
                                 </span>
                               </th>
-                              {normalizedTab === 'output' && (
-                                <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                                  ESignStatus
-                                </th>
-                              )}
                               <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                                {normalizedTab === 'output' ? 'Harga Jual/Penggantian/DPP' : 'Harga Jual / DPP'}
+                                Harga Jual / DPP
                               </th>
                               <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                                {normalizedTab === 'output' ? 'DPP Nilai Lain/DPP' : 'DPP Nilai Lain'}
+                                DPP Nilai Lain
                               </th>
                               <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
                                 PPN
                               </th>
-                              {normalizedTab === 'output' && (
-                                <>
-                                  <th className="px-3 py-2.5 text-right whitespace-nowrap border-r border-white/50">
-                                    PPnBM
-                                  </th>
-                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                                    Penandatangan
-                                  </th>
-                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                                    Referensi
-                                  </th>
-                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                                    Metode Input
-                                  </th>
-                                  <th className="px-3 py-2.5 text-left whitespace-nowrap border-r border-white/50">
-                                    Dilaporkan oleh Penjual
-                                  </th>
-                                  <th className="px-3 py-2.5 text-left whitespace-nowrap">
-                                    Dilaporkan oleh Pemungut PPN
-                                  </th>
-                                </>
-                              )}
                               {isInputTab && !isReturTab && (
                                 <th className="px-3 py-2.5 text-center whitespace-nowrap border-r border-white/50">
                                   Pengkreditan
@@ -3927,6 +4009,99 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   </select>
                                 </th>
                               </>
+                            ) : normalizedTab === 'output' ? (
+                              <>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={npwpFilter}
+                                      onChange={(e) => {
+                                        setNpwpFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
+                                    />
+                                    <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100" />
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <select
+                                    value={txCodeFilter}
+                                    onChange={(e) => {
+                                      setTxCodeFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[130px] border border-[#CBD5E1] bg-white rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
+                                  >
+                                    <option value="ALL">Pilih Kode Transaksi</option>
+                                    {FAKTUR_TRANSACTION_CODES.map((c) => (
+                                      <option key={c.code} value={c.code}>
+                                        {c.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <input
+                                    type="text"
+                                    value={invoiceNumFilter}
+                                    onChange={(e) => {
+                                      setInvoiceNumFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    placeholder=""
+                                    className="w-full min-w-[120px] border border-[#CBD5E1] rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
+                                  />
+                                </th>
+                                <th className="px-2 py-2 border-r border-slate-100">
+                                  <div className="flex items-center gap-1 min-w-[140px]">
+                                    <input
+                                      type="text"
+                                      value={dateFilter}
+                                      onChange={(e) => {
+                                        setDateFilter(e.target.value);
+                                        setPage(1);
+                                      }}
+                                      placeholder=""
+                                      className="w-full border border-[#CBD5E1] rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
+                                    />
+                                    <span className="p-1 rounded bg-[#E0F2FE] text-[#1E2C5E] shrink-0">
+                                      <Calendar className="w-3 h-3" />
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDateFilter('');
+                                        setPage(1);
+                                      }}
+                                      className="p-1 rounded bg-[#F1F5F9] hover:bg-slate-200 text-slate-500 shrink-0 cursor-pointer"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </th>
+                                <th className="px-2 py-2">
+                                  <select
+                                    value={monthFilter}
+                                    onChange={(e) => {
+                                      setMonthFilter(e.target.value);
+                                      setPage(1);
+                                    }}
+                                    className="w-full min-w-[110px] border border-[#CBD5E1] bg-white rounded-[3px] px-2 py-1 text-[11px] font-normal focus:outline-none focus:border-[#0088FF]"
+                                  >
+                                    <option value="ALL">Pilih Masa Pajak</option>
+                                    {MONTHS_ID.map((m, idx) => (
+                                      <option key={m} value={String(idx + 1)}>
+                                        {m}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </th>
+                              </>
                             ) : (
                               <>
                                 <th className="px-2 py-2 border-r border-slate-100" />
@@ -4034,20 +4209,22 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           <tr>
                             <td
                               colSpan={
-                                normalizedTab === 'input'
-                                  ? 21
-                                  : normalizedTab === 'output' || normalizedTab === 'dok_lain_masukan'
-                                    ? 20
-                                    : normalizedTab === 'retur_masukan'
-                                      ? 19
-                                      : normalizedTab === 'retur_keluaran' ||
-                                          normalizedTab === 'retur_dok_lain_masukan'
-                                        ? 17
-                                        : normalizedTab === 'dok_lain_keluaran'
-                                          ? 16
-                                          : normalizedTab === 'retur_dok_lain_keluaran'
-                                            ? 15
-                                            : 13
+                                normalizedTab === 'output'
+                                  ? 8
+                                  : normalizedTab === 'input'
+                                    ? 21
+                                    : normalizedTab === 'dok_lain_masukan'
+                                      ? 20
+                                      : normalizedTab === 'retur_masukan'
+                                        ? 19
+                                        : normalizedTab === 'retur_keluaran' ||
+                                            normalizedTab === 'retur_dok_lain_masukan'
+                                          ? 17
+                                          : normalizedTab === 'dok_lain_keluaran'
+                                            ? 16
+                                            : normalizedTab === 'retur_dok_lain_keluaran'
+                                              ? 15
+                                              : 13
                               }
                               className="px-4 py-3 text-left text-[12px] text-[#334155] bg-[#F1F5F9]/75"
                             >
@@ -4070,7 +4247,91 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                   }
                                 />
                               </td>
-                              {normalizedTab === 'input' ? (
+                              {normalizedTab === 'output' ? (
+                                <>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <div className="flex items-center gap-1.5">
+                                      {inv.status === 'DRAFT' ? (
+                                        <>
+                                          {/* Tombol Edit (Pensil Biru) */}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleEditRowInvoice(inv)}
+                                            className="w-6 h-6 rounded-[6px] bg-[#EBF5FB] hover:bg-[#D4EBF8] text-[#1E3A8A] inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                            title="Ubah Konsep Faktur"
+                                          >
+                                            <Edit3 className="w-3.5 h-3.5" />
+                                          </button>
+                                          {/* Tombol Hapus (Tong Sampah Merah) */}
+                                          <button
+                                            type="button"
+                                            onClick={() => onInvoiceAction(inv.id, 'DELETE')}
+                                            className="w-6 h-6 rounded-[6px] bg-[#C25E5E] hover:bg-[#A94A4A] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                            title="Hapus Dokumen"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          {/* Tombol Edit / Ganti (Pensil Biru) */}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleEditRowInvoice(inv)}
+                                            className="w-6 h-6 rounded-[6px] bg-[#EBF5FB] hover:bg-[#D4EBF8] text-[#1E3A8A] inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                            title="Ubah / Ganti Faktur"
+                                          >
+                                            <Edit3 className="w-3.5 h-3.5" />
+                                          </button>
+                                          {/* Tombol Batal Faktur (Target Kuning / Emas) */}
+                                          <button
+                                            type="button"
+                                            onClick={() => setCancelModalTarget(inv)}
+                                            className="w-6 h-6 rounded-[6px] bg-[#FEF6E7] hover:bg-[#FDECC8] text-[#B87A00] inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                            title="Batalkan Faktur Pajak"
+                                          >
+                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                              <circle cx="12" cy="12" r="9" />
+                                              <rect x="9" y="9" width="6" height="6" fill="currentColor" />
+                                            </svg>
+                                          </button>
+                                          {/* Tombol PDF (Dokumen Merah) */}
+                                          <button
+                                            type="button"
+                                            onClick={() => downloadFakturPajakPdf(inv, workspace.corporateTaxpayer)}
+                                            className="w-6 h-6 rounded-[6px] bg-[#C25E5E] hover:bg-[#A94A4A] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                            title="Download Faktur Pajak (PDF)"
+                                          >
+                                            <FileText className="w-3.5 h-3.5" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num text-[#334155] whitespace-nowrap">
+                                    {inv.counterpartyNpwp}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-normal text-[#1E293B] whitespace-nowrap">
+                                    {inv.counterpartyName}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-[#334155]">
+                                    {inv.status === 'DRAFT'
+                                      ? ''
+                                      : inv.transactionCode
+                                        ? `${inv.transactionCode} - DPP Nilai Lain`
+                                        : '04 - DPP Nilai Lain'}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-[#334155]">
+                                    {inv.status === 'DRAFT' ? '' : inv.invoiceNumber}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono-num whitespace-nowrap text-[#334155]">
+                                    {formatCoretaxDate(inv.invoiceDate)}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap text-[#334155]">
+                                    {MONTHS_ID[Math.max(0, (inv.taxPeriodMonth || 11) - 1)] || 'November'}
+                                  </td>
+                                </>
+                              ) : normalizedTab === 'input' ? (
                                 <>
                                   <td className="px-3 py-2.5 whitespace-nowrap">
                                     <div className="flex items-center gap-1.5">
@@ -4455,46 +4716,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                 <>
                                   <td className="px-3 py-2.5 whitespace-nowrap">
                                     <div className="flex items-center gap-1.5">
-                                      {normalizedTab === 'output' ? (
-                                    <>
-                                      {/* 1. Tombol Edit (Icon Pensil - Coretax Asli) */}
-                                      <button
-                                        type="button"
-                                        onClick={() => handleEditRowInvoice(inv)}
-                                        className="w-6 h-6 rounded-full border border-sky-400 bg-sky-50 hover:bg-sky-100 text-sky-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                                        title={inv.status === 'DRAFT' ? 'Edit Konsep Faktur' : 'Lihat / Ubah / Ganti Faktur'}
-                                      >
-                                        <Edit3 className="w-3.5 h-3.5" />
-                                      </button>
-
-                                      {/* 2. Tombol Batalin (Icon Kuning untuk Batalin - Coretax Asli) */}
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (inv.status === 'DRAFT') {
-                                            onInvoiceAction(inv.id, 'DELETE');
-                                          } else {
-                                            onInvoiceAction(inv.id, 'REQUEST_CANCEL');
-                                          }
-                                        }}
-                                        className="w-6 h-6 rounded-full border border-amber-400 bg-amber-50 hover:bg-amber-100 text-amber-600 inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                                        title={inv.status === 'DRAFT' ? 'Hapus Draft Faktur' : 'Batalkan Faktur Pajak'}
-                                      >
-                                        <Ban className="w-3.5 h-3.5" />
-                                      </button>
-
-                                      {/* 3. Tombol PDF Langsung Download PDF Format Coretax 100% */}
-                                      <button
-                                        type="button"
-                                        onClick={() => downloadFakturPajakPdf(inv, workspace.corporateTaxpayer)}
-                                        className="w-6 h-6 rounded-[4px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
-                                        title="Download Faktur Pajak (PDF Resmi DJP)"
-                                      >
-                                        <FileText className="w-3.5 h-3.5" />
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <>
                                       <button
                                         type="button"
                                         onClick={() =>
@@ -4517,8 +4738,6 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                                       >
                                         <FileText className="w-3.5 h-3.5" />
                                       </button>
-                                    </>
-                                  )}
 
                                   {inv.status === 'WAITING_FOR_AMENDMENT' && (
                                     <button
@@ -4814,7 +5033,9 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-slate-700 font-normal mb-1">Nama</label>
+                      <label className="block text-slate-700 font-normal mb-1">
+                        Nama <span className="text-rose-600">*</span>
+                      </label>
                       <input
                         type="text"
                         value={itemName}
@@ -4825,35 +5046,23 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-slate-700 font-normal mb-1">Satuan</label>
-                        <select
-                          value={txUnit}
-                          onChange={(e) => setTxUnit(e.target.value)}
-                          className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white"
-                          required
-                        >
-                          {STANDARD_TAX_UNITS.map((u) => (
-                            <option key={u} value={u}>
-                              {u}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-slate-700 font-normal mb-1">Kuantitas</label>
-                        <input
-                          type={quantityFocused ? 'number' : 'text'}
-                          min={1}
-                          value={quantityFocused ? (quantity === 0 ? '' : quantity) : String(quantity || 1)}
-                          onFocus={() => setQuantityFocused(true)}
-                          onBlur={() => setQuantityFocused(false)}
-                          onChange={(e) => setQuantity(Math.max(1, Number(e.target.value.replace(/[^0-9]/g, '')) || 1))}
-                          className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
-                          required
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-slate-700 font-normal mb-1">
+                        Satuan <span className="text-rose-600">*</span>
+                      </label>
+                      <select
+                        value={txUnit}
+                        onChange={(e) => setTxUnit(e.target.value)}
+                        className="w-full border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 bg-white cursor-pointer"
+                        required
+                      >
+                        <option value="" disabled>Pilih satuan ukur</option>
+                        {STANDARD_TAX_UNITS.map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
@@ -4870,12 +5079,26 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                     </div>
 
                     <div>
+                      <label className="block text-slate-700 font-normal mb-1">KUANTITAS</label>
+                      <input
+                        type={quantityFocused ? 'number' : 'text'}
+                        min={1}
+                        value={quantityFocused ? (quantity === 0 ? '' : quantity) : formatCoretaxDec(quantity || 1)}
+                        onFocus={() => setQuantityFocused(true)}
+                        onBlur={() => setQuantityFocused(false)}
+                        onChange={(e) => setQuantity(Math.max(1, Number(e.target.value.replace(/[^0-9]/g, '')) || 1))}
+                        className="w-full text-right border border-slate-300 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-800 font-mono-num bg-white"
+                        required
+                      />
+                    </div>
+
+                    <div>
                       <label className="block text-slate-700 font-normal mb-1">Total Harga</label>
                       <input
                         type="text"
                         readOnly
                         value={formatCoretaxDec(modalTotalPrice)}
-                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num"
+                        className="w-full text-right border border-slate-200 bg-[#F8FAFC] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] text-slate-700 font-mono-num cursor-not-allowed"
                       />
                     </div>
 
@@ -5179,6 +5402,26 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         onConfirm={async () => {
           if (signTarget) {
             await onInvoiceAction(signTarget.id, 'APPROVE');
+          }
+        }}
+      />
+
+      {/* Cancellation Electronic Signing Modal */}
+      <SignModal
+        open={Boolean(cancelModalTarget)}
+        title="Tanda Tangan Dokumen"
+        signerName={activeTaxpayer.name}
+        signerNik={activeTaxpayer.nikNpwp}
+        confirmLabel="Konfirmasi Tanda Tangan"
+        onClose={() => setCancelModalTarget(null)}
+        onConfirm={async () => {
+          if (cancelModalTarget) {
+            await onInvoiceAction(cancelModalTarget.id, 'REQUEST_CANCEL');
+            setFakturSuccessToast('Berhasil membatalkan Faktur Pajak!');
+            setCancelModalTarget(null);
+            setCreateModalOpen(false);
+            setEditingInvoice(null);
+            setIsViewingApproved(false);
           }
         }}
       />

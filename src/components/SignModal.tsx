@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 
 interface SignModalProps {
   open: boolean;
@@ -16,15 +16,13 @@ interface SignModalProps {
 export const SignModal: React.FC<SignModalProps> = ({
   open,
   title = 'Tanda Tangan Dokumen',
-  description,
-  signerName,
   signerNik,
   confirmLabel = 'Konfirmasi Tanda Tangan',
   onClose,
   onConfirm,
 }) => {
-  const [signingType, setSigningType] = useState('TAXPAYER');
-  const [provider, setProvider] = useState('KODE_OTORISASI_DJP');
+  const [signingType, setSigningType] = useState('Tanda Tangan Pembayar Pajak');
+  const [provider, setProvider] = useState('Kode Otorisasi DJP');
   const [passphrase, setPassphrase] = useState('123456');
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -34,7 +32,7 @@ export const SignModal: React.FC<SignModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passphrase.trim().length < 4) {
-      setErr('Kata Sandi Penandatangan / Passphrase minimal 4 karakter (default simulasi: 123456).');
+      setErr('Kata Sandi Penandatangan minimal 4 karakter.');
       return;
     }
     setErr(null);
@@ -51,10 +49,10 @@ export const SignModal: React.FC<SignModalProps> = ({
 
   const modalContent = (
     <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[6px] shadow-2xl border border-[#CBD5E1] w-full max-w-[680px] overflow-hidden">
-        {/* Authentic Coretax White Modal Title Bar */}
-        <div className="bg-white px-5 py-3.5 flex items-center justify-between border-b border-[#E2E8F0]">
-          <h3 className="font-display font-semibold text-[15px] text-[#1E293B]">
+      <div className="bg-white rounded-[4px] shadow-2xl border border-[#CBD5E1] w-full max-w-[850px] overflow-hidden">
+        {/* Authentic Coretax Modal Title Bar */}
+        <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-[#E2E8F0]">
+          <h3 className="font-sans font-medium text-[15px] text-[#1E293B]">
             {title}
           </h3>
           <button
@@ -67,88 +65,86 @@ export const SignModal: React.FC<SignModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {description && (
-            <div className="bg-[#D8F1FD] border border-[#9EE0FB] text-[#0E4A6B] text-[12px] px-3.5 py-2.5 rounded-[4px] leading-relaxed">
-              {description}
-            </div>
-          )}
-
-          {/* Authentic Coretax Deep Navy "Tanda Tangan" Sub-Header */}
-          <div className="border border-[#DCE2EC] rounded-[4px] overflow-hidden">
-            <div className="bg-[#1E2C5E] text-white px-4 py-2 text-[12px] font-semibold">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Authentic Coretax Light Gray "Tanda Tangan" Sub-Header Container */}
+          <div className="border border-[#E2E8F0] rounded-[3px] overflow-hidden">
+            <div className="bg-[#F8FAFC] text-slate-700 px-4 py-2.5 text-[12px] font-normal border-b border-[#E2E8F0]">
               Tanda Tangan
             </div>
 
-            <div className="p-4 space-y-3 bg-white text-[12px]">
+            <div className="p-5 space-y-4 bg-white text-[12px]">
               {/* Row 1: Jenis Penandatanganan */}
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:items-center">
-                <label className="sm:col-span-4 text-slate-600 font-medium">
-                  Jenis Penandatanganan <span className="text-red-500">*</span>
+                <label className="sm:col-span-4 text-slate-700 font-normal">
+                  Jenis Penandatanganan*
                 </label>
                 <div className="sm:col-span-8">
-                  <select
-                    value={signingType}
-                    onChange={(e) => setSigningType(e.target.value)}
-                    className="w-full border border-[#CBD5E1] rounded-[4px] px-3 py-1.5 text-[12px] bg-white text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
-                  >
-                    <option value="TAXPAYER">Tanda Tangan Pembayar Pajak</option>
-                    <option value="REPRESENTATIVE">Tanda Tangan Wakil / Kuasa Wajib Pajak</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={signingType}
+                      onChange={(e) => setSigningType(e.target.value)}
+                      className="w-full border border-[#CBD5E1] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-[#F8FAFC] text-[#1E293B] appearance-none pr-8 cursor-pointer focus:outline-none focus:border-[#0088FF]"
+                    >
+                      <option value="Tanda Tangan Pembayar Pajak">Tanda Tangan Pembayar Pajak</option>
+                      <option value="Tanda Tangan Wakil / Kuasa Wajib Pajak">Tanda Tangan Wakil / Kuasa Wajib Pajak</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
               {/* Row 2: Penyedia Penandatangan */}
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:items-center">
-                <label className="sm:col-span-4 text-slate-600 font-medium">
-                  Penyedia Penandatangan <span className="text-red-500">*</span>
+                <label className="sm:col-span-4 text-slate-700 font-normal">
+                  Penyedia Penandatangan*
                 </label>
                 <div className="sm:col-span-8">
-                  <select
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    className="w-full border border-[#CBD5E1] rounded-[4px] px-3 py-1.5 text-[12px] bg-white text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
-                  >
-                    <option value="KODE_OTORISASI_DJP">Kode Otorisasi DJP</option>
-                    <option value="BSRE">Balai Sertifikasi Elektronik (BSrE)</option>
-                    <option value="PERURI">PERURI Digital Signature</option>
-                  </select>
+                  <div className="relative flex items-center">
+                    <select
+                      value={provider}
+                      onChange={(e) => setProvider(e.target.value)}
+                      className="w-full border border-[#CBD5E1] rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] bg-white text-[#1E293B] appearance-none pr-12 cursor-pointer focus:outline-none focus:border-[#0088FF]"
+                    >
+                      <option value="Kode Otorisasi DJP">Kode Otorisasi DJP</option>
+                      <option value="Balai Sertifikasi Elektronik (BSrE)">Balai Sertifikasi Elektronik (BSrE)</option>
+                    </select>
+                    <div className="absolute right-2.5 flex items-center gap-1.5 pointer-events-none text-slate-400">
+                      <X className="w-3.5 h-3.5 hover:text-slate-600" />
+                      <ChevronDown className="w-4 h-4 text-slate-500" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Row 3: ID Penandatangan */}
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:items-center">
-                <label className="sm:col-span-4 text-slate-600 font-medium">
+                <label className="sm:col-span-4 text-slate-700 font-normal">
                   ID Penandatangan
                 </label>
                 <div className="sm:col-span-8">
                   <input
                     type="text"
                     readOnly
-                    value={`${signerNik} — ${signerName}`}
-                    className="w-full border border-[#DCE2EC] bg-[#EEF2F6] text-slate-700 rounded-[4px] px-3 py-1.5 text-[12px] font-mono-num"
+                    value={signerNik || '3175022907720009'}
+                    className="w-full sm:w-[55%] border border-[#CBD5E1] bg-[#EEF2F6] text-slate-700 rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num cursor-not-allowed"
                   />
                 </div>
               </div>
 
               {/* Row 4: Kata Sandi Penandatangan */}
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:items-center">
-                <label className="sm:col-span-4 text-slate-600 font-medium">
-                  Kata Sandi Penandatangan <span className="text-red-500">*</span>
+                <label className="sm:col-span-4 text-slate-700 font-normal">
+                  Kata Sandi Penandatangan
                 </label>
                 <div className="sm:col-span-8">
                   <input
                     type="password"
                     value={passphrase}
                     onChange={(e) => setPassphrase(e.target.value)}
-                    placeholder="Masukkan Passphrase Kode Otorisasi DJP (default: 123456)"
-                    className="w-full border border-[#CBD5E1] bg-[#EEF4FF] rounded-[4px] px-3 py-1.5 text-[12px] font-mono-num text-[#1E293B] focus:outline-none focus:border-[#1E2C5E]"
+                    placeholder=""
+                    className="w-full sm:w-[65%] border border-[#CBD5E1] bg-white rounded-[3px] px-3 py-1.5 h-[34px] text-[12px] font-mono-num text-[#1E293B] focus:outline-none focus:border-[#0088FF]"
                     required
                   />
-                  <p className="text-[10.5px] text-slate-400 mt-1">
-                    Simulasi Kode Otorisasi DJP: gunakan passphrase default{' '}
-                    <strong className="font-mono-num text-slate-600">123456</strong>.
-                  </p>
                 </div>
               </div>
             </div>
@@ -160,21 +156,21 @@ export const SignModal: React.FC<SignModalProps> = ({
             </div>
           )}
 
-          {/* Authentic Coretax Golden-Yellow Confirm Button on Bottom-Left */}
-          <div className="flex items-center justify-between gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-1.5 text-[12px] font-bold bg-[#F7CA36] hover:bg-[#E7B923] text-[#1E293B] border border-[#1E293B]/60 rounded-[4px] shadow-xs disabled:opacity-60 cursor-pointer transition"
-            >
-              {submitting ? 'Memproses...' : confirmLabel}
-            </button>
+          {/* Authentic Coretax Bottom Buttons: [Simpan] (Gray) & [Konfirmasi Tanda Tangan] (Gold/Amber) */}
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 text-[12px] font-semibold border border-[#CBD5E1] rounded-[4px] text-slate-600 hover:bg-slate-50 cursor-pointer"
+              className="px-6 py-2 rounded-[3px] bg-[#64748B] hover:bg-[#526175] text-white font-normal text-[12px] cursor-pointer shadow-sm transition"
             >
-              Batal
+              Simpan
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2 rounded-[3px] bg-[#E5A800] hover:bg-[#CA9400] text-white font-normal text-[12px] cursor-pointer shadow-sm disabled:opacity-60 transition"
+            >
+              {submitting ? 'Memproses...' : confirmLabel}
             </button>
           </div>
         </form>
