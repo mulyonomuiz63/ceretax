@@ -628,11 +628,16 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     );
     setSelectedDraftItemIds([]);
 
-    if (inv.status === 'APPROVED') {
+    const isAlreadyUploaded =
+      inv.status !== 'DRAFT' ||
+      Boolean(inv.invoiceNumber && !inv.invoiceNumber.startsWith('DRAFT'));
+
+    if (isAlreadyUploaded) {
       setIsViewingApproved(true);
       const isAlreadyReplacement = Boolean(
         inv.isReplacement ||
-        (inv.invoiceNumber && inv.invoiceNumber.length >= 4 && inv.invoiceNumber[3] === '1')
+        (inv.invoiceNumber && inv.invoiceNumber.length >= 4 && inv.invoiceNumber[3] === '1') ||
+        inv.status === 'AMENDED'
       );
       setIsAmendmentMode(isAlreadyReplacement);
       setReplacementFakturNumber(inv.invoiceNumber || '');
@@ -1792,7 +1797,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         type="button"
                         disabled={isViewingApproved}
                         onClick={handleOpenAddTxModal}
-                        className="bg-[#002D72] hover:bg-[#001D4A] disabled:opacity-50 text-white font-medium text-[11.5px] px-3.5 py-1.5 rounded-[3px] cursor-pointer shadow-xs transition"
+                        className={`text-white font-medium text-[11.5px] px-3.5 py-1.5 rounded-[3px] shadow-xs transition ${
+                          isViewingApproved
+                            ? 'bg-[#002D72]/50 opacity-40 cursor-not-allowed pointer-events-none'
+                            : 'bg-[#002D72] hover:bg-[#001D4A] cursor-pointer'
+                        }`}
                       >
                         Tambah Transaksi
                       </button>
@@ -1800,7 +1809,11 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         type="button"
                         disabled={isViewingApproved || selectedDraftItemIds.length === 0}
                         onClick={handleRemoveSelectedLines}
-                        className="bg-[#BA1B1B] hover:bg-[#961515] disabled:opacity-45 text-white font-medium text-[11.5px] px-3.5 py-1.5 rounded-[3px] cursor-pointer shadow-xs transition"
+                        className={`text-white font-medium text-[11.5px] px-3.5 py-1.5 rounded-[3px] shadow-xs transition ${
+                          isViewingApproved || selectedDraftItemIds.length === 0
+                            ? 'bg-[#BA1B1B]/50 opacity-40 cursor-not-allowed pointer-events-none'
+                            : 'bg-[#BA1B1B] hover:bg-[#961515] cursor-pointer'
+                        }`}
                       >
                         Hapus Transaksi
                       </button>
