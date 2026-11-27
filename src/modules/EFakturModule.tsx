@@ -44,6 +44,9 @@ import { GOODS_CODES, SERVICES_CODES } from '../data/efakturCodes.ts';
 import { SignModal } from '../components/SignModal.tsx';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
 import { downloadFakturPajakPdf } from '../utils/fakturPajakPdfGenerator.ts';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   CoretaxIconToolbar,
   CoretaxPagination,
@@ -1034,99 +1037,241 @@ ${invoiceNodes}
     });
 
     downloadCsvFile(filename, headers, rows);
-    setFakturSuccessToast(`Berhasil mengunduh data (${invoicesToExport.length} baris).`);
+    setFakturSuccessToast(`Berhasil mengunduh data CSV (${invoicesToExport.length} baris).`);
   };
 
-  const printInvoicesPdf = (invoicesToPrint: TaxInvoice[] = filteredInvoices) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      window.print();
-      return;
-    }
+  const exportInvoicesToExcel = (
+    invoicesToExport: TaxInvoice[] = filteredInvoices,
+    filename = `eFaktur_${normalizedTab}_${new Date().toISOString().slice(0, 10)}.xlsx`
+  ) => {
+    const headers = [
+      '',
+      'NPWP Pembeli / Identitas lainnya',
+      'Nama Pembeli',
+      'Kode Transaksi',
+      'Nomor Faktur Pajak',
+      'Tanggal Faktur Pajak',
+      'Masa Pajak',
+      'Tahun',
+      'Status Faktur',
+      'ESignStatus',
+      'Harga Jual/Penggantian/DPP',
+      'DPP Nilai Lain/DPP',
+      'PPN',
+      'PPnBM',
+      'Penandatangan',
+      'Referensi',
+      'Metode Input',
+      'Dilaporkan oleh Penjual',
+      'Dilaporkan oleh Pemungut PPN',
+    ];
 
-    const rowsHtml = invoicesToPrint.map((inv) => {
+    const rows = invoicesToExport.map((inv) => {
       const codeMatched = FAKTUR_TRANSACTION_CODES.find((c) => c.code === inv.transactionCode);
       const codeLabel = codeMatched ? `${inv.transactionCode} - ${codeMatched.label}` : `${inv.transactionCode} - DPP Nilai Lain`;
-      const txDate = inv.invoiceDate ? `${inv.invoiceDate.slice(0, 10)}T00:00:00` : '';
-      const monthName = MONTHS_ID[(inv.taxPeriodMonth || 11) - 1] || 'November';
+      const txDate = inv.invoiceDate ? `${inv.invoiceDate.slice(0, 10)}T00:00:00` : `${new Date().toISOString().slice(0, 10)}T00:00:00`;
+      const monthIdx = (inv.taxPeriodMonth || 11) - 1;
+      const monthName = MONTHS_ID[monthIdx] || 'November';
       const year = inv.taxPeriodYear || 2026;
       const eSignStatus = inv.status === 'APPROVED' ? 'Done' : 'Pending';
+      const signer = activeTaxpayer.name || 'ARIEF BASYARI';
 
-      return `<tr>
-        <td>${inv.counterpartyNpwp}</td>
-        <td>${inv.counterpartyName}</td>
-        <td>${codeLabel}</td>
-        <td>${inv.invoiceNumber || '-'}</td>
-        <td>${txDate}</td>
-        <td>${monthName}</td>
-        <td>${year}</td>
-        <td>${inv.status}</td>
-        <td>${eSignStatus}</td>
-        <td style="text-align:right">${Number(inv.dppTotal || 0).toLocaleString('id-ID')}</td>
-        <td style="text-align:right">${Number(inv.dppOtherValue || 0).toLocaleString('id-ID')}</td>
-        <td style="text-align:right">${Number(inv.ppnTotal || 0).toLocaleString('id-ID')}</td>
-        <td style="text-align:right">${Number(inv.ppnbmTotal || 0).toLocaleString('id-ID')}</td>
-        <td>${activeTaxpayer.name}</td>
-        <td>${inv.referenceCode || '-'}</td>
-        <td>MANUAL</td>
-        <td>false</td>
-        <td>-</td>
-      </tr>`;
-    }).join('');
+      return [
+        '',
+        inv.counterpartyNpwp || '',
+        inv.counterpartyName || '',
+        codeLabel,
+        inv.invoiceNumber || '',
+        txDate,
+        monthName,
+        year,
+        inv.status || 'DRAFT',
+        eSignStatus,
+        Math.round(inv.dppTotal || 0),
+        Math.round(inv.dppOtherValue || inv.dppTotal || 0),
+        Math.round(inv.ppnTotal || 0),
+        Math.round(inv.ppnbmTotal || 0),
+        signer,
+        inv.referenceCode || '',
+        'MANUAL',
+        'False',
+        '',
+      ];
+    });
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Daftar Faktur Pajak - Coretax DJP</title>
-        <style>
-          @page { size: landscape; margin: 12mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 8.5px; color: #1e293b; margin: 0; padding: 10px; }
-          h2 { font-size: 13px; margin-bottom: 6px; color: #002D72; }
-          p { font-size: 9px; margin-bottom: 10px; color: #475569; }
-          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-          th { background-color: #1B64B0; color: white; padding: 6px 4px; text-align: left; font-size: 8px; border: 1px solid #144e8c; white-space: nowrap; }
-          td { padding: 5px 4px; border: 1px solid #e2e8f0; font-size: 8px; white-space: nowrap; }
-          tr:nth-child(even) { background-color: #f8fafc; }
-        </style>
-      </head>
-      <body>
-        <h2>Daftar Faktur Pajak Keluaran — Coretax DJP</h2>
-        <p>Wajib Pajak: <strong>${activeTaxpayer.name}</strong> (${activeTaxpayer.nikNpwp}) | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>NPWP Pembeli / Identitas lainnya</th>
-              <th>Nama Pembeli</th>
-              <th>Kode Transaksi</th>
-              <th>Nomor Faktur Pajak</th>
-              <th>Tanggal Faktur Pajak</th>
-              <th>Masa Pajak</th>
-              <th>Tahun</th>
-              <th>Status Faktur</th>
-              <th>ESignStatus</th>
-              <th>Harga Jual/Penggantian/DPP</th>
-              <th>DPP Nilai Lain/DPP</th>
-              <th>PPN</th>
-              <th>PPnBM</th>
-              <th>Penandatangan</th>
-              <th>Referensi</th>
-              <th>Metode Input</th>
-              <th>Dilaporkan oleh Penjual</th>
-              <th>Dilaporkan oleh Pemungut PPN</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-        <script>
-          window.onload = function() { window.print(); }
-        </script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const colWidths = headers.map((h, i) => {
+      const maxLen = Math.max(
+        h.length,
+        ...rows.map((r) => String(r[i] ?? '').length)
+      );
+      return { wch: Math.min(Math.max(maxLen + 2, 10), 45) };
+    });
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Pajak Keluaran');
+    XLSX.writeFile(wb, filename);
+    setFakturSuccessToast(`File Excel (.xlsx) berhasil diunduh (${invoicesToExport.length} baris).`);
+  };
+
+  const exportInvoicesToPdf = (
+    invoicesToPrint: TaxInvoice[] = filteredInvoices,
+    filename = `eFaktur_${normalizedTab}_${new Date().toISOString().slice(0, 10)}.pdf`
+  ) => {
+    try {
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4',
+      });
+
+      // Page 1: Exact layout as Gambar 2
+      const headers1 = [
+        'NPWP Pembeli / Identitas lainnya',
+        'Nama Pembeli',
+        'Kode Transaksi',
+        'Nomor Faktur Pajak',
+        'Tanggal Faktur Pajak',
+      ];
+
+      const rows1 = invoicesToPrint.map((inv) => {
+        const codeMatched = FAKTUR_TRANSACTION_CODES.find((c) => c.code === inv.transactionCode);
+        const codeLabel = codeMatched ? `${inv.transactionCode} - ${codeMatched.label}` : `${inv.transactionCode} - DPP Nilai Lain`;
+        const txDate = inv.invoiceDate ? `${inv.invoiceDate.slice(0, 10)}T00:00:00` : '';
+        return [
+          inv.counterpartyNpwp || '',
+          inv.counterpartyName || '',
+          codeLabel,
+          inv.invoiceNumber || '',
+          txDate,
+        ];
+      });
+
+      autoTable(doc, {
+        head: [headers1],
+        body: rows1,
+        startY: 36,
+        theme: 'plain',
+        styles: {
+          fontSize: 8.5,
+          cellPadding: 6,
+          textColor: [33, 37, 41],
+          font: 'helvetica',
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: [0, 130, 189], // Exact Coretax Cyan-Blue from Gambar 2
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9,
+          cellPadding: 7,
+        },
+        alternateRowStyles: {
+          fillColor: [247, 249, 250],
+        },
+        margin: { top: 30, left: 24, right: 24, bottom: 30 },
+      });
+
+      // Page 2: Financial columns
+      doc.addPage('a4', 'landscape');
+      const headers2 = [
+        'Masa Pajak',
+        'Tahun',
+        'Status Faktur',
+        'ESignStatus',
+        'Harga Jual/Penggantian/DPP',
+        'DPP Nilai Lain/DPP',
+        'PPN',
+        'PPnBM',
+        'Penandatangan',
+        'Referensi',
+      ];
+      const rows2 = invoicesToPrint.map((inv) => {
+        const monthName = MONTHS_ID[(inv.taxPeriodMonth || 11) - 1] || 'November';
+        const year = inv.taxPeriodYear || 2026;
+        const eSignStatus = inv.status === 'APPROVED' ? 'Done' : 'Pending';
+        return [
+          monthName,
+          String(year),
+          inv.status || 'DRAFT',
+          eSignStatus,
+          String(Math.round(inv.dppTotal || 0)),
+          String(Math.round(inv.dppOtherValue || inv.dppTotal || 0)),
+          String(Math.round(inv.ppnTotal || 0)),
+          String(Math.round(inv.ppnbmTotal || 0)),
+          activeTaxpayer.name || 'ARIEF BASYARI',
+          inv.referenceCode || '',
+        ];
+      });
+
+      autoTable(doc, {
+        head: [headers2],
+        body: rows2,
+        startY: 36,
+        theme: 'plain',
+        styles: {
+          fontSize: 8,
+          cellPadding: 6,
+          textColor: [33, 37, 41],
+          font: 'helvetica',
+        },
+        headStyles: {
+          fillColor: [0, 130, 189],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5,
+          cellPadding: 7,
+        },
+        alternateRowStyles: {
+          fillColor: [247, 249, 250],
+        },
+        margin: { top: 30, left: 24, right: 24, bottom: 30 },
+      });
+
+      // Page 3: Reporting columns
+      doc.addPage('a4', 'landscape');
+      const headers3 = [
+        'Metode Input',
+        'Dilaporkan oleh Penjual',
+        'Dilaporkan oleh Pemungut PPN',
+      ];
+      const rows3 = invoicesToPrint.map(() => [
+        'MANUAL',
+        'false',
+        '',
+      ]);
+
+      autoTable(doc, {
+        head: [headers3],
+        body: rows3,
+        startY: 36,
+        theme: 'plain',
+        styles: {
+          fontSize: 9,
+          cellPadding: 6,
+          textColor: [33, 37, 41],
+          font: 'helvetica',
+        },
+        headStyles: {
+          fillColor: [0, 130, 189],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9.5,
+          cellPadding: 7,
+        },
+        alternateRowStyles: {
+          fillColor: [247, 249, 250],
+        },
+        margin: { top: 30, left: 24, right: 24, bottom: 30 },
+      });
+
+      doc.save(filename);
+      setFakturSuccessToast(`File PDF berhasil diunduh (${invoicesToPrint.length} baris).`);
+    } catch (err) {
+      console.error('PDF export error:', err);
+      window.print();
+    }
   };
 
 
@@ -3189,13 +3334,8 @@ ${invoiceNodes}
                 <CoretaxIconToolbar
                   onRefresh={resetTableFilters}
                   onExportCsv={() => exportInvoicesToCsv(filteredInvoices)}
-                  onExportExcel={() =>
-                    exportInvoicesToCsv(
-                      filteredInvoices,
-                      `eFaktur_${normalizedTab}_${new Date().toISOString().slice(0, 10)}.xlsx`
-                    )
-                  }
-                  onPrintPdf={() => printInvoicesPdf(filteredInvoices)}
+                  onExportExcel={() => exportInvoicesToExcel(filteredInvoices)}
+                  onPrintPdf={() => exportInvoicesToPdf(filteredInvoices)}
                   onToggleFilter={() => setShowColumnFilters((prev) => !prev)}
                   filterActive={showColumnFilters}
                 />
