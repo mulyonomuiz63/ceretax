@@ -2594,9 +2594,11 @@ ${invoiceNodes}
                     <button
                       type="button"
                       onClick={() => {
-                        if (editingInvoice) {
-                          setCancelModalTarget(editingInvoice);
-                        }
+                        setCreateModalOpen(false);
+                        setEditingInvoice(null);
+                        setIsViewingApproved(false);
+                        setIsAmendmentMode(false);
+                        setReplacementFakturNumber('');
                       }}
                       className="px-6 py-2 rounded-[4px] bg-[#00A3FF] hover:bg-[#008CE0] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                     >
