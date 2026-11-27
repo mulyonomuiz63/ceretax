@@ -573,6 +573,12 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
   const footerInfo = normalizeFooterSettings(branding.footer);
 
   const shellRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const compactAccountMenuRef = useRef<HTMLDivElement>(null);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const compactSearchRef = useRef<HTMLDivElement>(null);
   const navScrollRef = useRef<HTMLDivElement>(null);
   const [navPopoverAnchor, setNavPopoverAnchor] = useState<{
     key: Exclude<MainNavKey, 'dashboard'>;
@@ -727,14 +733,39 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (shellRef.current && !shellRef.current.contains(e.target as Node)) {
-        setOpenDropdown(null);
+      const target = e.target as Node;
+
+      // Close Notification Dropdown if clicking outside
+      if (notifRef.current && !notifRef.current.contains(target)) {
         setNotifOpen(false);
+      }
+
+      // Close Account/Profile Dropdown if clicking outside (handles both full and compact navbars)
+      const clickedInsideAccount =
+        (accountMenuRef.current && accountMenuRef.current.contains(target)) ||
+        (compactAccountMenuRef.current && compactAccountMenuRef.current.contains(target));
+      if (!clickedInsideAccount) {
         setAccountMenuOpen(false);
         setAccountSearch('');
+      }
+
+      // Close Language Dropdown if clicking outside
+      if (langMenuRef.current && !langMenuRef.current.contains(target)) {
         setLangMenuOpen(false);
+      }
+
+      // Close Search Dropdown if clicking outside
+      const clickedInsideSearch =
+        (searchRef.current && searchRef.current.contains(target)) ||
+        (compactSearchRef.current && compactSearchRef.current.contains(target));
+      if (!clickedInsideSearch) {
         setSearchFocused(false);
         setCompactSearchOpen(false);
+      }
+
+      // Close Nav Popover if clicking outside navigation bar
+      if (navScrollRef.current && !navScrollRef.current.contains(target)) {
+        setNavPopoverAnchor(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -951,7 +982,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </div>
 
               {/* Center: Search Box with Ctrl K */}
-              <div className="relative min-w-[200px] sm:min-w-[260px]">
+              <div ref={compactSearchRef} className="relative min-w-[200px] sm:min-w-[260px]">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
@@ -998,7 +1029,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </div>
 
               {/* Profile Hexagon Button */}
-              <div className="relative shrink-0">
+              <div ref={compactAccountMenuRef} className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -1050,7 +1081,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
             </div>
 
             {/* Center: Inline Search Box with Ctrl + K badge (Desktop xl+ only to prevent tablet overflow) */}
-            <div className="relative flex-1 min-w-[200px] max-w-[400px] hidden xl:block">
+            <div ref={searchRef} className="relative flex-1 min-w-[200px] max-w-[400px] hidden xl:block">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 ref={searchInputRef}
@@ -1173,7 +1204,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </button>
 
               {/* Notification Bell */}
-              <div className="relative">
+              <div ref={notifRef} className="relative">
                 <button
                   type="button"
                   onClick={() => {
@@ -1242,7 +1273,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </div>
 
               {/* Language Flag Selector (Visible on mobile & desktop like official mobile screenshot) */}
-              <div className="relative">
+              <div ref={langMenuRef} className="relative">
                 <button
                   type="button"
                   onClick={() => {
@@ -1294,7 +1325,7 @@ export const CoretaxShell: React.FC<CoretaxShellProps> = ({
               </div>
 
               {/* Profile Card (Matching Gambar 1 & Gambar 2; icon-only on mobile) */}
-              <div className="relative shrink-0">
+              <div ref={accountMenuRef} className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => {
