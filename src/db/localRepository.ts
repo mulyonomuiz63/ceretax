@@ -288,6 +288,7 @@ export async function submitReturnInMysql(
   statusCode?: number;
   taxReturn?: TaxReturn;
   notif?: NotificationItem;
+  billing?: BillingCode;
 }> {
   const ws = getOrSeedSync(nikKey);
   const ret = ws.returns.find((r) => r.id === returnId);
@@ -329,6 +330,7 @@ export async function submitReturnInMysql(
   const meta = kapMap[ret.returnType];
   const now = new Date().toISOString();
   let notif: NotificationItem;
+  let createdBilling: BillingCode | undefined;
 
   if (ret.underOverPayment > 0) {
     if (paymentMethod === 'DEPOSIT') {
@@ -355,6 +357,7 @@ export async function submitReturnInMysql(
         createdAt: now,
       };
     } else {
+      const expiredDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       const billing: BillingCode = {
         id: `bill-${Date.now()}-${Math.floor(Math.random() * 999)}`,
         taxpayerId: tp.id,
@@ -369,8 +372,10 @@ export async function submitReturnInMysql(
         billingCode: generateBillingCode(),
         amount: ret.underOverPayment,
         status: 'UNPAID',
+        expiredAt: expiredDate,
         createdAt: now,
       };
+      createdBilling = billing;
       ws.billings.unshift(billing);
       ret.paymentMethod = 'BILLING';
       ret.billingCodeId = billing.id;
@@ -406,6 +411,48 @@ export async function submitReturnInMysql(
   ret.updatedAt = now;
   ws.notifications.unshift(notif);
   if (ws.notifications.length > 60) ws.notifications.pop();
+  saveStore();
+  return { taxReturn: ret, notif, billing: createdBilling };
+}
+
+export async function expireReturnBillingInMysql(
+  nikKey: string,
+  returnId: string
+): Promise<{
+  error?: string;
+  statusCode?: number;
+  taxReturn?: TaxReturn;
+  notif?: NotificationItem;
+}> {
+  const ws = getOrSeedSync(nikKey);
+  const ret = ws.returns.find((r) => r.id === returnId);
+  if (!ret) return { error: 'SPT tidak ditemukan.', statusCode: 404 };
+
+  const now = new Date().toISOString();
+  if (ret.billingCodeId) {
+    const bill = ws.billings.find((b) => b.id === ret.billingCodeId);
+    if (bill) {
+      bill.status = 'EXPIRED';
+    }
+  }
+
+  ret.status = 'DRAFT';
+  ret.billingCodeId = undefined;
+  ret.paymentMethod = undefined;
+  ret.updatedAt = now;
+
+  const notif: NotificationItem = {
+    id: `notif-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
+    taxpayerId: ret.taxpayerId,
+    title: 'Kode Billing Kedaluwarsa (Expired)',
+    message: `Batas waktu pembayaran untuk SPT telah kedaluwarsa. SPT dikembalikan ke status Konsep. Silakan klik "Bayar dan Lapor" untuk mendapatkan Kode Billing baru.`,
+    category: 'BILLING',
+    relatedEntityId: ret.id,
+    isRead: false,
+    createdAt: now,
+  };
+
+  ws.notifications.unshift(notif);
   saveStore();
   return { taxReturn: ret, notif };
 }

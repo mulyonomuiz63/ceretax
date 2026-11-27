@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { BellRing, X } from 'lucide-react';
 import {
+  BillingCode,
   NotificationItem,
   OpAssetLiabilityFamily,
   TaxInvoice,
@@ -633,9 +634,22 @@ function CoretaxSimulatorApp() {
               });
             }}
             onSubmitReturn={async (id, paymentMethod) => {
-              await apiCall<{ taxReturn: TaxReturn }>(
+              const res = await apiCall<{ taxReturn: TaxReturn; billing?: BillingCode }>(
                 `/api/workspace/${workspace.nikKey}/returns/${id}/submit`,
                 { method: 'POST', body: JSON.stringify({ paymentMethod }) }
+              );
+              return res;
+            }}
+            onPayBilling={async (id) => {
+              await apiCall<{ billing: any }>(
+                `/api/workspace/${workspace.nikKey}/billings/${id}/pay`,
+                { method: 'POST' }
+              );
+            }}
+            onExpireBilling={async (returnId) => {
+              await apiCall<{ taxReturn: TaxReturn }>(
+                `/api/workspace/${workspace.nikKey}/returns/${returnId}/expire`,
+                { method: 'POST' }
               );
             }}
             onAddAsset={async (item: Omit<OpAssetLiabilityFamily, 'id' | 'taxpayerId'>) => {

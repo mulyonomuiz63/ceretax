@@ -602,9 +602,26 @@ async function startServer() {
       if (result.notif) {
         io.to(`room:nik:${nik}`).emit('notification:new', result.notif);
       }
-      return res.json({ taxReturn: result.taxReturn, workspace: ws });
+      return res.json({ taxReturn: result.taxReturn, billing: result.billing, workspace: ws });
     } catch (err) {
       return handleDbError(res, err, 'Gagal melaporkan SPT di MySQL.');
+    }
+  });
+
+  app.post('/api/workspace/:nik/returns/:id/expire', async (req: Request, res: Response) => {
+    try {
+      const nik = normalizeNik(req.params.nik);
+      const result = await mysqlRepo.expireReturnBillingInMysql(nik, req.params.id);
+      if (result.error) {
+        return res.status(result.statusCode || 400).json({ error: result.error });
+      }
+      const ws = await broadcastWorkspace(nik);
+      if (result.notif) {
+        io.to(`room:nik:${nik}`).emit('notification:new', result.notif);
+      }
+      return res.json({ taxReturn: result.taxReturn, workspace: ws });
+    } catch (err) {
+      return handleDbError(res, err, 'Gagal memproses kedaluwarsa billing SPT di MySQL.');
     }
   });
 

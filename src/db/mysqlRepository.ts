@@ -192,6 +192,7 @@ function mapBillingRow(row: RowDataPacket): BillingCode {
     status: String(row.status) as BillingCode['status'],
     ntpn: row.ntpn ? String(row.ntpn) : undefined,
     paidAt: row.paid_at ? String(row.paid_at) : undefined,
+    expiredAt: row.expired_at ? String(row.expired_at) : undefined,
     createdAt: String(row.created_at),
   };
 }
@@ -893,7 +894,13 @@ export async function submitReturnInMysql(
   nikKey: string,
   returnId: string,
   paymentMethod?: 'DEPOSIT' | 'BILLING' | 'NONE'
-): Promise<{ error?: string; statusCode?: number; taxReturn?: TaxReturn; notif?: NotificationItem }> {
+): Promise<{
+  error?: string;
+  statusCode?: number;
+  taxReturn?: TaxReturn;
+  notif?: NotificationItem;
+  billing?: BillingCode;
+}> {
   return withMysqlTransaction(async (conn) => {
     const [retRows] = await conn.execute<RowDataPacket[]>(
       `SELECT * FROM tax_returns WHERE nik_key = ? AND id = ? FOR UPDATE`,
@@ -946,6 +953,7 @@ export async function submitReturnInMysql(
     const meta = kapMap[ret.returnType];
     const now = new Date().toISOString();
     let notif: NotificationItem;
+    let createdBilling: BillingCode | undefined;
 
     if (ret.underOverPayment > 0) {
       if (paymentMethod === 'DEPOSIT') {
@@ -976,6 +984,7 @@ export async function submitReturnInMysql(
           createdAt: now,
         };
       } else {
+        const expiredDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         const billing: BillingCode = {
           id: `bill-${Date.now()}-${Math.floor(Math.random() * 999)}`,
           taxpayerId: tp.id,
@@ -990,6 +999,7 @@ export async function submitReturnInMysql(
           billingCode: generateBillingCode(),
           amount: ret.underOverPayment,
           status: 'UNPAID',
+          expiredAt: expiredDate,
           createdAt: now,
         };
         await conn.execute(
@@ -1014,6 +1024,7 @@ export async function submitReturnInMysql(
             billing.createdAt,
           ]
         );
+        createdBilling = billing;
         ret.paymentMethod = 'BILLING';
         ret.billingCodeId = billing.id;
         ret.status = 'WAITING_PAYMENT';
@@ -1062,6 +1073,69 @@ export async function submitReturnInMysql(
         ret.id,
       ]
     );
+
+    await insertNotificationWithConn(conn, nikKey, notif);
+    return { taxReturn: ret, notif, billing: createdBilling };
+  });
+}
+
+export async function expireReturnBillingInMysql(
+  nikKey: string,
+  returnId: string
+): Promise<{
+  error?: string;
+  statusCode?: number;
+  taxReturn?: TaxReturn;
+  notif?: NotificationItem;
+}> {
+  return withMysqlTransaction(async (conn) => {
+    const [retRows] = await conn.execute<RowDataPacket[]>(
+      `SELECT * FROM tax_returns WHERE nik_key = ? AND id = ? FOR UPDATE`,
+      [nikKey, returnId]
+    );
+    if (retRows.length === 0) {
+      return { error: 'SPT tidak ditemukan.', statusCode: 404 };
+    }
+    const ret = mapReturnRow(retRows[0]);
+    const now = new Date().toISOString();
+
+    if (ret.billingCodeId) {
+      try {
+        await conn.execute(
+          `UPDATE billing_codes SET status = 'EXPIRED' WHERE nik_key = ? AND id = ?`,
+          [nikKey, ret.billingCodeId]
+        );
+      } catch {
+        // Fallback if status enum doesn't have EXPIRED
+        await conn.execute(
+          `UPDATE billing_codes SET return_id = NULL WHERE nik_key = ? AND id = ?`,
+          [nikKey, ret.billingCodeId]
+        );
+      }
+    }
+
+    ret.status = 'DRAFT';
+    ret.billingCodeId = undefined;
+    ret.paymentMethod = undefined;
+    ret.updatedAt = now;
+
+    await conn.execute(
+      `UPDATE tax_returns
+       SET status = 'DRAFT', payment_method = NULL, billing_code_id = NULL, updated_at = ?
+       WHERE nik_key = ? AND id = ?`,
+      [now, nikKey, ret.id]
+    );
+
+    const notif: NotificationItem = {
+      id: `notif-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
+      taxpayerId: ret.taxpayerId,
+      title: 'Kode Billing Kedaluwarsa (Expired)',
+      message: `Batas waktu pembayaran untuk SPT telah kedaluwarsa. SPT dikembalikan ke status Konsep. Silakan klik "Bayar dan Lapor" untuk mendapatkan Kode Billing baru.`,
+      category: 'BILLING',
+      relatedEntityId: ret.id,
+      isRead: false,
+      createdAt: now,
+    };
 
     await insertNotificationWithConn(conn, nikKey, notif);
     return { taxReturn: ret, notif };

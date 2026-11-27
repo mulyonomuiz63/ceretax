@@ -383,3 +383,66 @@ export function generateNtpn(): string {
   }
   return out;
 }
+
+export function terbilang(n: number): string {
+  const bilangan = [
+    '',
+    'Satu',
+    'Dua',
+    'Tiga',
+    'Empat',
+    'Lima',
+    'Enam',
+    'Tujuh',
+    'Delapan',
+    'Sembilan',
+    'Sepuluh',
+    'Sebelas',
+  ];
+  const num = Math.floor(Math.abs(n || 0));
+  if (num === 0) return 'Nol Rupiah';
+
+  function helper(val: number): string {
+    if (val < 12) return bilangan[val];
+    if (val < 20) return helper(val - 10) + ' Belas';
+    if (val < 100) return helper(Math.floor(val / 10)) + ' Puluh ' + (val % 10 !== 0 ? helper(val % 10) : '');
+    if (val < 200) return 'Seratus ' + (val - 100 !== 0 ? helper(val - 100) : '');
+    if (val < 1000) return helper(Math.floor(val / 100)) + ' Ratus ' + (val % 100 !== 0 ? helper(val % 100) : '');
+    if (val < 2000) return 'Seribu ' + (val - 1000 !== 0 ? helper(val - 1000) : '');
+    if (val < 1000000) return helper(Math.floor(val / 1000)) + ' Ribu ' + (val % 1000 !== 0 ? helper(val % 1000) : '');
+    if (val < 1000000000) return helper(Math.floor(val / 1000000)) + ' Juta ' + (val % 1000000 !== 0 ? helper(val % 1000000) : '');
+    if (val < 1000000000000) return helper(Math.floor(val / 1000000000)) + ' Miliar ' + (val % 1000000000 !== 0 ? helper(val % 1000000000) : '');
+    return helper(Math.floor(val / 1000000000000)) + ' Triliun ' + (val % 1000000000000 !== 0 ? helper(val % 1000000000000) : '');
+  }
+
+  const result = helper(num).replace(/\s+/g, ' ').trim();
+  return `${result} Rupiah`;
+}
+
+export function formatNominalDjp(val: number): string {
+  const num = Math.round(val || 0);
+  return `${new Intl.NumberFormat('id-ID').format(num)},00`;
+}
+
+export function formatMasaPajakDjp(month?: number, year?: number): string {
+  const yr = year || new Date().getFullYear();
+  if (month && month > 0) {
+    const mm = String(month).padStart(2, '0');
+    return `${mm}${mm}${yr}`;
+  }
+  return `0112${yr}`;
+}
+
+export function formatExpiryDjp(isoDate?: string): string {
+  const d = isoDate ? new Date(isoDate) : new Date();
+  if (!isoDate) {
+    d.setDate(d.getDate() + 7);
+  }
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}:${ss}`;
+}

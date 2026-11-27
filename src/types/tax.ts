@@ -270,9 +270,10 @@ export interface BillingCode {
   taxPeriodLabel: string;
   billingCode: string;
   amount: number;
-  status: 'UNPAID' | 'PAID';
+  status: 'UNPAID' | 'PAID' | 'EXPIRED';
   ntpn?: string;
   paidAt?: string;
+  expiredAt?: string;
   createdAt: string;
 }
 

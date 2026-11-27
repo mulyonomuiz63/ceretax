@@ -5,8 +5,11 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  CreditCard,
   Edit3,
   Eye,
+  FileDown,
   FilePlus2,
   FileSpreadsheet,
   FileText,
@@ -19,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import {
+  BillingCode,
   OpAssetLiabilityFamily,
   ReturnType,
   SptPphMasaPayload,
@@ -32,6 +36,7 @@ import { createEmptyBadanPayload } from '../data/seedData.ts';
 import { MONTHS_ID, PTKP_VALUES } from '../utils/taxCalc.ts';
 import { PrintablePayload } from '../components/DocumentPrintModal.tsx';
 import { downloadSptIndukPdf, downloadBpePdf } from '../utils/sptIndukPdfGenerator.ts';
+import { BillingSlipModal } from '../components/BillingSlipModal.tsx';
 import { SptMasaPpnEditor } from './spt/SptMasaPpnEditor.tsx';
 import { SptMasaPphEditor } from './spt/SptMasaPphEditor.tsx';
 import { SptTahunanOpEditor } from './spt/SptTahunanOpEditor.tsx';
@@ -47,7 +52,9 @@ interface SptModuleProps {
   onCreateReturn: (ret: Omit<TaxReturn, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => Promise<TaxReturn>;
   onUpdateReturn: (ret: TaxReturn) => Promise<void>;
   onDeleteReturn: (id: string) => Promise<void>;
-  onSubmitReturn: (id: string, paymentMethod: 'DEPOSIT' | 'BILLING' | 'NONE') => Promise<void>;
+  onSubmitReturn: (id: string, paymentMethod: 'DEPOSIT' | 'BILLING' | 'NONE') => Promise<{ taxReturn?: TaxReturn; billing?: BillingCode } | void>;
+  onPayBilling?: (id: string) => Promise<void>;
+  onExpireBilling?: (returnId: string) => Promise<void>;
   onAddAsset: (item: Omit<OpAssetLiabilityFamily, 'id' | 'taxpayerId'>) => Promise<void>;
   onDeleteAsset: (id: string) => Promise<void>;
   onPrintDocument: (doc: PrintablePayload) => void;
@@ -272,11 +279,14 @@ export const SptModule: React.FC<SptModuleProps> = ({
   onUpdateReturn,
   onDeleteReturn,
   onSubmitReturn,
+  onPayBilling,
+  onExpireBilling,
   onAddAsset,
   onDeleteAsset,
   onPrintDocument,
 }) => {
   const [editingReturnId, setEditingReturnId] = useState<string | null>(null);
+  const [billingModalData, setBillingModalData] = useState<BillingCode | null>(null);
 
   // Authentic inline 3-step "Buat Konsep SPT" creation state
   const [creatingConcept, setCreatingConcept] = useState(false);
@@ -400,6 +410,43 @@ export const SptModule: React.FC<SptModuleProps> = ({
     return opts;
   }, []);
 
+  const handleSubmitReturnWrapper = async (
+    id: string,
+    paymentMethod: 'DEPOSIT' | 'BILLING' | 'NONE'
+  ) => {
+    const res = await onSubmitReturn(id, paymentMethod);
+    setEditingReturnId(null);
+
+    // If billing code was returned (tax payable > 0)
+    if (res && res.billing) {
+      setBillingModalData(res.billing);
+      onChangeSubTab('menunggu');
+    } else {
+      const current = workspace.returns.find((r) => r.id === id);
+      const isPayable =
+        paymentMethod === 'BILLING' ||
+        (current && (current.taxPayable > 0 || current.underOverPayment > 0));
+
+      if (isPayable) {
+        // Find newly created billing code
+        const bill = workspace.billings.find(
+          (b) => (b.returnId === id || b.id === current?.billingCodeId) && b.status === 'UNPAID'
+        );
+        if (bill) {
+          setBillingModalData(bill);
+        }
+        onChangeSubTab('menunggu');
+      } else {
+        // Nihil (no tax payable) -> straight to SPT Dilaporkan without billing slip
+        onChangeSubTab('dilaporkan');
+        setSuccessToast(
+          `SPT berhasil dilaporkan dengan Nomor BPE ${current?.bpeNumber || 'resmi'}!`
+        );
+        window.setTimeout(() => setSuccessToast(null), 5000);
+      }
+    }
+  };
+
   // If editing an existing SPT return, render the specialized SPT Form Editor
   if (editingReturn) {
     if (editingReturn.returnType === 'SPT_MASA_PPN') {
@@ -410,7 +457,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
           activeTaxpayer={activeTaxpayer}
           onBack={() => setEditingReturnId(null)}
           onSave={onUpdateReturn}
-          onSubmit={onSubmitReturn}
+          onSubmit={handleSubmitReturnWrapper}
         />
       );
     }
@@ -425,7 +472,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
           activeTaxpayer={activeTaxpayer}
           onBack={() => setEditingReturnId(null)}
           onSave={onUpdateReturn}
-          onSubmit={onSubmitReturn}
+          onSubmit={handleSubmitReturnWrapper}
         />
       );
     }
@@ -437,7 +484,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
           activeTaxpayer={activeTaxpayer}
           onBack={() => setEditingReturnId(null)}
           onSave={onUpdateReturn}
-          onSubmit={onSubmitReturn}
+          onSubmit={handleSubmitReturnWrapper}
           onAddAsset={onAddAsset}
           onDeleteAsset={onDeleteAsset}
         />
@@ -449,7 +496,7 @@ export const SptModule: React.FC<SptModuleProps> = ({
         activeTaxpayer={activeTaxpayer}
         onBack={() => setEditingReturnId(null)}
         onSave={onUpdateReturn}
-        onSubmit={onSubmitReturn}
+        onSubmit={handleSubmitReturnWrapper}
       />
     );
   }
@@ -1254,39 +1301,123 @@ export const SptModule: React.FC<SptModuleProps> = ({
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   </>
-                                ) : (
-                                  /* Exact 3 icons from PDF 1 Page 10 Step 13 (Eye, Green BPE/Mail, Red Download PDF) */
+                                ) : ret.status === 'WAITING_PAYMENT' ? (
+                                  /* Status SPT Menunggu Pembayaran: Eye (Billing Slip), Pay (NTPN), Expired */
                                   <>
                                     <button
                                       type="button"
-                                      onClick={() => setEditingReturnId(ret.id)}
-                                      title="Lihat isi SPT"
+                                      onClick={() => {
+                                        const bill = workspace.billings.find(
+                                          (b) =>
+                                            (b.returnId === ret.id || b.id === ret.billingCodeId) &&
+                                            b.status === 'UNPAID'
+                                        );
+                                        if (bill) {
+                                          setBillingModalData(bill);
+                                        } else {
+                                          setSuccessToast('Kode billing tidak ditemukan atau sudah dibayar.');
+                                        }
+                                      }}
+                                      title="Lihat Cetakan Kode Billing"
                                       className="w-6 h-6 rounded-[4px] border border-[#CBD5E1] bg-white hover:bg-slate-100 text-[#1E2C5E] inline-flex items-center justify-center cursor-pointer transition"
                                     >
-                                      <Eye className="w-3.5 h-3.5" />
+                                      <Eye className="w-3.5 h-3.5 text-blue-600" />
                                     </button>
+                                    {onPayBilling && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          const bill = workspace.billings.find(
+                                            (b) =>
+                                              (b.returnId === ret.id || b.id === ret.billingCodeId) &&
+                                              b.status === 'UNPAID'
+                                          );
+                                          if (bill) {
+                                            await onPayBilling(bill.id);
+                                            onChangeSubTab('dilaporkan');
+                                            setSuccessToast(
+                                              'Pembayaran Berhasil! SPT otomatis dilaporkan dan BPE diterbitkan.'
+                                            );
+                                            window.setTimeout(() => setSuccessToast(null), 5000);
+                                          }
+                                        }}
+                                        title="Bayar Kode Billing (Simulasi NTPN)"
+                                        className="px-2 py-1 rounded-[4px] bg-[#2E7D32] hover:bg-[#256628] text-white text-[10.5px] font-bold inline-flex items-center gap-1 cursor-pointer transition shadow-xs"
+                                      >
+                                        <CreditCard className="w-3 h-3" />
+                                        <span>Bayar</span>
+                                      </button>
+                                    )}
+                                    {onExpireBilling && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          await onExpireBilling(ret.id);
+                                          onChangeSubTab('konsep');
+                                          setSuccessToast(
+                                            'Kode Billing telah Kedaluwarsa (Expired). SPT dikembalikan ke status Konsep SPT.'
+                                          );
+                                          window.setTimeout(() => setSuccessToast(null), 5000);
+                                        }}
+                                        title="Simulasi Kode Billing Kedaluwarsa (Kembali ke Konsep SPT)"
+                                        className="px-2 py-1 rounded-[4px] bg-[#C62828] hover:bg-[#9B2C2C] text-white text-[10.5px] font-bold inline-flex items-center gap-1 cursor-pointer transition shadow-xs"
+                                      >
+                                        <Clock className="w-3 h-3" />
+                                        <span>Expired</span>
+                                      </button>
+                                    )}
+                                  </>
+                                ) : (
+                                  /* Exact 4 icons from Gambar 3 (Eye Review, Green Mail BPE, Navy View BPE, Red Download SPT PDF) */
+                                  <>
+                                    {/* Icon 1: Review SPT (Eye) */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingReturnId(ret.id)}
+                                      title="Review / Lihat isi SPT"
+                                      className="w-6 h-6 rounded-[4px] border border-[#CBD5E1] bg-white hover:bg-slate-100 text-[#1E2C5E] inline-flex items-center justify-center cursor-pointer transition"
+                                    >
+                                      <Eye className="w-3.5 h-3.5 text-blue-600" />
+                                    </button>
+                                    {/* Icon 2: Kirim BPE ke Email User (Green Mail) */}
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        downloadBpePdf(ret, activeTaxpayer);
+                                        setSuccessToast(
+                                          `Bukti Penerimaan Elektronik (BPE) berhasil dikirimkan ke email ${
+                                            activeTaxpayer.email || 'wajibpajak@djp.go.id'
+                                          }.`
+                                        );
+                                        window.setTimeout(() => setSuccessToast(null), 5000);
+                                      }}
+                                      title="Kirim BPE ke Email"
+                                      className="w-6 h-6 rounded-[4px] bg-[#2E7D32] hover:bg-[#256628] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
+                                    >
+                                      <Mail className="w-3.5 h-3.5" />
+                                    </button>
+                                    {/* Icon 3: Lihat Bukti Penerimaan Elektronik (Navy BPE) */}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
                                         onPrintDocument({
                                           type: 'BPE',
                                           taxReturn: ret,
                                           taxpayer: activeTaxpayer,
-                                        });
-                                      }}
-                                      title="Download & Cetak BPE (PDF)"
-                                      className="w-6 h-6 rounded-[4px] bg-[#2F7D4A] hover:bg-[#236339] text-white inline-flex items-center justify-center cursor-pointer transition"
+                                        })
+                                      }
+                                      title="Lihat Bukti Penerimaan Elektronik (BPE)"
+                                      className="w-6 h-6 rounded-[4px] bg-[#1E2C5E] hover:bg-[#16224A] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
                                     >
-                                      <Mail className="w-3.5 h-3.5" />
+                                      <FileText className="w-3.5 h-3.5" />
                                     </button>
+                                    {/* Icon 4: Download SPT PDF Sesuai Jenis SPT (Red PDF) */}
                                     <button
                                       type="button"
                                       onClick={() => downloadSptIndukPdf(ret, activeTaxpayer)}
-                                      title="Download SPT Induk (PDF Resmi DJP)"
-                                      className="w-6 h-6 rounded-[4px] bg-[#A83232] hover:bg-[#8B2626] text-white inline-flex items-center justify-center cursor-pointer transition"
+                                      title="Download SPT PDF (Resmi DJP)"
+                                      className="w-6 h-6 rounded-[4px] bg-[#C62828] hover:bg-[#A62020] text-white inline-flex items-center justify-center cursor-pointer transition shadow-xs"
                                     >
-                                      <FileText className="w-3.5 h-3.5" />
+                                      <FileDown className="w-3.5 h-3.5" />
                                     </button>
                                   </>
                                 )}
@@ -1357,6 +1488,28 @@ export const SptModule: React.FC<SptModuleProps> = ({
           </>
         )}
       </div>
+
+      {/* Official Coretax DJP Billing Slip Modal (Matches Gambar 2) */}
+      <BillingSlipModal
+        open={Boolean(billingModalData)}
+        billing={billingModalData}
+        taxpayer={activeTaxpayer}
+        onClose={() => {
+          setBillingModalData(null);
+          onChangeSubTab('menunggu');
+        }}
+        onPay={async (billId) => {
+          if (onPayBilling) {
+            await onPayBilling(billId);
+            setBillingModalData(null);
+            onChangeSubTab('dilaporkan');
+            setSuccessToast(
+              'Pembayaran Berhasil! SPT otomatis dilaporkan dan BPE resmi telah diterbitkan.'
+            );
+            window.setTimeout(() => setSuccessToast(null), 5000);
+          }
+        }}
+      />
     </div>
   );
 };

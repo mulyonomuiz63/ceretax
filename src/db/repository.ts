@@ -73,6 +73,8 @@ export const deleteReturn: typeof mysqlRepo.deleteReturn = (...args) =>
   activeRepo().deleteReturn(...args);
 export const submitReturnInMysql: typeof mysqlRepo.submitReturnInMysql = (...args) =>
   activeRepo().submitReturnInMysql(...args);
+export const expireReturnBillingInMysql: typeof mysqlRepo.expireReturnBillingInMysql = (...args) =>
+  activeRepo().expireReturnBillingInMysql(...args);
 export const insertBilling: typeof mysqlRepo.insertBilling = (...args) =>
   activeRepo().insertBilling(...args);
 export const payBillingInMysql: typeof mysqlRepo.payBillingInMysql = (...args) =>

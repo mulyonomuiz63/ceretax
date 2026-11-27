@@ -320,6 +320,12 @@ export async function ensureMysqlSchema(): Promise<Pool> {
         for (const sql of SCHEMA_STATEMENTS) {
           await conn.execute(sql);
         }
+        try {
+          await conn.execute("ALTER TABLE billing_codes MODIFY COLUMN status ENUM('UNPAID', 'PAID', 'EXPIRED') NOT NULL DEFAULT 'UNPAID'");
+        } catch {}
+        try {
+          await conn.execute("ALTER TABLE billing_codes ADD COLUMN expired_at VARCHAR(40) NULL AFTER paid_at");
+        } catch {}
       } finally {
         conn.release();
       }
