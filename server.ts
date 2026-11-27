@@ -221,6 +221,8 @@ async function startServer() {
         id: `inv-${Date.now()}-${Math.floor(Math.random() * 999)}`,
         status: req.body.status || 'DRAFT',
         amendmentSeq: 0,
+        isDownPayment: Boolean(req.body.isDownPayment),
+        isFinalPayment: Boolean(req.body.isFinalPayment),
         returnAmount: Number(req.body.returnAmount || 0),
         createdAt: new Date().toISOString(),
       };
@@ -317,6 +319,8 @@ async function startServer() {
       } else if (action === 'UPDATE') {
         if (payload) {
           Object.assign(inv, payload);
+          if (payload.isDownPayment !== undefined) inv.isDownPayment = Boolean(payload.isDownPayment);
+          if (payload.isFinalPayment !== undefined) inv.isFinalPayment = Boolean(payload.isFinalPayment);
         }
       }
 

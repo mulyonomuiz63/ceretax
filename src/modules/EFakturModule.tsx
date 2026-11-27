@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AlertCircle,
@@ -9,12 +9,15 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  CircleDot,
   Copy,
   Download,
   Edit3,
   Eye,
+  FileCode,
   FileText,
   Filter,
+  FolderOpen,
   Home,
   Info,
   Layers,
@@ -191,6 +194,8 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [monitoringOpen, setMonitoringOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const xmlFileInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
@@ -228,6 +233,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setAmendTarget(null);
     setMonitoringOpen(false);
     setBulkOpen(false);
+    setImportOpen(false);
     setSelectedIds([]);
     setPage(1);
   }, [resetKey, subTab, activeTaxpayer.id]);
@@ -679,6 +685,450 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     setFakturSuccessToast('Berhasil membuat Faktur Pajak Keluaran baru!');
   };
 
+  const escapeXml = (unsafe: string): string => {
+    return String(unsafe || '').replace(/[<>&'"]/g, (c) => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  };
+
+  const handleDownloadXmlFormat = () => {
+    const sellerTin = workspace.corporateTaxpayer.nikNpwp || '0753620525008000';
+    const sampleXml = `<?xml version="1.0" encoding="utf-8"?>
+<TaxInvoiceBulk xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="TaxInvoice.xsd">
+  <TIN>${sellerTin}</TIN>
+  <ListOfTaxInvoice>
+    <TaxInvoice>
+      <TaxInvoiceDate>2026-11-27</TaxInvoiceDate>
+      <TaxInvoiceOpt>Normal</TaxInvoiceOpt>
+      <TrxCode>01</TrxCode>
+      <AddInfo />
+      <CustomDoc />
+      <RefDesc />
+      <FacilityStamp />
+      <SellerIDTKU>${sellerTin}</SellerIDTKU>
+      <BuyerTin>0753620525008000</BuyerTin>
+      <BuyerDocument>TIN</BuyerDocument>
+      <BuyerCountry>IND</BuyerCountry>
+      <BuyerDocumentNumber />
+      <BuyerName>PT CONTOH PEMBELI INDONESIA</BuyerName>
+      <BuyerAdress>JL. JENDERAL SUDIRMAN KAV 20 JAKARTA</BuyerAdress>
+      <BuyerEmail>someemail@gmail.com</BuyerEmail>
+      <BuyerIDTKU>0753620525008000</BuyerIDTKU>
+      <ListOfGoodService>
+        <GoodService>
+          <Opt>A</Opt>
+          <Code>000000</Code>
+          <Name>Barang</Name>
+          <Unit>UM.0001</Unit>
+          <Price>15000</Price>
+          <Qty>200</Qty>
+          <TotalDiscount>100000</TotalDiscount>
+          <TaxBase>2900000</TaxBase>
+          <OtherTaxBase>2900000</OtherTaxBase>
+          <VATRate>11</VATRate>
+          <VAT>319000</VAT>
+          <STLGRate>20</STLGRate>
+          <STLG>580000</STLG>
+        </GoodService>
+      </ListOfGoodService>
+    </TaxInvoice>
+  </ListOfTaxInvoice>
+</TaxInvoiceBulk>`;
+
+    const blob = new Blob([sampleXml], { type: 'application/xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'TaxInvoiceBulk_Format.xml';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setFakturSuccessToast('Format XML Faktur Pajak berhasil diunduh.');
+  };
+
+  const handleDownloadXmlExport = (invoicesToExport: TaxInvoice[] = filteredInvoices) => {
+    const sellerTin = workspace.corporateTaxpayer.nikNpwp || '0753620525008000';
+    const invoiceNodes = invoicesToExport.map((inv) => {
+      const itemsNodes = (inv.items && inv.items.length > 0 ? inv.items : [{
+        id: 'item-1',
+        itemType: 'GOODS' as const,
+        itemCode: '000000',
+        itemName: 'Barang / Jasa',
+        unit: 'UM.0001',
+        unitPrice: inv.dppTotal,
+        quantity: 1,
+        discount: 0,
+        isLuxury: inv.ppnbmTotal > 0,
+        dpp: inv.dppTotal,
+        dppOtherValue: inv.dppOtherValue || inv.dppTotal,
+        ppn: inv.ppnTotal,
+        ppnbm: inv.ppnbmTotal,
+      }]).map((it) => `        <GoodService>
+          <Opt>${it.itemType === 'SERVICES' ? 'B' : 'A'}</Opt>
+          <Code>${it.itemCode || '000000'}</Code>
+          <Name>${escapeXml(it.itemName || 'Barang')}</Name>
+          <Unit>${it.unit || 'UM.0001'}</Unit>
+          <Price>${Math.round(it.unitPrice || 0)}</Price>
+          <Qty>${it.quantity || 1}</Qty>
+          <TotalDiscount>${Math.round(it.discount || 0)}</TotalDiscount>
+          <TaxBase>${Math.round(it.dpp || 0)}</TaxBase>
+          <OtherTaxBase>${Math.round(it.dppOtherValue || it.dpp || 0)}</OtherTaxBase>
+          <VATRate>12</VATRate>
+          <VAT>${Math.round(it.ppn || 0)}</VAT>
+          <STLGRate>${it.ppnbm > 0 ? 20 : 0}</STLGRate>
+          <STLG>${Math.round(it.ppnbm || 0)}</STLG>
+        </GoodService>`).join('\n');
+
+      return `    <TaxInvoice>
+      <TaxInvoiceDate>${inv.invoiceDate || '2026-11-27'}</TaxInvoiceDate>
+      <TaxInvoiceOpt>${inv.isReplacement ? 'Pengganti' : 'Normal'}</TaxInvoiceOpt>
+      <TrxCode>${(inv.transactionCode || '01').slice(0, 2)}</TrxCode>
+      <AddInfo />
+      <CustomDoc />
+      <RefDesc>${escapeXml(inv.referenceCode || '')}</RefDesc>
+      <FacilityStamp />
+      <SellerIDTKU>${sellerTin}</SellerIDTKU>
+      <BuyerTin>${inv.counterpartyNpwp || ''}</BuyerTin>
+      <BuyerDocument>TIN</BuyerDocument>
+      <BuyerCountry>IND</BuyerCountry>
+      <BuyerDocumentNumber />
+      <BuyerName>${escapeXml(inv.counterpartyName || '')}</BuyerName>
+      <BuyerAdress>${escapeXml(inv.counterpartyAddress || '')}</BuyerAdress>
+      <BuyerEmail>${escapeXml(inv.counterpartyEmail || '')}</BuyerEmail>
+      <BuyerIDTKU>000000</BuyerIDTKU>
+      <ListOfGoodService>
+${itemsNodes}
+      </ListOfGoodService>
+    </TaxInvoice>`;
+    }).join('\n');
+
+    const xmlContent = `<?xml version="1.0" encoding="utf-8"?>
+<TaxInvoiceBulk xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="TaxInvoice.xsd">
+  <TIN>${sellerTin}</TIN>
+  <ListOfTaxInvoice>
+${invoiceNodes}
+  </ListOfTaxInvoice>
+</TaxInvoiceBulk>`;
+
+    const blob = new Blob([xmlContent], { type: 'application/xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `TaxInvoiceBulk_Export_${new Date().toISOString().slice(0, 10)}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setFakturSuccessToast(`Berhasil mengekspor ${invoicesToExport.length} Faktur Pajak ke format XML.`);
+  };
+
+  const handleXmlFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'application/xml');
+      const parseError = doc.querySelector('parsererror');
+      if (parseError) {
+        setFakturSuccessToast('Gagal memproses file XML: Format tidak valid.');
+        return;
+      }
+
+      const invoiceNodes = doc.querySelectorAll('TaxInvoice');
+      if (invoiceNodes.length === 0) {
+        setFakturSuccessToast('Tidak ada data <TaxInvoice> yang ditemukan dalam file XML.');
+        return;
+      }
+
+      let importedCount = 0;
+      for (const invNode of Array.from(invoiceNodes)) {
+        const invoiceDate = invNode.querySelector('TaxInvoiceDate')?.textContent?.trim() || new Date().toISOString().slice(0, 10);
+        const trxCode = (invNode.querySelector('TrxCode')?.textContent?.trim() || '01').padStart(2, '0').slice(0, 2);
+        const buyerTin = invNode.querySelector('BuyerTin')?.textContent?.trim() || '';
+        const buyerName = invNode.querySelector('BuyerName')?.textContent?.trim() || 'PT PEMBELI XML';
+        const buyerAddress = invNode.querySelector('BuyerAdress')?.textContent?.trim() || '';
+        const buyerEmail = invNode.querySelector('BuyerEmail')?.textContent?.trim() || '';
+        const refDesc = invNode.querySelector('RefDesc')?.textContent?.trim() || '';
+        const isOpt = invNode.querySelector('TaxInvoiceOpt')?.textContent?.trim() || 'Normal';
+        const isReplacement = isOpt.toLowerCase().includes('pengganti');
+
+        const goodServiceNodes = invNode.querySelectorAll('GoodService');
+        const items: TaxInvoiceItem[] = [];
+        let dppTotal = 0;
+        let dppOtherTotal = 0;
+        let ppnTotal = 0;
+        let ppnbmTotal = 0;
+
+        if (goodServiceNodes.length > 0) {
+          goodServiceNodes.forEach((gs, idx) => {
+            const opt = gs.querySelector('Opt')?.textContent?.trim() || 'A';
+            const code = gs.querySelector('Code')?.textContent?.trim() || '000000';
+            const name = gs.querySelector('Name')?.textContent?.trim() || `Barang/Jasa ${idx + 1}`;
+            const unit = gs.querySelector('Unit')?.textContent?.trim() || 'UM.0001';
+            const price = parseFloat(gs.querySelector('Price')?.textContent?.trim() || '0') || 0;
+            const qty = parseFloat(gs.querySelector('Qty')?.textContent?.trim() || '1') || 1;
+            const discount = parseFloat(gs.querySelector('TotalDiscount')?.textContent?.trim() || '0') || 0;
+            const taxBase = parseFloat(gs.querySelector('TaxBase')?.textContent?.trim() || '0') || (price * qty - discount);
+            const otherTaxBase = parseFloat(gs.querySelector('OtherTaxBase')?.textContent?.trim() || '0') || taxBase;
+            const vat = parseFloat(gs.querySelector('VAT')?.textContent?.trim() || '0') || Math.round(otherTaxBase * 0.12);
+            const stlg = parseFloat(gs.querySelector('STLG')?.textContent?.trim() || '0') || 0;
+
+            dppTotal += taxBase;
+            dppOtherTotal += otherTaxBase;
+            ppnTotal += vat;
+            ppnbmTotal += stlg;
+
+            items.push({
+              id: `item-xml-${Date.now()}-${idx}`,
+              itemType: opt === 'B' ? 'SERVICES' : 'GOODS',
+              itemCode: code,
+              itemName: name,
+              unit,
+              unitPrice: price,
+              quantity: qty,
+              discount,
+              isLuxury: stlg > 0,
+              dpp: taxBase,
+              dppOtherValue: otherTaxBase,
+              ppn: vat,
+              ppnbm: stlg,
+            });
+          });
+        } else {
+          dppTotal = 1000000;
+          dppOtherTotal = 1000000;
+          ppnTotal = 120000;
+          items.push({
+            id: `item-xml-${Date.now()}-0`,
+            itemType: 'GOODS',
+            itemCode: '000000',
+            itemName: 'Barang',
+            unit: 'Unit',
+            unitPrice: 1000000,
+            quantity: 1,
+            discount: 0,
+            isLuxury: false,
+            dpp: 1000000,
+            dppOtherValue: 1000000,
+            ppn: 120000,
+            ppnbm: 0,
+          });
+        }
+
+        const parsedDate = new Date(invoiceDate);
+        await onCreateInvoice({
+          taxpayerId: activeTaxpayer.id,
+          direction: 'OUTPUT',
+          transactionCode: trxCode,
+          invoiceNumber: '',
+          referenceCode: refDesc,
+          counterpartyNpwp: buyerTin,
+          counterpartyName: buyerName,
+          counterpartyAddress: buyerAddress,
+          counterpartyEmail: buyerEmail,
+          invoiceDate,
+          taxPeriodMonth: parsedDate.getMonth() + 1 || 11,
+          taxPeriodYear: parsedDate.getFullYear() || 2026,
+          items,
+          dppTotal,
+          dppOtherValue: dppOtherTotal,
+          ppnTotal,
+          ppnbmTotal,
+          status: 'DRAFT',
+          isReplacement,
+          isCredited: false,
+          returnAmount: 0,
+        });
+
+        importedCount++;
+      }
+
+      setFakturSuccessToast(`Berhasil mengimpor ${importedCount} Faktur Pajak dari XML.`);
+    } catch (err) {
+      console.error(err);
+      setFakturSuccessToast('Gagal membaca file XML Faktur Pajak.');
+    } finally {
+      if (xmlFileInputRef.current) xmlFileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmitByPeriod = async () => {
+    const draftInvoices = filteredInvoices.filter((i) => i.status === 'DRAFT');
+    if (draftInvoices.length === 0) {
+      setFakturSuccessToast('Tidak ada Faktur Pajak berstatus DRAFT pada periode ini untuk di-submit.');
+      return;
+    }
+    for (const inv of draftInvoices) {
+      await onInvoiceAction(inv.id, 'APPROVE');
+    }
+    setFakturSuccessToast(`Berhasil men-submit ${draftInvoices.length} Faktur Pajak periode ini!`);
+  };
+
+  const exportInvoicesToCsv = (
+    invoicesToExport: TaxInvoice[] = filteredInvoices,
+    filename = `eFaktur_${normalizedTab}_${new Date().toISOString().slice(0, 10)}.csv`
+  ) => {
+    const headers = [
+      '',
+      'NPWP Pembeli / Identitas lainnya',
+      'Nama Pembeli',
+      'Kode Transaksi',
+      'Nomor Faktur Pajak',
+      'Tanggal Faktur Pajak',
+      'Masa Pajak',
+      'Tahun',
+      'Status Faktur',
+      'ESignStatus',
+      'Harga Jual/Penggantian/DPP',
+      'DPP Nilai Lain/DPP',
+      'PPN',
+      'PPnBM',
+      'Penandatangan',
+      'Referensi',
+      'Metode Input',
+      'Dilaporkan oleh Penjual',
+      'Dilaporkan oleh Pemungut PPN',
+    ];
+
+    const rows = invoicesToExport.map((inv) => {
+      const codeMatched = FAKTUR_TRANSACTION_CODES.find((c) => c.code === inv.transactionCode);
+      const codeLabel = codeMatched ? `${inv.transactionCode} - ${codeMatched.label}` : `${inv.transactionCode} - DPP Nilai Lain`;
+      const txDate = inv.invoiceDate ? `${inv.invoiceDate.slice(0, 10)}T00:00:00` : `${new Date().toISOString().slice(0, 10)}T00:00:00`;
+      const monthIdx = (inv.taxPeriodMonth || 11) - 1;
+      const monthName = MONTHS_ID[monthIdx] || 'November';
+      const year = inv.taxPeriodYear || 2026;
+      const eSignStatus = inv.status === 'APPROVED' ? 'Done' : 'Pending';
+      const signer = activeTaxpayer.name || 'ARIEF BASYARI';
+
+      return [
+        '',
+        inv.counterpartyNpwp || '',
+        inv.counterpartyName || '',
+        codeLabel,
+        inv.invoiceNumber || '',
+        txDate,
+        monthName,
+        String(year),
+        inv.status || 'DRAFT',
+        eSignStatus,
+        String(Math.round(inv.dppTotal || 0)),
+        String(Math.round(inv.dppOtherValue || inv.dppTotal || 0)),
+        String(Math.round(inv.ppnTotal || 0)),
+        String(Math.round(inv.ppnbmTotal || 0)),
+        signer,
+        inv.referenceCode || '',
+        'MANUAL',
+        'False',
+        '',
+      ];
+    });
+
+    downloadCsvFile(filename, headers, rows);
+    setFakturSuccessToast(`Berhasil mengunduh data (${invoicesToExport.length} baris).`);
+  };
+
+  const printInvoicesPdf = (invoicesToPrint: TaxInvoice[] = filteredInvoices) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const rowsHtml = invoicesToPrint.map((inv) => {
+      const codeMatched = FAKTUR_TRANSACTION_CODES.find((c) => c.code === inv.transactionCode);
+      const codeLabel = codeMatched ? `${inv.transactionCode} - ${codeMatched.label}` : `${inv.transactionCode} - DPP Nilai Lain`;
+      const txDate = inv.invoiceDate ? `${inv.invoiceDate.slice(0, 10)}T00:00:00` : '';
+      const monthName = MONTHS_ID[(inv.taxPeriodMonth || 11) - 1] || 'November';
+      const year = inv.taxPeriodYear || 2026;
+      const eSignStatus = inv.status === 'APPROVED' ? 'Done' : 'Pending';
+
+      return `<tr>
+        <td>${inv.counterpartyNpwp}</td>
+        <td>${inv.counterpartyName}</td>
+        <td>${codeLabel}</td>
+        <td>${inv.invoiceNumber || '-'}</td>
+        <td>${txDate}</td>
+        <td>${monthName}</td>
+        <td>${year}</td>
+        <td>${inv.status}</td>
+        <td>${eSignStatus}</td>
+        <td style="text-align:right">${Number(inv.dppTotal || 0).toLocaleString('id-ID')}</td>
+        <td style="text-align:right">${Number(inv.dppOtherValue || 0).toLocaleString('id-ID')}</td>
+        <td style="text-align:right">${Number(inv.ppnTotal || 0).toLocaleString('id-ID')}</td>
+        <td style="text-align:right">${Number(inv.ppnbmTotal || 0).toLocaleString('id-ID')}</td>
+        <td>${activeTaxpayer.name}</td>
+        <td>${inv.referenceCode || '-'}</td>
+        <td>MANUAL</td>
+        <td>false</td>
+        <td>-</td>
+      </tr>`;
+    }).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Daftar Faktur Pajak - Coretax DJP</title>
+        <style>
+          @page { size: landscape; margin: 12mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 8.5px; color: #1e293b; margin: 0; padding: 10px; }
+          h2 { font-size: 13px; margin-bottom: 6px; color: #002D72; }
+          p { font-size: 9px; margin-bottom: 10px; color: #475569; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+          th { background-color: #1B64B0; color: white; padding: 6px 4px; text-align: left; font-size: 8px; border: 1px solid #144e8c; white-space: nowrap; }
+          td { padding: 5px 4px; border: 1px solid #e2e8f0; font-size: 8px; white-space: nowrap; }
+          tr:nth-child(even) { background-color: #f8fafc; }
+        </style>
+      </head>
+      <body>
+        <h2>Daftar Faktur Pajak Keluaran — Coretax DJP</h2>
+        <p>Wajib Pajak: <strong>${activeTaxpayer.name}</strong> (${activeTaxpayer.nikNpwp}) | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>NPWP Pembeli / Identitas lainnya</th>
+              <th>Nama Pembeli</th>
+              <th>Kode Transaksi</th>
+              <th>Nomor Faktur Pajak</th>
+              <th>Tanggal Faktur Pajak</th>
+              <th>Masa Pajak</th>
+              <th>Tahun</th>
+              <th>Status Faktur</th>
+              <th>ESignStatus</th>
+              <th>Harga Jual/Penggantian/DPP</th>
+              <th>DPP Nilai Lain/DPP</th>
+              <th>PPN</th>
+              <th>PPnBM</th>
+              <th>Penandatangan</th>
+              <th>Referensi</th>
+              <th>Metode Input</th>
+              <th>Dilaporkan oleh Penjual</th>
+              <th>Dilaporkan oleh Pemungut PPN</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
 
   const formatCoretaxDate = (d?: string): string => {
     if (!d) return '25-11-2026';
@@ -973,6 +1423,13 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
 
   return (
     <div className="space-y-4">
+      <input
+        type="file"
+        ref={xmlFileInputRef}
+        accept=".xml"
+        onChange={handleXmlFileImport}
+        className="hidden"
+      />
       {fakturSuccessToast && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-white border border-slate-200/90 shadow-[0_10px_35px_rgba(0,0,0,0.14)] rounded-[4px] border-l-[5px] border-l-[#22C55E] min-w-[340px] max-w-[440px] overflow-hidden transition-all duration-200 animate-in fade-in slide-in-from-top-2">
           <div className="px-5 py-3.5">
@@ -1390,12 +1847,15 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         <input
                           type="checkbox"
                           checked={isDownPayment}
-                          disabled={isFinalPayment || isViewingApproved}
+                          disabled={isViewingApproved || isFinalPayment}
                           onChange={(e) => {
+                            if (isViewingApproved) return;
                             setIsDownPayment(e.target.checked);
                             if (e.target.checked) setIsFinalPayment(false);
                           }}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-[#0088FF] cursor-pointer"
+                          className={`w-4 h-4 rounded border-slate-300 text-blue-600 accent-[#0088FF] ${
+                            isViewingApproved ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                          }`}
                         />
                       </div>
                     </div>
@@ -1407,12 +1867,15 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                         <input
                           type="checkbox"
                           checked={isFinalPayment}
-                          disabled={isDownPayment || isViewingApproved}
+                          disabled={isViewingApproved || isDownPayment}
                           onChange={(e) => {
+                            if (isViewingApproved) return;
                             setIsFinalPayment(e.target.checked);
                             if (e.target.checked) setIsDownPayment(false);
                           }}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-[#0088FF] cursor-pointer"
+                          className={`w-4 h-4 rounded border-slate-300 text-blue-600 accent-[#0088FF] ${
+                            isViewingApproved ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                          }`}
                         />
                       </div>
                     </div>
@@ -2062,8 +2525,13 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       onClick={() => {
                         setMonitoringOpen((p) => !p);
                         setBulkOpen(false);
+                        setImportOpen(false);
                       }}
-                      className={navyBtnCls}
+                      className={
+                        monitoringOpen
+                          ? 'inline-flex items-center gap-1.5 bg-[#F7CA36] hover:bg-[#E5B822] text-[#1E2C5E] font-semibold text-[11.5px] px-3 py-2 rounded-[3px] transition cursor-pointer whitespace-nowrap shadow-xs'
+                          : navyBtnCls
+                      }
                     >
                       <Info className="w-3.5 h-3.5" />
                       <span>Monitoring</span>
@@ -2073,37 +2541,41 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       <div
                         className={`absolute ${
                           isRightAlignedOnlyBar ? 'right-0' : 'left-0'
-                        } top-full mt-1.5 w-64 bg-white border border-[#E2E8F0] rounded-lg shadow-xl p-3 z-30 text-xs space-y-1.5`}
+                        } top-full mt-1.5 w-56 bg-[#001D4A] border border-[#002D72] rounded-[4px] shadow-2xl py-1 z-50 text-[12px] text-white`}
                       >
-                        <div className="font-bold text-[#1E2C5E] pb-1 border-b border-slate-100">
-                          Ringkasan Status Faktur
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Total Faktur Tampil</span>
-                          <strong className="font-mono-num">{filteredInvoices.length}</strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">APPROVED</span>
-                          <strong className="font-mono-num text-emerald-700">
-                            {filteredInvoices.filter((i) => i.status === 'APPROVED').length}
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">DRAFT (Belum Upload)</span>
-                          <strong className="font-mono-num text-amber-700">
-                            {filteredInvoices.filter((i) => i.status === 'DRAFT').length}
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">AMENDED / CANCELLED</span>
-                          <strong className="font-mono-num text-blue-700">
-                            {
-                              filteredInvoices.filter(
-                                (i) => i.status === 'AMENDED' || i.status === 'CANCELLED'
-                              ).length
-                            }
-                          </strong>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMonitoringOpen(false);
+                            handleDownloadXmlExport();
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                        >
+                          <CircleDot className="w-3.5 h-3.5 text-blue-300" />
+                          <span>XML</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMonitoringOpen(false);
+                            handleSubmitByPeriod();
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                        >
+                          <Send className="w-3.5 h-3.5 text-blue-300" />
+                          <span>Submit by Period</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMonitoringOpen(false);
+                            exportInvoicesToCsv(filteredInvoices);
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-blue-300" />
+                          <span>Download CSV by Period</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2116,6 +2588,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       onClick={() => {
                         setBulkOpen((p) => !p);
                         setMonitoringOpen(false);
+                        setImportOpen(false);
                       }}
                       className={navyBtnCls}
                     >
@@ -2127,34 +2600,29 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                       <div
                         className={`absolute ${
                           isRightAlignedOnlyBar ? 'right-0' : 'left-0'
-                        } top-full mt-1.5 w-60 bg-white border border-[#E2E8F0] rounded-lg shadow-xl py-1.5 z-30 text-xs`}
+                        } top-full mt-1.5 w-56 bg-[#001D4A] border border-[#002D72] rounded-[4px] shadow-2xl py-1 z-50 text-[12px] text-white`}
                       >
-                        {isImpersonateAccount && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const firstDraft =
-                                filteredInvoices.find(
-                                  (i) => selectedIds.includes(i.id) && i.status === 'DRAFT'
-                                ) || filteredInvoices.find((i) => i.status === 'DRAFT');
-                              setBulkOpen(false);
-                              if (firstDraft) setSignTarget(firstDraft);
-                            }}
-                            className="w-full text-left px-3.5 py-2 hover:bg-slate-50 font-semibold text-[#1E2C5E] cursor-pointer"
-                          >
-                            Upload / Tandatangani Faktur DRAFT
-                          </button>
-                        )}
                         <button
                           type="button"
                           onClick={() => {
-                            resetTableFilters();
-                            setSelectedIds([]);
                             setBulkOpen(false);
+                            handleSubmitByPeriod();
                           }}
-                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-600 cursor-pointer"
+                          className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
                         >
-                          Reset Semua Filter &amp; Pilihan
+                          <Send className="w-3.5 h-3.5 text-blue-300" />
+                          <span>Submit by Period</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBulkOpen(false);
+                            exportInvoicesToCsv(filteredInvoices);
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-blue-300" />
+                          <span>Download CSV by Period</span>
                         </button>
                       </div>
                     )}
@@ -2458,17 +2926,47 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                             <Plus className="w-3.5 h-3.5" />
                             <span>Buat Faktur</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFakturSuccessToast('Fitur Impor Data XML Faktur Pajak siap digunakan.')
-                            }
-                            className={navyBtnCls}
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>Impor Data</span>
-                            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                          </button>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImportOpen((p) => !p);
+                                setMonitoringOpen(false);
+                                setBulkOpen(false);
+                              }}
+                              className={navyBtnCls}
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Impor Data</span>
+                              <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                            </button>
+                            {importOpen && (
+                              <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#001D4A] border border-[#002D72] rounded-[4px] shadow-2xl py-1 z-50 text-[12px] text-white">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setImportOpen(false);
+                                    xmlFileInputRef.current?.click();
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                                >
+                                  <FolderOpen className="w-3.5 h-3.5 text-blue-300" />
+                                  <span>Pilih File</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setImportOpen(false);
+                                    handleDownloadXmlFormat();
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-blue-300" />
+                                  <span>Unduh Format Data</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </>
                       ) : isImpersonateAccount && normalizedTab === 'dok_lain_keluaran' ? (
                         <>
@@ -2492,17 +2990,47 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                             <Plus className="w-3.5 h-3.5" />
                             <span>Prepopulated Data</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFakturSuccessToast('Fitur Impor Data XML Dokumen Lain Keluaran siap digunakan.')
-                            }
-                            className={navyBtnCls}
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>Impor Data</span>
-                            <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                          </button>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImportOpen((p) => !p);
+                                setMonitoringOpen(false);
+                                setBulkOpen(false);
+                              }}
+                              className={navyBtnCls}
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Impor Data</span>
+                              <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                            </button>
+                            {importOpen && (
+                              <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#001D4A] border border-[#002D72] rounded-[4px] shadow-2xl py-1 z-50 text-[12px] text-white">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setImportOpen(false);
+                                    xmlFileInputRef.current?.click();
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                                >
+                                  <FolderOpen className="w-3.5 h-3.5 text-blue-300" />
+                                  <span>Pilih File</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setImportOpen(false);
+                                    handleDownloadXmlFormat();
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#002D72] text-white cursor-pointer transition text-[12px]"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-blue-300" />
+                                  <span>Unduh Format Data</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </>
                       ) : null}
 
@@ -2660,61 +3188,14 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
               <div className="px-5">
                 <CoretaxIconToolbar
                   onRefresh={resetTableFilters}
-                  onExportCsv={() =>
-                    downloadCsvFile(
-                      `eFaktur_${normalizedTab}.csv`,
-                      [
-                        'NPWP Lawan Transaksi',
-                        'Nama Lawan Transaksi',
-                        'Kode Transaksi',
-                        'Nomor Faktur',
-                        'Tanggal',
-                        'DPP',
-                        'DPP Nilai Lain',
-                        'PPN',
-                        'Status',
-                      ],
-                      filteredInvoices.map((i) => [
-                        i.counterpartyNpwp,
-                        i.counterpartyName,
-                        i.transactionCode,
-                        i.invoiceNumber,
-                        i.invoiceDate,
-                        i.dppTotal,
-                        i.dppOtherValue,
-                        i.ppnTotal,
-                        i.status,
-                      ])
-                    )
-                  }
+                  onExportCsv={() => exportInvoicesToCsv(filteredInvoices)}
                   onExportExcel={() =>
-                    downloadCsvFile(
-                      `eFaktur_${normalizedTab}.csv`,
-                      [
-                        'NPWP Lawan Transaksi',
-                        'Nama Lawan Transaksi',
-                        'Kode Transaksi',
-                        'Nomor Faktur',
-                        'Tanggal',
-                        'DPP',
-                        'DPP Nilai Lain',
-                        'PPN',
-                        'Status',
-                      ],
-                      filteredInvoices.map((i) => [
-                        i.counterpartyNpwp,
-                        i.counterpartyName,
-                        i.transactionCode,
-                        i.invoiceNumber,
-                        i.invoiceDate,
-                        i.dppTotal,
-                        i.dppOtherValue,
-                        i.ppnTotal,
-                        i.status,
-                      ])
+                    exportInvoicesToCsv(
+                      filteredInvoices,
+                      `eFaktur_${normalizedTab}_${new Date().toISOString().slice(0, 10)}.xlsx`
                     )
                   }
-                  onPrintPdf={() => window.print()}
+                  onPrintPdf={() => printInvoicesPdf(filteredInvoices)}
                   onToggleFilter={() => setShowColumnFilters((prev) => !prev)}
                   filterActive={showColumnFilters}
                 />
