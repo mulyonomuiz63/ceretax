@@ -199,6 +199,7 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
   const [addTxModalOpen, setAddTxModalOpen] = useState(false);
   const [uploadAfterCreateOpen, setUploadAfterCreateOpen] = useState(false);
   const [cancelModalTarget, setCancelModalTarget] = useState<TaxInvoice | null>(null);
+  const [amendSignModalOpen, setAmendSignModalOpen] = useState(false);
   const [bulkSignTargets, setBulkSignTargets] = useState<TaxInvoice[]>([]);
   const [signTarget, setSignTarget] = useState<TaxInvoice | null>(null);
   const [returnTarget, setReturnTarget] = useState<TaxInvoice | null>(null);
@@ -627,17 +628,21 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     );
     setSelectedDraftItemIds([]);
 
-    // Editing any invoice automatically sets amendment/pengganti mode
-    setIsAmendmentMode(true);
-    setIsViewingApproved(false);
-
-    const cleanTx = matched.padStart(2, '0').slice(0, 2);
-    const yearDigits = (inv.invoiceDate || '2026').slice(2, 4);
-    let seqPart = '0000000001';
-    if (inv.invoiceNumber && inv.invoiceNumber.length >= 16 && !inv.invoiceNumber.startsWith('DRAFT')) {
-      seqPart = inv.invoiceNumber.slice(-10);
+    if (inv.status === 'APPROVED') {
+      setIsViewingApproved(true);
+      const isAlreadyReplacement = Boolean(
+        inv.isReplacement ||
+        (inv.invoiceNumber && inv.invoiceNumber.length >= 4 && inv.invoiceNumber[3] === '1')
+      );
+      setIsAmendmentMode(isAlreadyReplacement);
+      setReplacementFakturNumber(inv.invoiceNumber || '');
+    } else {
+      // DRAFT / Konsep Faktur: tetap Normal dan bisa diedit
+      setIsViewingApproved(false);
+      setIsAmendmentMode(false);
+      setReplacementFakturNumber('');
     }
-    setReplacementFakturNumber(`${cleanTx}01${yearDigits}${seqPart}`);
+
     setCreateModalOpen(true);
   };
 
@@ -853,15 +858,23 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
     const finalStatus: TaxInvoice['status'] =
       approveImmediately || isExport || direction === 'INPUT' ? 'APPROVED' : 'DRAFT';
 
-    if (editingInvoice && editingInvoice.status === 'DRAFT') {
+    if (editingInvoice) {
       const cleanTx = (txCode || '01').padStart(2, '0').slice(0, 2);
       const yearDigits = (invoiceDate || '2026').slice(2, 4);
       let seqPart = '0000000001';
       if (editingInvoice.invoiceNumber && editingInvoice.invoiceNumber.length >= 16 && !editingInvoice.invoiceNumber.startsWith('DRAFT')) {
         seqPart = editingInvoice.invoiceNumber.slice(-10);
+      } else {
+        const existingSeq = workspace.invoices.length + 10;
+        seqPart = String(existingSeq).padStart(10, '0');
       }
-      const penggantiNum = `${cleanTx}01${yearDigits}${seqPart}`;
-      const finalNum = approveImmediately ? penggantiNum : '';
+
+      // If in amendment mode (Pengganti), digit ke-4 is 1. If Normal, digit ke-4 is 0.
+      const statusDigits = isAmendmentMode ? '01' : '00';
+      const calculatedNum = `${cleanTx}${statusDigits}${yearDigits}${seqPart}`;
+      const finalNum = approveImmediately
+        ? calculatedNum
+        : (editingInvoice.status === 'APPROVED' ? calculatedNum : '');
 
       await onInvoiceAction(editingInvoice.id, 'UPDATE', {
         transactionCode: txCode,
@@ -882,54 +895,18 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
         ppnTotal: draftTotals.ppn,
         ppnbmTotal: draftTotals.ppnbm,
         status: finalStatus,
-        isReplacement: true,
+        isReplacement: isAmendmentMode,
         signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
       });
+
       setFakturSuccessToast(
         finalStatus === 'APPROVED'
-          ? `Faktur Pajak Pengganti No. ${penggantiNum} berhasil di-upload dan disetujui!`
-          : 'Konsep Faktur Pajak Pengganti berhasil disimpan!'
-      );
-    } else if (editingInvoice && editingInvoice.status === 'APPROVED') {
-      const cleanTx = (txCode || '01').padStart(2, '0').slice(0, 2);
-      const yearDigits = (invoiceDate || '2026').slice(2, 4);
-      let seqPart = '0000000001';
-      if (editingInvoice.invoiceNumber && editingInvoice.invoiceNumber.length >= 16 && !editingInvoice.invoiceNumber.startsWith('DRAFT')) {
-        seqPart = editingInvoice.invoiceNumber.slice(-10);
-      }
-      const penggantiNum = `${cleanTx}01${yearDigits}${seqPart}`;
-      await onCreateInvoice({
-        taxpayerId: activeTaxpayer.id,
-        direction,
-        transactionCode: txCode,
-        isDownPayment,
-        isFinalPayment,
-        invoiceNumber: penggantiNum,
-        referenceCode,
-        counterpartyNpwp,
-        counterpartyName,
-        counterpartyAddress: buyerAddress,
-        counterpartyEmail: buyerEmail,
-        invoiceDate,
-        taxPeriodMonth: parsedDate.getMonth() + 1 || 1,
-        taxPeriodYear: parsedDate.getFullYear() || 2026,
-        items: draftItems,
-        dppTotal: draftTotals.dpp,
-        dppOtherValue: draftTotals.dppOtherValue,
-        ppnTotal: draftTotals.ppn,
-        ppnbmTotal: draftTotals.ppnbm,
-        status: finalStatus,
-        signedAt: finalStatus === 'APPROVED' ? new Date().toISOString() : undefined,
-        isCredited: direction === 'INPUT',
-        returnAmount: 0,
-        isReplacement: true,
-        originalInvoiceNumber: editingInvoice.invoiceNumber,
-      });
-      await onInvoiceAction(editingInvoice.id, 'APPROVE_AMEND');
-      setFakturSuccessToast(
-        finalStatus === 'APPROVED'
-          ? `Faktur Pajak Pengganti No. ${penggantiNum} berhasil di-upload dan disetujui!`
-          : 'Konsep Faktur Pajak Pengganti berhasil disimpan!'
+          ? (isAmendmentMode
+              ? `Faktur Pajak Pengganti No. ${calculatedNum} berhasil di-upload dan disetujui!`
+              : `Faktur Pajak No. ${calculatedNum} berhasil di-upload dan disetujui!`)
+          : (isAmendmentMode
+              ? 'Konsep Faktur Pajak Pengganti berhasil disimpan!'
+              : 'Konsep Faktur Pajak berhasil disimpan!')
       );
     } else {
       const invNum = isExport
@@ -2000,26 +1977,13 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
                           setCancelModalTarget(editingInvoice);
                         }
                       }}
-                      className="px-6 py-2 rounded-[4px] bg-[#0088FF] hover:bg-[#0070D2] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
+                      className="px-6 py-2 rounded-[4px] bg-[#00A3FF] hover:bg-[#008CE0] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                     >
                       Batal
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (editingInvoice) {
-                          setIsViewingApproved(false);
-                          setIsAmendmentMode(true);
-                          const origNum = editingInvoice.invoiceNumber;
-                          let repNum = origNum;
-                          if (origNum && origNum.length >= 4) {
-                            repNum = `${origNum.slice(0, 3)}1${origNum.slice(4)}`;
-                          } else {
-                            repNum = '0401250000000001';
-                          }
-                          setReplacementFakturNumber(repNum);
-                        }
-                      }}
+                      onClick={() => setAmendSignModalOpen(true)}
                       className="px-6 py-2 rounded-[4px] bg-[#0088FF] hover:bg-[#0070D2] text-white font-medium text-[12px] cursor-pointer shadow-sm transition"
                     >
                       Ganti
@@ -5686,6 +5650,34 @@ export const EFakturModule: React.FC<EFakturModuleProps> = ({
           if (signTarget) {
             await onInvoiceAction(signTarget.id, 'APPROVE');
           }
+        }}
+      />
+
+      {/* Replacement / Ganti Faktur Electronic Signing Modal */}
+      <SignModal
+        open={amendSignModalOpen}
+        title="Tanda Tangan Dokumen"
+        description={`Penandatanganan elektronik untuk melakukan Penggantian Faktur Pajak No. ${editingInvoice?.invoiceNumber || ''}.`}
+        signerName={activeTaxpayer.name}
+        signerNik={activeTaxpayer.nikNpwp}
+        confirmLabel="Konfirmasi Tanda Tangan"
+        onClose={() => setAmendSignModalOpen(false)}
+        onConfirm={async () => {
+          if (editingInvoice) {
+            setIsViewingApproved(false);
+            setIsAmendmentMode(true);
+            const cleanTx = (txCode || '01').padStart(2, '0').slice(0, 2);
+            const yearDigits = (invoiceDate || '2026').slice(2, 4);
+            let seqPart = '0000000001';
+            const origNum = editingInvoice.invoiceNumber || '';
+            if (origNum && origNum.length >= 16 && !origNum.startsWith('DRAFT')) {
+              seqPart = origNum.slice(-10);
+            }
+            const repNum = `${cleanTx}01${yearDigits}${seqPart}`;
+            setReplacementFakturNumber(repNum);
+            setFakturSuccessToast('Faktur berhasil dialihkan ke mode Faktur Pengganti. Data transaksi siap diperbarui.');
+          }
+          setAmendSignModalOpen(false);
         }}
       />
 
